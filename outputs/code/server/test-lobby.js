@@ -174,7 +174,12 @@ async function run() {
   teacher.send({ t: 'settings', mode: 'impostor' });
   await teacher.next((m) => m.t === 'room' && m.settings.mode === 'impostor');
   teacher.send({ t: 'start' });
-  check('방해꾼 찾기는 아직 시작할 수 없다', (await teacher.type('error')).code === 'mode_not_ready');
+  // 방해꾼 찾기도 시작된다 (자세한 시험은 test-impostor.js). 확인 뒤 대기방으로 돌아가 얼음땡 시험을 이어 간다.
+  const impView = await teacher.next((m) => m.t === 'room' && m.phase === 'game' || m.t === 'error');
+  check('방해꾼 찾기도 시작할 수 있다', impView.t === 'room' && impView.settings.mode === 'impostor');
+  teacher.send({ t: 'end' });
+  await teacher.next((m) => m.t === 'room' && m.phase === 'lobby');
+  for (const c of students) c.clear(); // 방해꾼 찾기 판에서 받은 알림은 지운다
   teacher.send({ t: 'settings', mode: 'freeze-tag', chasers: 'auto', minutes: 5 });
   await teacher.next((m) => m.t === 'room' && m.settings.mode === 'freeze-tag' && m.settings.minutes === 5);
   teacher.clear();

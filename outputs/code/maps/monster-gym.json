@@ -125,7 +125,7 @@
       "path": [[2520, 170], [800, 170]],
       "duration": 1.5,
       "when": "press",
-      "who": { "freeze-tag": ["student"], "impostor": ["student", "saboteur"] },
+      "who": { "freeze-tag": ["student"], "impostor": ["student", "chaser"] },
       "cooldown": { "scope": "player", "seconds": 10 },
       "protectAfter": 1
     },
@@ -138,7 +138,7 @@
       "exitPick": "random",
       "duration": 1.5,
       "when": "press",
-      "who": { "freeze-tag": ["student"], "impostor": ["student", "saboteur"] },
+      "who": { "freeze-tag": ["student"], "impostor": ["student", "chaser"] },
       "cooldown": { "scope": "player", "seconds": 10 },
       "protectAfter": 1
     }

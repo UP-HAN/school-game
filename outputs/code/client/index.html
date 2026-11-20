@@ -57,6 +57,18 @@
           <label>학생 한 명이 풀 문제 수 <select id="t-missions"></select></label>
           <label>제한 시간 <select id="t-minutes"></select></label>
         </div>
+        <!-- 방해꾼 찾기에서만 보이는 설정 -->
+        <div id="t-imp" class="imp-settings" hidden>
+          <div class="row two">
+            <label>긴급회의 횟수 <select id="t-meetings"></select></label>
+            <label>제외된 사람 정체 공개 <select id="t-reveal-role"><option value="on">켜기</option><option value="off">끄기</option></select></label>
+          </div>
+          <button id="t-pick-toggle" class="btn small" type="button" aria-expanded="false">방해꾼 고르기 열기</button>
+          <div id="t-pick" class="pick-list" hidden>
+            <p class="hint">체크한 학생만 방해꾼이 돼요. 아무도 고르지 않으면 무작위예요. (TV에 띄울 때는 닫아 두세요)</p>
+            <div id="t-pick-rows"></div>
+          </div>
+        </div>
         <div class="row">
           <button id="t-start" class="btn primary" type="button">게임 시작</button>
           <button id="t-close" class="btn danger small" type="button">방 닫기</button>
@@ -110,6 +122,7 @@
     </div>
     <div class="hud hud-right">
       <button id="g-reveal" class="btn small" type="button" aria-pressed="false" hidden>학생 위치 보기</button>
+      <button id="g-roles" class="btn small" type="button" aria-pressed="false" hidden>역할 보기</button>
       <button id="g-report" class="btn small" type="button" hidden>학습 기록</button>
       <button id="g-end" class="btn danger small" type="button" hidden>게임 끝내기</button>
     </div>
@@ -121,8 +134,28 @@
         <span id="g-progress" class="progress-text">학교 복구율 0%</span>
       </div>
       <span id="g-missions" class="chip"></span>
+      <span id="g-meetings" class="chip" hidden></span>
     </div>
-    <button id="g-action" class="btn accent action" type="button" hidden><span id="g-action-label">문제 풀기</span></button>
+    <p id="g-alert" class="hud hud-alert chip" role="status" aria-live="polite" hidden></p>
+    <!-- 행동 버튼 묶음 (오른쪽 아래). 얼음땡은 g-action 하나만 쓴다 -->
+    <div id="g-buttons" class="actions">
+      <div id="g-sabo-menu" class="sabo-menu" hidden>
+        <button id="g-sabo-blackout" class="btn" type="button">1 정전</button>
+        <button id="g-sabo-lock" class="btn" type="button">2 문 잠금</button>
+        <button id="g-sabo-disguise" class="btn" type="button">3 위장</button>
+      </div>
+      <div class="actions-row">
+        <button id="g-map" class="btn small" type="button" hidden aria-pressed="false">지도 (M)</button>
+        <button id="g-sabo" class="btn action-sm sabo" type="button" hidden aria-expanded="false">방해 (F)</button>
+        <button id="g-alarm" class="btn action-sm alarm" type="button" hidden>신고 (R)</button>
+        <button id="g-freeze" class="btn action tag" type="button" hidden><span id="g-freeze-label">얼리기</span></button>
+        <button id="g-action" class="btn accent action" type="button" hidden><span id="g-action-label">문제 풀기</span></button>
+      </div>
+    </div>
+    <div id="g-minimap" class="minimap card" hidden>
+      <canvas id="g-minimap-canvas" aria-label="학교 지도"></canvas>
+      <button id="g-minimap-close" class="btn small" type="button">닫기</button>
+    </div>
     <div id="g-intro" class="intro" hidden>
       <div class="card">
         <h2 id="g-intro-title"></h2>
@@ -134,8 +167,34 @@
       <div class="card">
         <h2 id="g-over-title"></h2>
         <p id="g-over-text" class="sub"></p>
+        <p id="g-over-roles" class="sub"></p>
         <button id="g-myreport" class="btn primary" type="button" hidden>나의 기록 보기</button>
       </div>
+    </div>
+
+    <!-- 방해꾼 찾기: 회의 화면 -->
+    <div id="meeting" class="meeting" hidden>
+      <div class="siren" aria-hidden="true"><span></span><span></span></div>
+      <section class="card meeting-card" role="dialog" aria-modal="true" aria-labelledby="mt-title">
+        <header class="mt-head">
+          <h2 id="mt-title"></h2>
+          <p id="mt-sub" class="sub"></p>
+          <div class="mt-timer"><div id="mt-bar" class="mt-bar"></div><span id="mt-left" class="mt-left"></span></div>
+        </header>
+        <div id="mt-cards" class="mt-cards"></div>
+        <div id="mt-confirm" class="mt-confirm" hidden>
+          <p id="mt-confirm-text"></p>
+          <button id="mt-yes" class="btn primary" type="button">투표</button>
+          <button id="mt-no" class="btn small" type="button">취소</button>
+        </div>
+        <footer class="mt-foot">
+          <button id="mt-skip" class="btn big mt-skip" type="button" hidden>건너뛰기</button>
+          <div id="mt-teacher" class="row" hidden>
+            <button id="mt-extend" class="btn" type="button">토론 15초 더</button>
+            <button id="mt-vote" class="btn primary" type="button">바로 투표로</button>
+          </div>
+        </footer>
+      </section>
     </div>
 
     <!-- 문제 창 -->

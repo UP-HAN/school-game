@@ -35,10 +35,16 @@ export function recommendChasers(mode, playerCount) {
   const two = mode === 'impostor' ? 8 : 7;
   return playerCount >= two ? 2 : 1;
 }
-// 실제로 쓸 술래 수: 선생님이 고른 값이 있으면 그 값(학생이 1명은 남도록), 없으면 추천값
+// 술래(방해꾼)가 될 수 있는 최대 수. 학생이 1명은 남아야 하고,
+// 방해꾼 찾기는 시작하자마자 방해꾼 승리(학생 수 ≤ 방해꾼 수)가 되지 않도록 (인원 − 1) ÷ 2 (내림)까지.
+export function maxChasers(mode, playerCount) {
+  const cap = mode === 'impostor' ? Math.floor((playerCount - 1) / 2) : playerCount - 1;
+  return Math.max(1, cap);
+}
+// 실제로 쓸 술래 수: 선생님이 고른 값이 있으면 그 값(위 최대 수까지), 없으면 추천값
 export function chaserCount(settings, playerCount) {
   const want = settings.chasers === 'auto' || !settings.chasers ? recommendChasers(settings.mode, playerCount) : settings.chasers;
-  return Math.max(1, Math.min(want, playerCount - 1));
+  return Math.max(1, Math.min(want, maxChasers(settings.mode, playerCount)));
 }
 
 export const MAPS = [{ id: 'monster-gym', name: '몬스터 체육관' }];
@@ -70,6 +76,34 @@ export const TAG = {
   deviceReach: 80, // 미끄럼틀·개구멍 입구에서 이만큼 안에 있어야 탈 수 있다
 };
 export const MINUTES = [5, 8, 10, 12, 15];
+
+// 방해꾼 찾기 규칙 숫자 (outputs/05-spec-impostor.md 6절). "가정" 은 참고작에서 확인하지 못해 정한 값.
+export const IMPOSTOR = {
+  freezeReach: 100, // 얼리기 거리
+  freezeGraceMs: 15000, // 시작 뒤 첫 얼리기까지
+  freezeCooldownMs: 25000, // 얼리기 쿨타임
+  freezeAfterMeetingMs: 15000, // 회의가 끝난 뒤 다시 얼릴 수 있을 때까지 (가정)
+  sabotageGraceMs: 15000, // 시작 뒤 첫 방해까지 (가정)
+  blackoutMs: 8000, // 정전 지속
+  blackoutVision: 0.35, // 정전 때 살아 있는 학생 시야 배율
+  blackoutCooldownMs: 40000, // 정전 쿨타임 (방해꾼 팀 공용)
+  lockMs: 7000, // 문 잠금 지속
+  lockCooldownMs: 45000, // 문 잠금 쿨타임 (방해꾼 팀 공용)
+  lockReach: 300, // 이 거리 안의 잠글 수 있는 문만 잠근다 (가정)
+  disguiseMs: 10000, // 위장 지속
+  disguisePerGame: 2, // 위장 횟수 (사람마다)
+  reportReach: 110, // 얼음 흔적 신고 거리
+  buttonReach: 90, // 긴급회의 버튼 거리 (가정)
+  buttonGraceMs: 15000, // 시작·회의 뒤 버튼 대기 (가정)
+  meetingsDefault: 3, // 긴급회의 총 횟수 기본
+  meetingIntroMs: 2000, // 회의 시작 알림 (가정)
+  discussMs: 25000, // 토론
+  voteMs: 15000, // 투표
+  resultMs: 3500, // 결과
+  extendMs: 15000, // 선생님 토론 연장 (가정)
+  extendMax: 2, // 회의당 연장 횟수 (가정)
+};
+export const MEETINGS = [0, 1, 2, 3, 4, 5]; // 선생님 설정 선택지 (긴급회의 총 횟수)
 
 export function playerLabel(colorIndex, characterId) {
   const c = COLORS[colorIndex];

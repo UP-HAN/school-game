@@ -6,7 +6,7 @@
   "description": "학습용 술래/방해꾼 게임 (가칭)",
   "scripts": {
     "start": "node --env-file-if-exists=.env server/index.js",
-    "test": "node server/test-lobby.js"
+    "test": "node server/test-lobby.js && node server/test-impostor.js"
   },
   "dependencies": {
     "ws": "^8.18.0"

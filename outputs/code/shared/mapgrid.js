@@ -37,8 +37,9 @@ export function cellAt(g, x, y) {
   return g.cells[cy * g.cols + cx];
 }
 
-// 발밑 가운데가 (x, y) 이고 반지름이 r 인 캐릭터가 서 있을 수 있는가
-export function canStand(g, x, y, r) {
+// 발밑 가운데가 (x, y) 이고 반지름이 r 인 캐릭터가 서 있을 수 있는가.
+// locked: 잠긴 문 rect 목록(선택). 잠긴 문 칸은 벽처럼 막힌다.
+export function canStand(g, x, y, r, locked) {
   const x0 = Math.floor((x - r) / g.cell);
   const x1 = Math.floor((x + r) / g.cell);
   const y0 = Math.floor((y - r) / g.cell);
@@ -47,8 +48,25 @@ export function canStand(g, x, y, r) {
   for (let cy = y0; cy <= y1; cy++) {
     for (let cx = x0; cx <= x1; cx++) if (g.cells[cy * g.cols + cx] !== FLOOR) return false;
   }
+  if (locked) for (const rect of locked) if (touchesRect(g, rect, x, y, r)) return false;
   return true;
 }
+
+// 캐릭터(가운데 x,y 반지름 r)가 차지하는 격자 칸이 rect(문 등)의 칸과 겹치는가. 격자 칠하기(buildGrid)와 같은 칸 계산.
+export function touchesRect(g, rect, x, y, r) {
+  const rx0 = Math.round(rect[0] / g.cell);
+  const ry0 = Math.round(rect[1] / g.cell);
+  const rx1 = Math.round((rect[0] + rect[2]) / g.cell);
+  const ry1 = Math.round((rect[1] + rect[3]) / g.cell);
+  const x0 = Math.floor((x - r) / g.cell);
+  const x1 = Math.floor((x + r) / g.cell);
+  const y0 = Math.floor((y - r) / g.cell);
+  const y1 = Math.floor((y + r) / g.cell);
+  return x0 < rx1 && x1 >= rx0 && y0 < ry1 && y1 >= ry0;
+}
+
+// 맵 장치의 who 에 쓸 수 있는 역할 값 (두 모드 모두 'student'·'chaser')
+export const ROLES = ['student', 'chaser'];
 
 export function zoneAt(map, x, y) {
   for (const z of map.zones || []) {
@@ -98,6 +116,11 @@ export function validateMap(map, g = buildGrid(map), radius = 14) {
   for (const t of map.terminals || []) reach(t.pos, `단말기 ${t.id}`);
   if (map.meetingButton) reach(map.meetingButton.pos, '긴급회의 버튼');
   for (const d of map.devices || []) {
+    for (const [mode, list] of Object.entries(d.who || {})) {
+      for (const role of list || []) {
+        if (!ROLES.includes(role)) problems.push(`장치 ${d.id}: who.${mode} 에 모르는 역할 '${role}' (student·chaser 만 쓴다)`);
+      }
+    }
     reach(d.from, `장치 ${d.id} 입구`);
     if (d.type === 'teleport') {
       if (!d.exits || !d.exits.length) problems.push(`장치 ${d.id}: 출구가 없다`);

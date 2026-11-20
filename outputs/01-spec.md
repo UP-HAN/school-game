@@ -30,12 +30,12 @@
 ```
 {
   "id": "...", "type": "slide|teleport|gate|switch", "when": "enter|press|always",
-  "who": { "freeze-tag": ["student"], "impostor": ["student", "saboteur"] },
+  "who": { "freeze-tag": ["student"], "impostor": ["student", "chaser"] },
   "cooldown": { "scope": "player", "seconds": 10 },
   "protectAfter": 1
 }
 ```
-- `who` 는 **모드별로** 적는다 (얼음땡 `freeze-tag`, 어몽어스 `impostor`). 같은 장치라도 모드에 따라 쓸 수 있는 역할이 다르기 때문이다.
+- `who` 는 **모드별로** 적는다 (얼음땡 `freeze-tag`, 어몽어스 `impostor`). 같은 장치라도 모드에 따라 쓸 수 있는 역할이 다르기 때문이다. 역할 값은 두 모드 모두 `student`(학생)·`chaser`(얼음땡의 술래 / 방해꾼 찾기의 방해꾼) 두 개뿐이다 (05 명세 1-1절).
 - `cooldown.scope` 가 `player` 면 쓴 사람만, `device` 면 장치 전체가 잠긴다. 기본은 `player` 10초.
 - `protectAfter` 는 도착 후 보호 시간(초). 타는 동안은 항상 못 잡는다.
 - 종류별 추가 항목: slide 는 `from/to/duration`, teleport 는 `from/exits/exitPick/duration`.

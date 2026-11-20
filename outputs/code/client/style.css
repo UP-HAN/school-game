@@ -144,11 +144,34 @@ input::placeholder { color: #a39cb8; }
 }
 .progress-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: repeating-linear-gradient(45deg, #7be08a 0 14px, #5fd070 14px 28px); transition: width .5s; }
 .progress-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.1rem; white-space: nowrap; }
+/* 행동 버튼 묶음: 오른쪽 아래 */
+.actions { position: absolute; right: 22px; bottom: 26px; z-index: 3; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; pointer-events: none; }
+.actions > * { pointer-events: auto; }
+.actions-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap-reverse; justify-content: flex-end; max-width: calc(100vw - 44px); pointer-events: none; }
+.actions-row > * { pointer-events: auto; }
 .action {
-  position: absolute; right: 22px; bottom: 26px; z-index: 3;
+  position: relative;
   min-width: 132px; min-height: 84px; font-size: 1.5rem; border-radius: 26px;
   animation: nudge 1s ease-in-out infinite;
 }
+.action.emergency { background: var(--danger); }
+.action-sm { min-height: 64px; min-width: 96px; font-size: 1.2rem; border-radius: 20px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.action-sm.sabo { background: #9b6bf2; color: #fff; }
+.action-sm.sabo[aria-expanded="true"] { background: var(--sun); color: var(--ink); }
+.action-sm.alarm { background: var(--sun); animation: nudge .8s ease-in-out infinite; }
+.sabo-menu { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--paper); border: 4px solid var(--ink); border-radius: 20px; box-shadow: var(--shadow); }
+.sabo-menu .btn { min-height: 52px; text-align: left; }
+#g-sabo-blackout { background: #3b335a; color: #fff; }
+#g-sabo-lock { background: #ffd6d2; }
+#g-sabo-disguise { background: #e3d6ff; }
+.hud-alert { top: 66px; left: 50%; transform: translateX(-50%); pointer-events: none; background: #3b335a; color: #fff; }
+.hud-alert.big { font-size: 1.6rem; background: var(--danger); animation: nudge .6s ease-in-out infinite; }
+#g-meetings { background: #fff3b8; }
+#g-roles[aria-pressed="true"] { background: var(--danger); color: #fff; }
+.minimap { position: absolute; inset: 70px 16px 16px; z-index: 4; display: grid; grid-template-rows: 1fr auto; gap: 8px; padding: 10px; background: rgba(255, 253, 246, .96); }
+.minimap canvas { width: 100%; height: 100%; min-height: 0; display: block; }
+.minimap .btn { justify-self: end; }
+#g-map[aria-pressed="true"] { background: var(--sun); }
 .action { overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
 .action span { position: relative; z-index: 1; }
 .action.tag { background: var(--danger); min-width: 150px; min-height: 96px; font-size: 1.8rem; }
@@ -194,6 +217,71 @@ input::placeholder { color: #a39cb8; }
 .over { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: rgba(42, 33, 64, .45); pointer-events: none; }
 .over .card { text-align: center; padding: 28px 40px; background: var(--sun); animation: pop .4s cubic-bezier(.3, 1.6, .5, 1); }
 .over h2 { font-size: 2.6rem; }
+
+.side-row .tag.ghost { background: #e3d6ff; }
+.side-row .tag.ejected { background: #ccc; }
+.side-row .tag.role { background: var(--danger); color: #fff; }
+.imp-settings { display: grid; gap: 8px; margin-bottom: 8px; padding: 10px 12px; border: 3px dashed var(--ink); border-radius: 16px; background: #fff3f1; }
+.imp-settings > .btn { justify-self: start; }
+.pick-list { display: grid; gap: 6px; }
+.pick-row { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 1.1rem; min-height: 44px; }
+.pick-row input { width: 28px; height: 28px; min-height: 0; margin: 0; flex: none; }
+
+/* 회의 화면 */
+.meeting { position: absolute; inset: 0; z-index: 7; display: grid; place-items: center; padding: 12px; background: rgba(42, 33, 64, .72); }
+.meeting-card { position: relative; width: min(980px, 100%); max-height: 100%; overflow: auto; display: grid; gap: 12px; padding: 18px; animation: pop .35s cubic-bezier(.3, 1.6, .5, 1); }
+.meeting.teacher .meeting-card { width: min(1200px, 100%); }
+.mt-head { text-align: center; display: grid; gap: 6px; }
+.mt-head h2 { font-size: 2.4rem; }
+.meeting.intro .mt-head h2 { font-size: 3.6rem; color: var(--danger); text-shadow: 3px 3px 0 var(--ink); animation: nudge .5s ease-in-out infinite; }
+.meeting.teacher .mt-head h2 { font-size: 3rem; }
+.mt-head .sub { font-size: 1.3rem; word-break: keep-all; }
+.mt-timer { position: relative; height: 22px; border: 3px solid var(--ink); border-radius: 999px; overflow: hidden; background: #fff; }
+.mt-bar { position: absolute; inset: 0 auto 0 0; width: 100%; background: var(--sun); transition: width .1s linear; }
+.meeting[data-stage="vote"] .mt-bar { background: var(--accent); }
+.mt-left { position: absolute; inset: 0; display: grid; place-items: center; font-size: .95rem; }
+.mt-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.mt-card {
+  position: relative; display: grid; justify-items: center; gap: 2px; min-height: 48px; padding: 8px 4px 10px;
+  font: inherit; color: var(--ink); cursor: pointer;
+  background: #fff; border: 4px solid var(--ink); border-radius: 18px; box-shadow: 4px 4px 0 var(--ink);
+}
+.mt-card canvas { width: 84px; height: 84px; }
+.meeting.teacher .mt-card canvas { width: 110px; height: 110px; }
+.mt-card:disabled { cursor: default; }
+.meeting[data-stage="vote"] .mt-card:not(:disabled) { background: #fff3b8; }
+.meeting[data-stage="vote"] .mt-card:not(:disabled):hover { transform: translateY(-3px); }
+.mt-card.me { outline: 4px dashed var(--primary); outline-offset: 2px; }
+.mt-card.ghost { filter: grayscale(.85); opacity: .55; background: #dfe9f2; }
+.mt-card.picked { background: var(--sun) !important; }
+.mt-name { font-size: 1.05rem; word-break: keep-all; text-align: center; }
+.mt-badge { position: absolute; top: 6px; left: 6px; font-size: .8rem; padding: 1px 8px; border: 2px solid var(--ink); border-radius: 999px; }
+.mt-badge.ice { background: #bfe8ff; }
+.mt-badge.alarm { left: auto; right: 6px; background: var(--sun); }
+.mt-check { position: absolute; bottom: 34px; right: 6px; width: 30px; height: 30px; display: grid; place-items: center; font-size: 1.1rem; color: #fff; background: var(--ok); border: 3px solid var(--ink); border-radius: 50%; }
+.mt-dots { font-size: .95rem; color: var(--danger); letter-spacing: 1px; }
+.mt-card.fly { animation: fly-away 2.2s ease-in .5s forwards; z-index: 2; }
+.mt-confirm { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 10px; border: 4px solid var(--ink); border-radius: 16px; background: var(--sun); }
+.mt-confirm p { font-size: 1.3rem; flex: 1 1 220px; text-align: center; }
+.mt-foot { display: grid; gap: 10px; justify-items: center; }
+.mt-skip { max-width: 420px; }
+.mt-skip.picked { background: var(--sun); }
+.siren { position: absolute; inset: 0; pointer-events: none; overflow: hidden; display: none; }
+.meeting.intro .siren { display: block; }
+.siren span { position: absolute; top: 50%; left: 50%; width: 160vmax; height: 160vmax; margin: -80vmax 0 0 -80vmax; background: conic-gradient(from 0deg, rgba(229, 40, 60, .55) 0 30deg, transparent 30deg 180deg, rgba(229, 40, 60, .55) 180deg 210deg, transparent 210deg 360deg); animation: spin 1.2s linear infinite; }
+.siren span + span { animation-duration: 1.7s; animation-direction: reverse; opacity: .6; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fly-away {
+  0% { transform: none; }
+  15% { transform: translateY(-14px) rotate(-6deg) scale(1.08); }
+  100% { transform: translate(120vw, -60vh) rotate(720deg) scale(.4); opacity: 0; }
+}
+@media (max-width: 720px) {
+  .mt-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .mt-head h2 { font-size: 1.8rem; }
+  .meeting.intro .mt-head h2 { font-size: 2.4rem; }
+  .hud-alert { top: 110px; }
+}
 
 /* 문제 창 */
 .mission { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 16px; background: rgba(42, 33, 64, .5); }
@@ -274,6 +362,8 @@ input::placeholder { color: #a39cb8; }
 }
 @media (prefers-reduced-motion: reduce) {
   .player, .action, .mission-card, .mission-card.shake, .over .card { animation: none; }
+  .action-sm.alarm, .hud-alert.big, .meeting-card, .meeting.intro .mt-head h2, .siren span { animation: none; }
+  .mt-card.fly { animation-duration: .01s; }
   .progress-fill { transition: none; }
   .btn, .pick { transition: none; }
 }

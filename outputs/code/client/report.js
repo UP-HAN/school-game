@@ -5,6 +5,9 @@ const $ = (id) => document.getElementById(id);
 const RESULT = { first: '첫 시도에 정답', retry: '다시 도전해 해결', unsolved: '아직 못 푼 문제' };
 const KIND = { choice: '고르기', short: '주관식' };
 const sec = (ms) => (ms / 1000).toFixed(1);
+// 방해꾼 찾기 기록에는 role('student'|'chaser')·ghost(유령일 때 풂) 가 붙는다
+const roleName = (r) => (r.role === 'chaser' ? '방해꾼' : r.role === 'student' ? '학생' : '');
+const hasRoles = (records) => records.some((r) => r.role === 'chaser' || r.ghost);
 
 function el(tag, text, cls) {
   const e = document.createElement(tag);
@@ -42,8 +45,10 @@ export function byStudent(records) {
   const map = new Map();
   for (const r of records) {
     const key = r.name;
-    const s = map.get(key) || { name: r.name, label: playerLabel(r.color, r.character), first: 0, retry: 0, unsolved: 0, wrong: 0, ms: 0, solved: 0 };
+    const s = map.get(key) || { name: r.name, label: playerLabel(r.color, r.character), role: '', ghost: 0, first: 0, retry: 0, unsolved: 0, wrong: 0, ms: 0, solved: 0 };
     s[r.result]++;
+    if (roleName(r)) s.role = roleName(r);
+    if (r.ghost && r.result !== 'unsolved') s.ghost++;
     s.wrong += r.wrong;
     if (r.result !== 'unsolved') {
       s.ms += r.ms;
@@ -60,9 +65,9 @@ export function toCsv(records) {
     if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // 엑셀이 수식으로 읽지 않게
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   };
-  const lines = [['학생', '캐릭터', '문제', '정답', '형식', '결과', '오답 횟수', '걸린 시간(초)']];
+  const lines = [['학생', '캐릭터', '역할', '유령일 때', '문제', '정답', '형식', '결과', '오답 횟수', '걸린 시간(초)']];
   for (const r of records) {
-    lines.push([r.name, playerLabel(r.color, r.character), r.question, r.answer, KIND[r.kind] || r.kind, RESULT[r.result] || r.result, r.wrong, sec(r.ms)]);
+    lines.push([r.name, playerLabel(r.color, r.character), roleName(r), r.ghost ? 'O' : '', r.question, r.answer, KIND[r.kind] || r.kind, RESULT[r.result] || r.result, r.wrong, sec(r.ms)]);
   }
   return '﻿' + lines.map((l) => l.map(cell).join(',')).join('\r\n'); // 맨 앞 표시는 엑셀에서 한글이 깨지지 않게 하는 것
 }
@@ -98,11 +103,17 @@ export function showTeacherReport(m) {
       )
     );
     box.append(el('h3', '학생별'));
+    const roles = hasRoles(recs);
     box.append(
-      table(
-        ['학생', '캐릭터', '첫 시도 정답', '다시 풀어 해결', '못 풂', '오답 수', '평균 시간(초)'],
-        byStudent(recs).map((s) => [s.name, s.label, s.first, s.retry, s.unsolved, s.wrong, s.solved ? sec(s.ms / s.solved) : '-'])
-      )
+      roles
+        ? table(
+            ['학생', '캐릭터', '역할', '첫 시도 정답', '다시 풀어 해결', '못 풂', '오답 수', '평균 시간(초)', '유령일 때 푼 문제'],
+            byStudent(recs).map((s) => [s.name, s.label, s.role || '학생', s.first, s.retry, s.unsolved, s.wrong, s.solved ? sec(s.ms / s.solved) : '-', s.ghost])
+          )
+        : table(
+            ['학생', '캐릭터', '첫 시도 정답', '다시 풀어 해결', '못 풂', '오답 수', '평균 시간(초)'],
+            byStudent(recs).map((s) => [s.name, s.label, s.first, s.retry, s.unsolved, s.wrong, s.solved ? sec(s.ms / s.solved) : '-'])
+          )
     );
   }
   $('r-csv').hidden = !recs.length;
