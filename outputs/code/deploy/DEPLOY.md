@@ -13,7 +13,7 @@
 | 프로그램 폴더 | `/opt/lantern` |
 | Node.js | `lantern` 사용자 혼자 쓰는 Node 22 (nvm) |
 | 서비스 이름 | `lantern` (systemd) |
-| 내부 포트 | `127.0.0.1:3100` (바깥에서는 안 보임) |
+| 내부 포트 | `127.0.0.1:3600` (바깥에서는 안 보임) |
 | nginx | `/lantern` 으로 시작하는 주소만 넘기는 조각 파일 하나 |
 
 읽는 법
@@ -25,21 +25,21 @@
 
 ## 시작하기 전에 꼭 할 일 (내 PC에서)
 이 순서표는 GitHub 저장소에 **주소 앞부분(/lantern) 지원과 이 deploy 폴더가 올라가 있어야** 동작합니다.
-아직 커밋·push 하지 않았다면 먼저 올려 주세요. (확인 필요: 지금 PC의 변경은 아직 커밋 전입니다)
+2026-11-20 에 push 되어 있습니다 (커밋 `bd5de24` 이후). 그 뒤 PC 에서 더 고친 것이 있으면 push 한 뒤에 진행하세요.
 
 ---
 
 ## 0) 시작 전 점검
 
-**0-1. 3100 번 포트가 비어 있는지 확인** (포트 = 프로그램이 쓰는 방 번호)
+**0-1. 3600 번 포트가 비어 있는지 확인** (2026-11-21 확인: 3100 은 다른 프로그램이 쓰고 있어 3600 으로 정했고, 3600 은 비어 있었습니다)
 ```
-sudo ss -tlnp | grep ':3100'
+sudo ss -tlnp | grep ':3600'
 ```
 - 아무것도 안 나오면 비어 있음 → 그대로 진행.
 - 무언가 나오면 다른 프로그램이 쓰는 중 → 다른 번호(예: 3101)를 고릅니다. `sudo ss -tlnp | grep ':3101'` 로 비었는지 다시 보고,
-  아래 두 군데의 `3100` 을 모두 그 번호로 바꿉니다.
-  - 3단계 `.env` 의 `PORT=3100`
-  - 5단계 nginx 조각 파일 안의 `127.0.0.1:3100` (3곳)
+  아래 두 군데의 `3600` 을 모두 그 번호로 바꿉니다.
+  - 3단계 `.env` 의 `PORT=3600`
+  - 5단계 nginx 조각 파일 안의 `127.0.0.1:3600` (3곳)
 
 **0-2. 이 서버의 nginx 설정 방식 확인** (확인 필요 — 서버마다 다릅니다)
 ```
@@ -174,7 +174,7 @@ sudo systemctl enable --now lantern
 sudo systemctl status lantern
 ```
 
-**4-5. 로그(기록) 보기** — `게임 서버가 켜졌어요`, `여는 주소(HOST): 127.0.0.1:3100`, `TRUST_PROXY): 켜짐` 이 보이면 정상
+**4-5. 로그(기록) 보기** — `게임 서버가 켜졌어요`, `여는 주소(HOST): 127.0.0.1:3600`, `TRUST_PROXY): 켜짐` 이 보이면 정상
 ```
 sudo journalctl -u lantern -n 50 --no-pager
 ```
@@ -185,7 +185,7 @@ sudo journalctl -u lantern -f
 
 **4-6. 서버 안에서 접속 시험** (`HTTP/1.1 200 OK` 가 나오면 성공)
 ```
-curl -sI http://127.0.0.1:3100/lantern/
+curl -sI http://127.0.0.1:3600/lantern/
 ```
 
 ---
@@ -304,7 +304,7 @@ sudo diff -r /etc/nginx.backup-여기에날짜 /etc/nginx
 ## 9) Lightsail 방화벽
 
 - Lightsail 콘솔 → 인스턴스 → **네트워킹** 탭의 방화벽에는 `SSH(22)`, `HTTP(80)`, `HTTPS(443)` 만 열려 있으면 됩니다.
-- **3100 은 열지 마세요.** 게임 서버는 nginx 를 통해서만 들어오는 내부 전용입니다.
+- **3600 은 열지 마세요.** 게임 서버는 nginx 를 통해서만 들어오는 내부 전용입니다.
   (게임 서버가 127.0.0.1 에만 열려 있어 열어도 접속은 안 되지만, 불필요한 구멍은 만들지 않습니다.)
 - 서버 안 방화벽(ufw)도 따로 바꿀 필요 없습니다. 상태만 보려면: `sudo ufw status`
 
@@ -317,7 +317,7 @@ sudo diff -r /etc/nginx.backup-여기에날짜 /etc/nginx
 | `sudo nginx -t` 에서 `"location" directive is not allowed here` | include 줄을 server 블록 **밖**에 넣음 | `server { ... }` 중괄호 안으로 옮기기 |
 | `duplicate location "/lantern/"` | 같은 블록에 include 를 두 번 넣었거나 이미 /lantern 규칙이 있음 | 한 줄만 남기기 / 멈추고 문의 |
 | http 로는 되는데 https 로는 404 | include 를 80번(http) 블록에만 넣음 | `listen 443 ssl` 블록에 넣기 (0-2 참고) |
-| 502 Bad Gateway | 게임 서버가 꺼져 있거나 포트가 다름 | `sudo systemctl status lantern`, `.env` 의 PORT 와 조각의 3100 이 같은지 |
+| 502 Bad Gateway | 게임 서버가 꺼져 있거나 포트가 다름 | `sudo systemctl status lantern`, `.env` 의 PORT 와 조각의 3600 이 같은지 |
 | 화면은 나오는데 "서버에 연결하는 중" 계속 | 웹소켓이 넘어가지 않음 | 조각 파일이 바뀌지 않았는지, 5-4 reload 를 했는지 확인 |
 | 선생님 비밀번호가 맞는데 방이 안 만들어짐 | `.env` 비밀번호에 띄어쓰기·따옴표가 있거나 수정 뒤 재시작 안 함 | `.env` 고친 뒤 `sudo systemctl restart lantern` |
 | 비밀번호 몇 번 틀리면 1분간 잠김 | 정상 동작 (같은 기기에서 5번 틀리면 1분 잠금) | 1분 기다리기. 다른 학생 기기는 잠기지 않음 |
