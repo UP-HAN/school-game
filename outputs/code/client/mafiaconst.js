@@ -62,7 +62,7 @@ export const FOG = pick('FOG', {
   slow: 0.75,
   vision: 0.6,
   wrongLockMs: 8000,
-  drowsyMs: 12000,
+  drowsyMs: 10000,
   wakeHoldMs: [1200, 1200, 1000, 800],
   lastNightChaserSpeed: 1.1,
 });

@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import {
   COLORS, CHARACTERS, MODES, MAPS, LIMITS, GAME, CHASE, MINUTES, MAFIA, MEETINGS, FOG, LOOT, ITEMS, ITEM_POOLS, ENERGY, STREAK,
-  chaserCount, maxChasers, modeOf, stageValue, lootCount,
+  chaserCount, maxChasers, modeOf, stageValue, lootCount, CHASER_SPEED, CHASER_SPEED_DEFAULT, chaserSpeedOf,
 } from '../shared/config.js';
 import { buildGrid, canStand, touchesRect, spawnPoint, validateMap, roomAt, distToRect, lootFurniture } from '../shared/mapgrid.js';
 import { sanitizeSet, isCorrect } from '../shared/questions.js';
@@ -63,6 +63,24 @@ for (const [name, target] of Object.entries(GROUPS)) applyOverride(target, OVR[n
 const MINUTE_MS = Number(OVR.minuteMs) || 60_000;
 const REJOIN_MS = Number(OVR.rejoinMs) || LIMITS.rejoinSeconds * 1000;
 const CLEANUP_MS = Number(OVR.cleanupMs) || 15_000;
+
+// 방 만들기 제한 (서버 자원 보호). 숫자는 .env 로 바꿀 수 있다. 비우거나 잘못 적으면 기본값.
+function envInt(name, def) {
+  const raw = String(process.env[name] ?? '').trim();
+  const n = Number(raw);
+  return raw && Number.isInteger(n) && n >= 1 ? n : def;
+}
+const msOverride = (v, def) => (Number.isFinite(v) && v >= 0 ? v : def);
+const ROOM_LIMITS = {
+  maxRooms: envInt('MAX_ROOMS', 40), // 서버 전체에서 동시에 열 수 있는 방
+  perIp: envInt('MAX_ROOMS_PER_IP', 8), // 같은 접속 주소(IP)가 동시에 가질 수 있는 방
+  perHour: envInt('ROOM_CREATE_PER_HOUR', 20), // 같은 접속 주소가 1시간에 만들 수 있는 방
+  gapMs: msOverride(OVR.createGapMs, 1000), // 연타 방지: 같은 주소는 1초에 1번
+  windowMs: msOverride(OVR.createWindowMs, 60 * 60_000), // '1시간'의 길이 (시험용으로만 줄인다)
+  // 방 자동 정리: 선생님 연결이 끊긴 채 / 아무 활동 없이 이 시간이 지나면 닫는다
+  teacherGoneMs: msOverride(OVR.teacherGoneMs, envInt('ROOM_TEACHER_GONE_MINUTES', 30) * 60_000),
+  idleMs: msOverride(OVR.idleMs, envInt('ROOM_IDLE_MINUTES', 120) * 60_000),
+};
 if (process.env.TEST_OVERRIDES) console.log('시험용 시간 설정을 쓰는 중이에요.');
 
 // ───────────── 맵 읽기 ─────────────
@@ -144,13 +162,15 @@ function serveStatic(req, res) {
 }
 
 // 선생님 페이지 (…/teacher/): 학생 페이지(index.html)와 같은 화면 틀·같은 app.js 를 쓰고,
-// 첫 화면의 학생 입장 칸(home:start~home:end)만 teacher-home.part.html(비밀번호 → 방 만들기)로 바꾼다.
+// 첫 화면의 학생 입장 칸(home:start~home:end)만 teacher-home.part.html('방 만들기' 버튼)로 바꾼다.
 // <base href="../"> 로 ./style.css · ./app.js 가 게임 첫 주소 기준으로 풀린다.
 function teacherPageHtml() {
   const page = fs.readFileSync(path.join(ROOT, 'client', 'index.html'), 'utf8');
   const part = fs.readFileSync(path.join(ROOT, 'client', 'teacher-home.part.html'), 'utf8');
+  // 비밀번호를 쓰지 않으면(기본) 비밀번호 칸(pw:start~pw:end)을 뺀다
+  const home = (TEACHER_PASSWORD ? part : part.replace(/[ \t]*<!--pw:start-->[\s\S]*?<!--pw:end-->\r?\n?/, '')).trim();
   const out = page
-    .replace(/<!--home:start-->[\s\S]*?<!--home:end-->/, () => part.trim())
+    .replace(/<!--home:start-->[\s\S]*?<!--home:end-->/, () => home)
     .replace(/<head>/, '<head>\n  <base href="../">')
     .replace(/<title>([^<]*)<\/title>/, (_, t) => `<title>${t} · 선생님</title>`)
     .replace(/<body>/, '<body data-role="teacher">');
@@ -376,6 +396,7 @@ function speedBoost(room, p, now) {
   if (fxOn(p, 'shoes', now)) m = Math.max(m, ITEMS.shoes.speed);
   if (fxOn(p, 'windcape', now)) m = Math.max(m, ITEMS.windcape.speed);
   if (!isMafiaGame(room) && p.role === 'chaser' && fogStage(room) >= 3) m *= FOG.lastNightChaserSpeed;
+  m *= chaserSpeedOf(room.settings, p.role); // 선생님이 고른 잠귀신 속도 (꿈도둑을 찾아라는 1)
   return m;
 }
 // 상자를 보여 줄 거리 = 시야 (안개·손전등 반영) + 100
@@ -449,6 +470,7 @@ function sendMe(room, p) {
     hintBank: p.hintBank ? 1 : 0,
     drowsy: Math.min(1, Math.round((p.drowsy / FOG.drowsyMs) * 100) / 100),
     inFog: !!p.inFog,
+    speedK: chaserSpeedOf(room.settings, p.role), // 잠귀신 속도 설정 배율 (화면이 내 걸음에 곱한다)
   };
   if (!isMafiaGame(room) && p.role === 'chaser') {
     msg.lanternMs = Object.fromEntries(Object.entries(p.lanternReadyAt).filter(([, u]) => u > now).map(([k, u]) => [k, u - now]));
@@ -866,6 +888,45 @@ function passwordMatches(input) {
   return crypto.timingSafeEqual(a, b);
 }
 
+// ───────────── 방 만들기 제한 ─────────────
+// 누구나 선생님 주소로 방을 만들 수 있으므로, 서버가 버틸 수 있게 방 수와 만들기 횟수를 제한한다.
+// 같은 학교 선생님들은 같은 공인 주소(IP)를 쓸 수 있어서 주소별 제한은 넉넉하게 둔다.
+const createLog = new Map(); // 접속 주소 → 최근 1시간 안에 방을 만든 시각들
+function recentCreates(ip, now) {
+  const list = (createLog.get(ip) || []).filter((at) => now - at < ROOM_LIMITS.windowMs);
+  if (list.length) createLog.set(ip, list);
+  else createLog.delete(ip);
+  return list;
+}
+// 막아야 하면 { code, msg }, 괜찮으면 null
+function createLimit(ip, now) {
+  if (rooms.size >= ROOM_LIMITS.maxRooms) {
+    return { code: 'server_full', msg: '지금은 방이 꽉 찼어요. 잠시 뒤 다시 해 주세요.' };
+  }
+  const list = recentCreates(ip, now);
+  const last = list[list.length - 1];
+  if (last !== undefined && now - last < ROOM_LIMITS.gapMs) {
+    return { code: 'too_fast', msg: '조금만 천천히 눌러 주세요. 잠시 뒤 다시 해 주세요.' };
+  }
+  let mine = 0;
+  for (const r of rooms.values()) if (r.ownerIp === ip) mine++;
+  if (mine >= ROOM_LIMITS.perIp) {
+    return { code: 'too_many_rooms', msg: `같은 곳에서 연 방이 ${ROOM_LIMITS.perIp}개라 더 만들 수 없어요. 안 쓰는 방을 닫고 다시 해 주세요.` };
+  }
+  if (list.length >= ROOM_LIMITS.perHour) {
+    const min = Math.max(1, Math.ceil((list[0] + ROOM_LIMITS.windowMs - now) / 60_000));
+    return { code: 'too_many_creates', msg: `방을 너무 많이 만들었어요. ${min}분 뒤에 다시 해 주세요.` };
+  }
+  return null;
+}
+function noteCreate(ip, now) {
+  // 기록이 너무 많아지면 (주소를 바꿔 가며 만드는 경우) 오래된 기록부터 정리한다
+  if (createLog.size > 5000) for (const k of [...createLog.keys()]) recentCreates(k, now);
+  const list = recentCreates(ip, now);
+  list.push(now);
+  createLog.set(ip, list);
+}
+
 // ───────────── 메시지 처리 ─────────────
 const cleanName = (s) =>
   typeof s === 'string' ? s.replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim() : '';
@@ -881,30 +942,32 @@ const handlers = {
   // 선생님: 방 만들기
   create(ws, m) {
     if (ws.session) return fail(ws, 'already_in_room', '이미 방에 들어와 있어요.');
-    if (!TEACHER_PASSWORD) {
-      return fail(ws, 'no_password_set', '서버에 선생님 비밀번호가 설정되지 않았어요. (.env 파일)');
-    }
     const now = Date.now();
-    const rec = passwordFails.get(ws.ip) || { count: 0, lockedUntil: 0 };
-    if (rec.lockedUntil > now) {
-      const sec = Math.ceil((rec.lockedUntil - now) / 1000);
-      return fail(ws, 'locked', `비밀번호를 여러 번 틀렸어요. ${sec}초 뒤에 다시 해 주세요.`);
-    }
-    if (!passwordMatches(m.password)) {
-      rec.count += 1;
-      if (rec.count >= MAX_FAILS) {
-        rec.count = 0;
-        rec.lockedUntil = now + LOCK_MS;
+    // 선생님 비밀번호는 선택 기능: TEACHER_PASSWORD 가 있을 때만 확인한다 (기본 운영은 비밀번호 없음)
+    if (TEACHER_PASSWORD) {
+      const rec = passwordFails.get(ws.ip) || { count: 0, lockedUntil: 0 };
+      if (rec.lockedUntil > now) {
+        const sec = Math.ceil((rec.lockedUntil - now) / 1000);
+        return fail(ws, 'locked', `비밀번호를 여러 번 틀렸어요. ${sec}초 뒤에 다시 해 주세요.`);
       }
-      // 기록이 너무 많아지면 (주소를 바꿔 가며 시도하는 경우) 잠기지 않은 기록부터 지운다
-      if (passwordFails.size > 5000) for (const [ip, r] of passwordFails) if (r.lockedUntil <= now) passwordFails.delete(ip);
-      passwordFails.set(ws.ip, rec);
-      return fail(ws, 'bad_password', '비밀번호가 맞지 않아요.');
+      if (!passwordMatches(m.password)) {
+        rec.count += 1;
+        if (rec.count >= MAX_FAILS) {
+          rec.count = 0;
+          rec.lockedUntil = now + LOCK_MS;
+        }
+        // 기록이 너무 많아지면 (주소를 바꿔 가며 시도하는 경우) 잠기지 않은 기록부터 지운다
+        if (passwordFails.size > 5000) for (const [ip, r] of passwordFails) if (r.lockedUntil <= now) passwordFails.delete(ip);
+        passwordFails.set(ws.ip, rec);
+        return fail(ws, 'bad_password', '비밀번호가 맞지 않아요.');
+      }
+      passwordFails.delete(ws.ip);
     }
-    passwordFails.delete(ws.ip);
-    if (rooms.size >= LIMITS.maxRooms) return fail(ws, 'server_full', '지금 열린 방이 너무 많아요.');
+    const limited = createLimit(ws.ip, now);
+    if (limited) return fail(ws, limited.code, limited.msg);
     const code = newRoomCode();
-    if (!code) return fail(ws, 'server_full', '방 번호를 만들지 못했어요.');
+    if (!code) return fail(ws, 'server_full', '지금은 방이 꽉 찼어요. 잠시 뒤 다시 해 주세요.');
+    noteCreate(ws.ip, now);
     const room = {
       code,
       phase: 'lobby',
@@ -918,6 +981,7 @@ const handlers = {
         reveal: true, // 꿈도둑을 찾아라: 추방된 사람의 정체 공개
         fogLoot: true, // 잠 안개·보급 상자
         notebook: true, // 퀴즈 수첩
+        chaserSpeed: CHASER_SPEED_DEFAULT, // 잠귀신 술래잡기: 잠귀신 속도 ('same'|'fast'|'very')
       },
       pickedChasers: [], // 선생님이 몰래 정한 꿈도둑 (선생님에게만 보낸다. settings 에 넣지 않는다)
       meetingsLeft: 0,
@@ -944,6 +1008,8 @@ const handlers = {
       teacherLeftAt: 0,
       players: new Map(),
       createdAt: now,
+      activeAt: now, // 마지막 활동 (선생님·학생이 메시지를 보낼 때마다 갱신. 자동 정리에 쓴다)
+      ownerIp: ws.ip, // 방을 만든 접속 주소 (주소별 동시 방 수 제한)
     };
     rooms.set(code, room);
     ws.session = { room, role: 'teacher' };
@@ -1075,6 +1141,7 @@ const handlers = {
     if (typeof m.reveal === 'boolean') s.room.settings.reveal = m.reveal;
     if (typeof m.fogLoot === 'boolean') s.room.settings.fogLoot = m.fogLoot;
     if (typeof m.notebook === 'boolean') s.room.settings.notebook = m.notebook;
+    if (typeof m.chaserSpeed === 'string' && Object.hasOwn(CHASER_SPEED, m.chaserSpeed)) s.room.settings.chaserSpeed = m.chaserSpeed;
     broadcast(s.room);
   },
 
@@ -1414,7 +1481,7 @@ const handlers = {
     if (s.room.meeting && isMafiaGame(s.room)) return send(ws, { t: 'fix', x: p.x, y: p.y }); // 회의 중에는 아무도 못 움직인다
     if (p.current && p.current.source === 'notebook') return send(ws, { t: 'fix', x: p.x, y: p.y }); // 수첩을 여는 동안은 못 움직인다
     const dt = Math.min(1, (now - p.movedAt) / 1000);
-    // 빨라지는 효과(운동화·바람 망토·마지막 밤 잠귀신)만 곱한다. 안개 속에서 느려진 사람은 원래 받아 준다.
+    // 빨라지는 효과(운동화·바람 망토·마지막 밤 잠귀신·잠귀신 속도 설정)만 곱한다. 안개 속에서 느려진 사람은 원래 받아 준다.
     const reach = GAME.speed * 1.25 * speedBoost(s.room, p, now) * dt + 24;
     const grid = maps.get(s.room.settings.map).grid;
     const r = GAME.radius - 4;
@@ -1914,6 +1981,7 @@ wss.on('connection', (ws, req) => {
     } catch (e) {
       console.error('메시지 처리 오류:', m.t, e);
     }
+    if (ws.session) ws.session.room.activeAt = Date.now(); // 방 안의 누군가가 무엇이든 하면 활동으로 친다
   });
 
   ws.on('close', () => {
@@ -1934,7 +2002,8 @@ wss.on('connection', (ws, req) => {
 });
 
 // 주기 정리: 죽은 연결, 오래 끊긴 학생, 버려진 방
-const TEACHER_GONE_MS = 10 * 60_000;
+// (선생님이 끊긴 지 ROOM_LIMITS.teacherGoneMs, 아무 활동 없이 ROOM_LIMITS.idleMs, 만든 지 ROOM_MAX_MS 가 지나면 닫는다.
+//  그 전에 선생님이 새로고침·재접속하면 resume 으로 방을 그대로 이어받는다)
 const ROOM_MAX_MS = 4 * 60 * 60_000;
 const sweep = setInterval(() => {
   for (const ws of wss.clients) {
@@ -1958,8 +2027,10 @@ const cleanup = setInterval(() => {
         changed = true;
       }
     }
-    const teacherGone = !room.teacherWs && now - room.teacherLeftAt > TEACHER_GONE_MS;
-    if (teacherGone || now - room.createdAt > ROOM_MAX_MS) closeRoom(room, 'expired');
+    const teacherGone = !room.teacherWs && now - room.teacherLeftAt > ROOM_LIMITS.teacherGoneMs;
+    if (teacherGone) closeRoom(room, 'teacher_gone');
+    else if (now - room.activeAt > ROOM_LIMITS.idleMs) closeRoom(room, 'idle');
+    else if (now - room.createdAt > ROOM_MAX_MS) closeRoom(room, 'expired');
     else if (changed) broadcast(room);
   }
 }, CLEANUP_MS);
@@ -1975,7 +2046,13 @@ server.listen(PORT, HOST, () => {
     }
   }
   if (BASE_PATH) console.log(`주소 앞부분(BASE_PATH): ${BASE_PATH} — 앞부분 없는 주소(http://localhost:${PORT}/)도 같이 받아요.`);
-  if (!TEACHER_PASSWORD) {
-    console.log('주의: 선생님 비밀번호(TEACHER_PASSWORD)가 없어 방을 만들 수 없어요. .env 파일을 확인하세요.');
-  }
+  console.log(
+    TEACHER_PASSWORD
+      ? '선생님 비밀번호(TEACHER_PASSWORD): 사용 — 방을 만들 때 비밀번호를 물어요.'
+      : '선생님 비밀번호(TEACHER_PASSWORD): 없음 — 선생님 주소에서 누구나 방을 만들 수 있어요.',
+  );
+  console.log(
+    `방 제한: 전체 ${ROOM_LIMITS.maxRooms}개 · 같은 주소 동시 ${ROOM_LIMITS.perIp}개 · 같은 주소 1시간 ${ROOM_LIMITS.perHour}개 · ` +
+      `선생님 끊김 ${Math.round(ROOM_LIMITS.teacherGoneMs / 60_000)}분/활동 없음 ${Math.round(ROOM_LIMITS.idleMs / 60_000)}분 뒤 자동 정리`,
+  );
 });

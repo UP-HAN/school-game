@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { FOG, CHASE, MAFIA, GAME, stageValue } from '../shared/config.js';
+import { FOG, CHASE, MAFIA, GAME, stageValue, CHASER_SPEED, chaserSpeedOf } from '../shared/config.js';
 import { buildGrid, validateMap, inspectMap, inspectDeviceMarks, canStand, drawnRect } from '../shared/mapgrid.js';
 import { makeChecker, startServer, setup, startGame, endGame, split, walk, route, openQuiz, answer, solve, sleep, SPAWN, BELL, runAll } from './testkit.js';
 
@@ -98,7 +98,7 @@ function tableChecks() {
       row('innerWrongLockMs') === '5000,5000,4000,3000' &&
       row('helpAfter') === '2,2,1,1' &&
       row('mafiaCooldownMs', MAFIA.freezeCooldownMs) === '30000,35000,40000,45000' &&
-      FOG.wrongLockMs === 8000 && FOG.drowsyMs === 12000 && FOG.drowsyRecover === 2 && FOG.lastNightChaserSpeed === 1.1,
+      FOG.wrongLockMs === 8000 && FOG.drowsyMs === 10000 && FOG.drowsyRecover === 2 && FOG.lastNightChaserSpeed === 1.1,
   );
 }
 
@@ -290,10 +290,88 @@ async function runF4(port) {
   for (const c of [teacher, ...P]) c.ws.close();
 }
 
+// ════ F5: 잠귀신 속도 설정 (same·fast·very) ════
+// 서버는 지난 시간(최대 1초) × 속도 × 1.25 + 24px 까지 받아 준다. 1.1초 쉬고 한 번에 움직여 상한을 정확히 잰다.
+const SPEED_GRID = buildGrid(JSON.parse(fs.readFileSync(path.join(here, '..', 'maps', 'monster-gym.json'), 'utf8')));
+const reachOf = (k) => GAME.speed * 1.25 * k + 24;
+function farSpot(c, d) {
+  for (let i = 0; i < 32; i++) {
+    const a = (i / 32) * Math.PI * 2;
+    const x = Math.round(c.x + Math.cos(a) * d);
+    const y = Math.round(c.y + Math.sin(a) * d);
+    const real = Math.hypot(x - c.x, y - c.y);
+    if (Math.abs(real - d) < 2 && canStand(SPEED_GRID, x, y, GAME.radius)) return [x, y];
+  }
+  return null;
+}
+// d 만큼 한 번에 움직여 본다. 받아들이면 true, 되돌리면(fix) false, 설 자리가 없으면 null
+async function jump(c, d) {
+  c.send({ t: 'pos', x: c.x, y: c.y, f: 1, m: 0 }); // 제자리 (움직인 때를 지금으로)
+  await sleep(1100);
+  const spot = farSpot(c, d);
+  if (!spot) return null;
+  const f0 = c.fixes;
+  c.send({ t: 'pos', x: spot[0], y: spot[1], f: 1, m: 1 });
+  const fixed = await c.next((m) => m.t === 'fix', 400).then(() => true, () => false);
+  if (!fixed) [c.x, c.y] = spot;
+  return !fixed && c.fixes === f0;
+}
+// ok 범위 안은 받아들이고, 상한을 조금 넘으면 되돌리는가
+async function speedLimitOk(c, k) {
+  const lim = reachOf(k);
+  const a = await jump(c, Math.floor(lim * 0.95));
+  const b = await jump(c, Math.ceil(lim + 15));
+  return { ok: a === true && b === false, a, b, lim: Math.round(lim) };
+}
+async function runF5(port) {
+  // 대기방 설정: 기본 same, 모르는 값은 무시, 게임 중 변경은 무시
+  const { teacher, P } = await setup(port, ['갑', '을', '병', '정'], { minutes: 5, fogLoot: false });
+  const def = teacher.room.settings.chaserSpeed;
+  teacher.send({ t: 'settings', chaserSpeed: 'turbo' });
+  teacher.send({ t: 'settings', chaserSpeed: 2 });
+  teacher.send({ t: 'settings', chaserSpeed: 'toString' });
+  P[0].send({ t: 'settings', chaserSpeed: 'very' }); // 학생은 못 바꾼다
+  teacher.send({ t: 'settings', missions: 4 });
+  const after = await teacher.next((m) => m.t === 'room' && m.settings.missions === 4);
+  check('25. 잠귀신 속도: 기본 same, 이상한 값·학생 요청은 무시', def === 'same' && after.settings.chaserSpeed === 'same', JSON.stringify(after.settings));
+  check(
+    '25. 잠귀신 속도 배율 표 (same 1 · fast 1.15 · very 1.4, 꿈도둑을 찾아라·학생은 1)',
+    CHASER_SPEED.same === 1 && CHASER_SPEED.fast === 1.15 && CHASER_SPEED.very === 1.4 &&
+      chaserSpeedOf({ mode: 'sleep-tag', chaserSpeed: 'very' }, 'chaser') === 1.4 &&
+      chaserSpeedOf({ mode: 'sleep-tag', chaserSpeed: 'very' }, 'student') === 1 &&
+      chaserSpeedOf({ mode: 'mafia', chaserSpeed: 'very' }, 'chaser') === 1 &&
+      chaserSpeedOf({ mode: 'sleep-tag' }, 'chaser') === 1,
+  );
+  for (const sp of ['same', 'fast', 'very']) {
+    teacher.send({ t: 'settings', mode: 'sleep-tag', chaserSpeed: sp });
+    await teacher.next((m) => m.t === 'room' && m.settings.chaserSpeed === sp && m.settings.mode === 'sleep-tag');
+    const v = await startGame(teacher, P);
+    const { C, S } = split(v, P);
+    teacher.send({ t: 'settings', chaserSpeed: sp === 'very' ? 'same' : 'very' }); // 게임 중 변경은 무시
+    await sleep(200);
+    const kept = teacher.room.settings.chaserSpeed === sp;
+    const meC = C[0].meMsg;
+    const meS = S[0].meMsg;
+    const [rc, rs] = await Promise.all([speedLimitOk(C[0], CHASER_SPEED[sp]), speedLimitOk(S[0], 1)]);
+    check(`26. 잠귀신 속도 ${sp}: 잠귀신은 ${rc.lim}px/초까지 받고 넘으면 되돌린다`, rc.ok && meC.speedK === CHASER_SPEED[sp] && kept, JSON.stringify({ rc, speedK: meC.speedK, kept }));
+    check(`26. 잠귀신 속도 ${sp}: 학생 속도 상한은 그대로 (${rs.lim}px/초)`, rs.ok && meS.speedK === 1, JSON.stringify({ rs, speedK: meS.speedK }));
+    await endGame(teacher, P);
+  }
+  // 꿈도둑을 찾아라에서는 very 여도 꿈도둑 속도가 그대로
+  teacher.send({ t: 'settings', mode: 'mafia', chaserSpeed: 'very' });
+  await teacher.next((m) => m.t === 'room' && m.settings.chaserSpeed === 'very' && m.settings.mode === 'mafia');
+  const v = await startGame(teacher, P);
+  const { C } = split(v, P);
+  const rm = await speedLimitOk(C[0], 1);
+  check('27. 꿈도둑을 찾아라는 잠귀신 속도 설정을 무시한다 (꿈도둑 상한 = 학생과 같음)', rm.ok && C[0].meMsg.speedK === 1, JSON.stringify({ rm, speedK: C[0].meMsg.speedK }));
+  await endGame(teacher, P);
+  for (const c of [teacher, ...P]) c.ws.close();
+}
+
 const srvRuns = async () => {
   const srv = await startServer(3981, OVERRIDES);
   try {
-    for (const run of [runF1, runF2, runF3, runF4]) {
+    for (const run of [runF1, runF2, runF3, runF4, runF5]) {
       try {
         await run(srv.port);
       } catch (e) {

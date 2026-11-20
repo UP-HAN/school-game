@@ -115,6 +115,7 @@ input::placeholder { color: #a39cb8; }
 .home-card { width: min(450px, 100%); position: relative; z-index: 1; display: grid; gap: 14px; margin: max(24px, var(--sat)) 0 clamp(90px, 18vh, 150px); }
 .home-row { justify-content: center; }
 .teacher-badge { text-align: center; font-weight: 700; color: var(--night2); margin-bottom: 10px; }
+.create-msg { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: #ffe9e6; border: 2px solid var(--warn); color: #a32020; font-weight: 700; text-align: center; line-height: 1.4; word-break: keep-all; }
 .home-row .btn { flex: 1; min-width: 140px; }
 .logo { text-align: center; line-height: 1.05; display: grid; justify-items: center; gap: 2px; }
 .logo-small { font-size: 1.7rem; color: var(--night2); letter-spacing: .08em; }
@@ -729,4 +730,158 @@ input::placeholder { color: #a39cb8; }
   .mt-card.fly { animation-duration: .01s; }
   .gauge-fill { transition: none; }
   .btn, .pick { transition: none; }
+}
+
+/* ───── 조작 키 표시 (2026-11-21 키 통일: 이동 WASD/방향키 · Space 행동 · 1·2·3 작전 · B 가방 · N 수첩 · M 지도 · Esc 닫기) ───── */
+/* 버튼 이름 아래 작은 키 글자 "(Space)". 키 값은 client/keys.js 한 곳에서 정한다 */
+.kh { display: block; font: 700 .68rem/1.15 var(--font); letter-spacing: .02em; color: inherit; opacity: .78; white-space: nowrap; }
+.btn .kh, .bag .kh { display: inline-block; margin-left: 4px; }
+.mini .kh { font-size: .58rem; margin-top: -1px; }
+.big-action .kh { position: relative; z-index: 1; margin-top: 1px; padding: 0 6px; border-radius: 6px; background: rgba(255, 255, 255, .55); color: var(--ink); opacity: 1; }
+.big-action.dark .kh { background: rgba(255, 255, 255, .85); }
+.mt-skip .kh { display: block; margin: 2px 0 0; font-size: .75rem; }
+/* 터치만 되는 휴대폰·태블릿: 키 글자 숨김 (keys.js 가 <html class="touch-only"> 를 붙인다) */
+html.touch-only .kh { display: none !important; }
+/* 꿈도둑 작전 버튼 3개: 늘 펼친 작은 줄 (이름 / 남은 시간·횟수 / 키) */
+.sabo-menu { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; gap: 6px; padding: 6px; border-radius: 16px; max-width: min(92vw, 420px); }
+.sabo-menu .btn { min-height: 48px; padding: 4px 12px; display: inline-grid; justify-items: center; align-content: center; gap: 0; font-size: .92rem; line-height: 1.15; text-align: center; }
+.sabo-menu .btn .kh { display: block; margin: 0; }
+.sabo-menu .btn:disabled { opacity: .78; }
+.sabo-menu .sb-state { font-size: .68rem; font-weight: 500; opacity: .85; }
+/* 가방 창 (B) */
+.bag-panel { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; display: grid; gap: 10px; min-width: min(320px, 86vw); max-width: 90vw; padding: 14px 18px; background: var(--paper); }
+.bp-title { margin: 0; display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.2rem; }
+.bp-items { display: flex; flex-wrap: wrap; gap: 8px; }
+.bp-item { min-height: 52px; }
+.bp-item.kb-sel { outline: 4px solid var(--amber); outline-offset: 2px; }
+.bp-empty { margin: 0; }
+.bp-help { margin: 0; font-size: .78rem; white-space: normal; }
+/* 회의 투표: 방향키로 고른 카드 */
+.mt-card.kb-sel, .mt-skip.kb-sel { outline: 5px solid var(--amber); outline-offset: 3px; }
+
+/* ───────────── 선생님 페이지: 방 만들기 전 준비 화면 (teacher-home.part.html · teacher-setup.js) ───────────── */
+body[data-role="teacher"] #view-home { display: block; min-height: 0; padding-bottom: max(48px, calc(var(--sab) + 24px)); }
+body[data-role="teacher"] #parade, body[data-role="teacher"] .home-row, body[data-role="teacher"] #view-home .home-card > .sub { display: none; }
+body[data-role="teacher"] .home-card { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0; gap: 18px; background: transparent; border: 0; box-shadow: none; grid-template-columns: 1fr; }
+body[data-role="teacher"] .home-card > .logo { grid-column: auto; grid-row: auto; display: flex; align-items: center; justify-content: flex-start; gap: 10px; flex-wrap: wrap; padding-right: 230px; min-height: 64px; }
+body[data-role="teacher"] .home-card > .logo .logo-small { color: var(--paper); text-shadow: 2px 2px 0 var(--ink); font-size: 1.4rem; }
+body[data-role="teacher"] .home-card > .logo .logo-big { font-size: 2.6rem; }
+body[data-role="teacher"] .home-card > .logo .lantern { transform: scale(.8); }
+body[data-role="teacher"] .home-card > #create-form { grid-column: auto; grid-row: auto; }
+.tsetup { display: grid; gap: 18px; }
+.tsetup .create-msg { margin: 0; }
+.ts-bar { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+.ts-bar .teacher-badge { margin: 0; padding: 6px 14px; border-radius: 999px; background: var(--moon); border: 3px solid var(--ink); font-size: .95rem; align-self: center; }
+.ts-pw { margin: 0; flex: 0 1 260px; color: var(--paper); }
+/* 큰 '방 만들기' 버튼: 컴퓨터·태블릿은 화면 오른쪽 위, 휴대폰은 아래에 고정 */
+.ts-create {
+  position: fixed; z-index: 20; top: max(16px, var(--sat)); right: max(16px, var(--sar));
+  display: grid; justify-items: center; gap: 2px; min-width: 210px; min-height: 68px; padding: 8px 26px;
+  font-size: 1.45rem; background: var(--amber); box-shadow: 5px 5px 0 var(--ink);
+}
+.ts-create small { font-size: .8rem; font-weight: 500; color: var(--ink); opacity: .8; }
+.ts-sec { background: var(--paper); border: 4px solid var(--ink); border-radius: 22px; box-shadow: var(--shadow); padding: 18px 20px; display: grid; gap: 12px; min-width: 0; }
+.ts-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ts-head h2 { font-size: 1.35rem; display: flex; align-items: center; gap: 8px; }
+.ts-head .open-manual { margin-left: auto; min-height: 40px; }
+.ts-num { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--night2); color: var(--moon); font-size: 1rem; border: 3px solid var(--ink); flex: none; }
+.ts-chip { padding: 4px 12px; border-radius: 999px; background: #d9f7ec; border: 3px solid var(--ink); font-weight: 700; font-size: .95rem; }
+.ts-chip.warn { background: #ffe4e2; }
+.ts-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.ts-tools .btn.small { min-height: 44px; }
+.ts-tools .grow { flex: 1; }
+.ts-saved { width: auto; max-width: 100%; margin: 0; min-height: 44px; font-size: 1rem; border-width: 3px; }
+.ts-title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: .95rem; white-space: nowrap; }
+.ts-title input { margin: 0; min-height: 44px; font-size: 1rem; border-width: 3px; width: 220px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* 문제 표 */
+.ts-grid { border: 3px solid var(--ink); border-radius: 14px; background: #fff; overflow: hidden; }
+#ts-rows { max-height: min(56vh, 520px); overflow-y: auto; }
+.ts-row { display: grid; grid-template-columns: 34px minmax(0, 3fr) minmax(0, 1.3fr) repeat(3, minmax(0, 1fr)) 76px 34px; gap: 6px; align-items: start; padding: 5px 8px; border-top: 2px solid #eee4d0; }
+.ts-th { border-top: 0; background: var(--night2); color: var(--paper); font-size: .9rem; font-weight: 700; padding: 8px; align-items: center; }
+.ts-row.bad { background: #fff0ee; }
+.ts-n { align-self: center; text-align: center; color: var(--muted); font-weight: 700; }
+.ts-c { display: grid; gap: 4px; min-width: 0; }
+.ts-c input { margin: 0; min-height: 40px; padding: 4px 10px; font-size: max(16px, 1rem); border: 2px solid #cfc6b4; border-radius: 10px; }
+.ts-c input:focus { border-color: var(--ink); }
+.ts-c .ts-alt { min-height: 32px; font-size: 16px; padding: 2px 8px; background: #faf7f0; border-style: dashed; }
+.ts-row.bad .ts-c input { border-color: #e7a19b; }
+.ts-kind { align-self: center; font-size: .85rem; color: var(--muted); text-align: center; word-break: keep-all; }
+.ts-row.bad .ts-kind { color: #b3262c; font-weight: 700; }
+.ts-del { align-self: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: #a39cb8; font-size: 1rem; cursor: pointer; }
+.ts-del:hover { background: #ffe4e2; color: #b3262c; }
+.ts-note { grid-column: 2 / -1; margin: 0; font-size: .82rem; color: #a32020; line-height: 1.35; }
+/* 놀이 방법 · 맵 카드 */
+.ts-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.ts-card {
+  font: inherit; color: var(--ink); text-align: left; cursor: pointer;
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto 1fr; column-gap: 14px; row-gap: 4px; align-items: center;
+  padding: 12px 14px; background: #fff; border: 4px solid var(--ink); border-radius: 18px; box-shadow: 4px 4px 0 var(--ink);
+  transition: transform .08s, box-shadow .08s, background .12s;
+}
+.ts-card:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+.ts-card[aria-checked="true"] { background: var(--moon); outline: 4px solid var(--amber); outline-offset: 3px; }
+.ts-card[aria-checked="true"] > b::after { content: ' ✓'; color: var(--ok); }
+.ts-card > b { font-size: 1.2rem; align-self: end; }
+.ts-card .ts-line { grid-column: 2; align-self: start; font-size: .92rem; color: var(--muted); line-height: 1.4; word-break: keep-all; }
+.ts-card .ts-char { grid-row: 1 / span 2; width: 70px; height: 70px; }
+.ts-cards.maps .ts-card { grid-template-columns: 1fr; grid-template-rows: auto; }
+.ts-cards.maps .ts-line { grid-column: 1; }
+.ts-thumb { display: grid; place-items: center; aspect-ratio: 2800 / 1900; border-radius: 12px; border: 3px solid var(--ink); background: var(--night1); color: var(--paper); font-size: .9rem; overflow: hidden; }
+.ts-thumb canvas, .ts-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* 자세히 설정 */
+.ts-more summary { cursor: pointer; font-weight: 700; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; list-style: none; }
+.ts-more summary::-webkit-details-marker { display: none; }
+.ts-more summary::after { content: '펼치기 ▾'; margin-left: auto; font-size: .9rem; color: var(--muted); }
+.ts-more[open] summary::after { content: '접기 ▴'; }
+.ts-more summary .hint { font-weight: 500; }
+.ts-set { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; margin-top: 8px; }
+.ts-set label { margin-bottom: 8px; }
+.ts-set select { min-height: 48px; font-size: 1.05rem; }
+
+/* 선생님 대기방 정리: 방 번호·학생 목록·게임 시작이 중심, 문제 칸은 아래 */
+#view-teacher { display: flex; flex-direction: column; }
+#view-teacher > .topbar { order: 1; align-items: start; }
+#view-teacher > .section-title { order: 2; }
+#view-teacher > #t-players { order: 3; }
+#view-teacher > .qset-card { order: 4; margin-top: 28px; }
+#view-teacher #q-template, #view-teacher #q-prompt { display: none; } /* 빈 양식·AI 요청문은 방 만들기 전 화면에 */
+.settings-card .t-start-row #t-start { font-size: 1.5rem; min-height: 68px; }
+.t-more { border-top: 3px dashed #d8ccb3; padding-top: 10px; margin-top: 6px; }
+.t-more > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+.t-more > summary .hint { font-weight: 500; }
+.t-more[open] > summary { margin-bottom: 8px; }
+
+@media (max-width: 900px) {
+  .ts-row:not(.ts-th) { grid-template-columns: 30px repeat(3, minmax(0, 1fr)) 30px; grid-template-areas: 'n q q q del' '. a a a .' '. w0 w1 w2 .' '. kind kind kind .' '. note note note .'; padding: 8px; }
+  .ts-th { display: none; }
+  .ts-n { grid-area: n; }
+  .ts-c-q { grid-area: q; } .ts-c-a { grid-area: a; } .ts-c-w0 { grid-area: w0; } .ts-c-w1 { grid-area: w1; } .ts-c-w2 { grid-area: w2; }
+  .ts-kind { grid-area: kind; text-align: left; }
+  .ts-kind:empty { display: none; }
+  .ts-del { grid-area: del; }
+  .ts-note { grid-area: note; }
+  .ts-row:nth-child(even) { background: #fbf8f1; }
+  .ts-row.bad { background: #fff0ee; }
+  #ts-rows { max-height: none; }
+}
+@media (max-width: 700px) {
+  body[data-role="teacher"] #view-home { padding-bottom: calc(var(--sab) + 110px); }
+  body[data-role="teacher"] .home-card > .logo { padding-right: 0; justify-content: center; }
+  body[data-role="teacher"] .home-card > .logo .logo-big { font-size: 2.1rem; }
+  .ts-create {
+    top: auto; left: max(12px, var(--sal)); right: max(12px, var(--sar)); bottom: calc(var(--sab) + 12px);
+    min-height: 62px; grid-auto-flow: column; align-items: baseline; justify-content: center; gap: 10px;
+  }
+  .ts-sec { padding: 14px; border-radius: 18px; }
+  .ts-head h2 { font-size: 1.2rem; }
+  .ts-cards { grid-template-columns: 1fr; }
+  .ts-title { flex: 1 1 100%; white-space: normal; }
+  .ts-title input { width: auto; flex: 1; }
+  .ts-tools .btn.small { flex: 1 1 auto; }
+  .ts-saved { flex: 1 1 100%; }
+  .ts-set { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 420px) {
+  .ts-set { grid-template-columns: 1fr; }
 }

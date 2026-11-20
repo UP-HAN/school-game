@@ -69,6 +69,18 @@ export const GAME = {
   vision: 340, // 학생·잠귀신이 볼 수 있는 거리 (선생님은 전체를 본다)
 };
 
+// 잠귀신(술래) 속도 — 선생님이 대기방에서 고른다 (settings.chaserSpeed). 잠귀신 술래잡기의 잠귀신에게만 붙는다.
+// 꿈도둑을 찾아라에서는 무시한다 (꿈도둑이 빠르면 정체가 드러나므로).
+// 곱하는 규칙: 실제 속도 = GAME.speed × 이 배율 × 마지막 밤(FOG.lastNightChaserSpeed) × 아이템(바람 망토 등) × 안개 속(FOG.slow) × 느린 바닥.
+// 서버 위치 검사 상한 = GAME.speed × 1.25 × (아이템 중 큰 것 × 마지막 밤 × 이 배율) × 지난 시간 + 24px. 느려지는 것(안개·바닥)은 빼고 넉넉히 받아 준다.
+// 'very' 끝까지 곱해도 1.4 × 1.1 × 1.3 ≈ 2배 (약 540px/초). 화면은 8px씩 나눠 벽을 검사하므로 벽을 뚫지 않는다.
+export const CHASER_SPEED = { same: 1, fast: 1.15, very: 1.4 };
+export const CHASER_SPEED_DEFAULT = 'same';
+export function chaserSpeedOf(settings, role) {
+  if (!settings || settings.mode === 'mafia' || role !== 'chaser') return 1;
+  return CHASER_SPEED[settings.chaserSpeed] || 1;
+}
+
 // 잠귀신 술래잡기 규칙 숫자 (06 명세 10-1절). 안개 단계에 따라 바뀌는 값은 FOG 표의 0단계가 이 값이다.
 export const CHASE = {
   reach: 75, // 꿈 걸기·깨우기가 닿는 거리
@@ -121,7 +133,7 @@ export const FOG = {
   slow: 0.75, // 안개 속 속도 배율 (화면이 적용)
   vision: 0.6, // 안개 속 시야 배율 (화면이 적용)
   wrongLockMs: 8000, // 안개 속에서 연 퀴즈의 오답 잠금
-  drowsyMs: 12000, // 안개 속에 이만큼 있으면 꿈에 빠진다 (잠귀신 술래잡기 학생만)
+  drowsyMs: 10000, // 안개 속에 이만큼 있으면 꿈에 빠진다 (잠귀신 술래잡기 학생만)
   drowsyRecover: 2, // 빛 구역 안에서 졸음이 줄어드는 빠르기 (배)
   chaseCooldownMs: [6000, 8000, 10000, 12000],
   wakeHoldMs: [1200, 1200, 1000, 800],

@@ -26,10 +26,13 @@ export function makeChecker(title) {
   return t;
 }
 
+// 시험은 한 컴퓨터(같은 주소)에서 방을 빠르게 여러 개 만들므로, 방 만들기 제한을 풀어 둔다 (제한 시험은 test-rooms.js)
+export const NO_ROOM_LIMITS_ENV = { MAX_ROOMS: '1000', MAX_ROOMS_PER_IP: '1000', ROOM_CREATE_PER_HOUR: '1000' };
 // extraEnv: 더 넣을 환경변수 (예: { BASE_PATH: '/lantern' })
 export function startServer(port, overrides, extraEnv = {}) {
+  const ovr = { createGapMs: 0, ...overrides };
   const proc = spawn(process.execPath, [path.join(here, 'index.js')], {
-    env: { ...process.env, BASE_PATH: '', PORT: String(port), TEACHER_PASSWORD: PASSWORD, TEST_OVERRIDES: JSON.stringify(overrides), ...extraEnv },
+    env: { ...process.env, BASE_PATH: '', PORT: String(port), TEACHER_PASSWORD: PASSWORD, ...NO_ROOM_LIMITS_ENV, TEST_OVERRIDES: JSON.stringify(ovr), ...extraEnv },
     stdio: ['ignore', 'pipe', 'inherit'],
   });
   let log = '';

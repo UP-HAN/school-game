@@ -4,6 +4,7 @@ import { COLORS, GAME } from './shared/config.js';
 import { buildGrid, canStand, zoneAt } from './shared/mapgrid.js';
 import { renderMap, drawLantern } from './maprender.js';
 import { drawCharacter } from './characters.js';
+import { KEYS } from './keys.js';
 import { MAF, CH, FOG, LOOT, ITEMS, FONT, font, fontsReady, byStage } from './mafiaconst.js';
 
 const INK = '#2a2140';
@@ -66,8 +67,9 @@ const roomAt = (map, x, y) => (map.rooms || []).find((r) => x >= r.rect[0] && x 
 /**
  * opts: { canvas, mapId, mode('sleep-tag'|'mafia'), role('teacher'|'player'), myId, players, send,
  *         onContext(ctx|null) — 스페이스(큰 버튼)로 지금 할 일이 바뀔 때,
- *         onKey('down'|'up', which) — which: 'act'(스페이스·엔터) | 'bag'(Q) | 'notebook'(B) | 'map'(Tab)
- *                                      | 'freeze'(F, 꿈도둑만) | 'sabo'(G) | 'sabo1'~'sabo3'(1·2·3) }
+ *         onKey('down'|'up', which) — which: 'act'(스페이스·엔터) | 'bag'(B) | 'notebook'(N) | 'map'(M) | 'esc'(Esc)
+ *                                      | 'sabo1'~'sabo3'(1·2·3, 꿈도둑을 찾아라에서만) }
+ *         onNav(dir) — 'L'|'R'|'U'|'D'. 가방 창처럼 고르는 창이 열려 있으면 true 를 돌려주고, 그때는 걷지 않는다
  * ctx: { type: 'thaw'|'tag'|'loot'|'terminal'|'device'|'alarm'|'bell'|'notebook'|'none', id, label, sub, hold, disabled, readyAt, hint, color }
  */
 export async function startGame(opts) {
@@ -368,7 +370,7 @@ export async function startGame(opts) {
         .filter((o) => o.d <= LOOT.openReach)
         .map(({ k, d }) =>
           info.item
-            ? { type: 'loot', id: k.id, label: '가방이 꽉 찼어요', sub: '먼저 써 주세요 (Q)', disabled: true, dist: d }
+            ? { type: 'loot', id: k.id, label: '가방이 꽉 찼어요', sub: info.item === 'chance' ? '찬스 카드는 퀴즈 창에서 써요' : '가방(B)에서 먼저 써요', disabled: true, dist: d }
             : { type: 'loot', id: k.id, label: '상자 열기', sub: '꾹 누르기', hold: LOOT.openHoldMs, dist: d },
         );
     };
@@ -433,10 +435,20 @@ export async function startGame(opts) {
       return { type: 'tag', id: 'tag', label: '꿈에 빠뜨리기', readyAt: tagReadyAt, dist: 0 };
     };
 
+    // 꿈도둑(꿈도둑을 찾아라)의 꿈 걸기: 정체가 실수로 드러나지 않게 맨 마지막 칸 (랜턴·종·장치가 가까우면 그쪽이 먼저)
+    const mafiaTargets = () => {
+      if (!chaser || ghost) return [];
+      const noOrb = typeof info.energy === 'number' && info.energy <= 0;
+      return [...players.values()]
+        .filter((q) => q !== me && !mates.has(q.id) && q.role !== 'chaser' && !q.ghost && !q.ejected && !q.ride && q.connected !== false)
+        .map((q) => ({ type: 'tag', id: 'tag', label: noOrb ? '꿈 구슬이 없어요' : '꿈에 빠뜨리기', sub: noOrb ? '퀴즈를 풀어 채워요' : '', disabled: noOrb, readyAt: tagReadyAt, dist: near(q.x, q.y) }))
+        .filter((c) => c.dist <= MAF.freezeReach);
+    };
+
     let order;
     if (mafia) {
       if (ghost) order = [lanterns, devices];
-      else order = [alarms, loots, lanterns, bells, devices];
+      else order = [alarms, loots, lanterns, bells, devices, mafiaTargets];
     } else if (chaser) {
       const reach = fxOn('pillow', now) ? Math.max(CH.reach, ITEMS.pillow.reach || CH.reach + 40) : CH.reach;
       const canTag = now >= tagReadyAt && !(typeof info.energy === 'number' && info.energy <= 0);
@@ -467,49 +479,64 @@ export async function startGame(opts) {
   // ───── 조작: 키보드 + 화면 조이스틱 ─────
   const keys = new Set();
   const stick = { active: false, id: null, ox: 0, oy: 0, dx: 0, dy: 0 };
-  const KEYMAP = {
-    ArrowLeft: 'L', a: 'L', A: 'L', ㅁ: 'L',
-    ArrowRight: 'R', d: 'R', D: 'R', ㅇ: 'R',
-    ArrowUp: 'U', w: 'U', W: 'U', ㅈ: 'U',
-    ArrowDown: 'D', s: 'D', S: 'D', ㄴ: 'D',
+  // 키는 e.code(자판의 자리)로 읽는다: 한글 자판·Caps Lock 이어도 같은 키로 받는다.
+  // 이동 = WASD 또는 방향키 (함께 눌러도 됨: 대각선), 행동 = 스페이스·엔터, 지도 = M,
+  // 꿈도둑 작전 = 숫자 1·2·3 (꿈도둑을 찾아라에서 꿈도둑만, 바로 실행)
+  // 키 배치는 keys.js 의 KEYS 표 하나에서 읽는다
+  const MOVE_CODES = {};
+  for (const [d, codes] of Object.entries(KEYS.move.codes)) for (const c of codes) MOVE_CODES[c] = d;
+  const ACT_CODES = {};
+  const MAFIA_CODES = {};
+  for (const k of ['act', 'bag', 'notebook', 'map', 'esc']) for (const c of KEYS[k].codes) ACT_CODES[c] = k;
+  for (const k of ['sabo1', 'sabo2', 'sabo3']) for (const c of KEYS[k].codes) MAFIA_CODES[c] = k;
+  // e.code 가 비어 있는 화면 키보드 등을 위해 e.key 로도 한 번 더 찾는다
+  const KEY_TO_CODE = { ' ': 'Space', Enter: 'Enter', ArrowLeft: 'ArrowLeft', ArrowRight: 'ArrowRight', ArrowUp: 'ArrowUp', ArrowDown: 'ArrowDown', 1: 'Digit1', 2: 'Digit2', 3: 'Digit3' };
+  const codeOf = (e) => e.code || KEY_TO_CODE[e.key] || '';
+  const actionOf = (e) => {
+    const c = codeOf(e);
+    return ACT_CODES[c] || (mafia ? MAFIA_CODES[c] : null) || null;
   };
-  // 행동 키 (한글 자판 상태에서도 같은 자리의 글자를 받는다). E 키는 쓰지 않는다
-  const ACT_KEYS = {
-    ' ': 'act', Enter: 'act',
-    q: 'bag', Q: 'bag', ㅂ: 'bag', ㅃ: 'bag',
-    b: 'notebook', B: 'notebook', ㅠ: 'notebook',
-    Tab: 'map',
+  const held = new Map(); // 눌린 이동 키 code → 방향 (같은 방향 키 두 개 중 하나를 떼도 멈추지 않게)
+  const syncKeys = () => {
+    keys.clear();
+    for (const d of held.values()) keys.add(d);
   };
-  const MAFIA_KEYS = {
-    f: 'freeze', F: 'freeze', ㄹ: 'freeze',
-    g: 'sabo', G: 'sabo', ㅎ: 'sabo',
-    1: 'sabo1', 2: 'sabo2', 3: 'sabo3',
-  };
-  const actionOf = (e) => ACT_KEYS[e.key] || (mafia ? MAFIA_KEYS[e.key] : null) || (e.code === 'Space' ? 'act' : null);
   const onKeyDown = (e) => {
     if (role !== 'player') return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return; // 브라우저 단축키는 그대로
     if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return; // 퀴즈 창에 글자를 적을 수 있게
+    if (meeting) return; // 회의 화면은 meeting.js 가 키를 받는다
     const which = actionOf(e);
+    const dir = MOVE_CODES[codeOf(e)];
     if (paused) {
-      if (which === 'act' || which === 'map') e.preventDefault(); // 퀴즈 창 뒤 버튼이 눌리지 않게
+      // 퀴즈 창 안의 버튼(보기 고르기 등)은 스페이스·엔터가 그대로 눌린다. 그 밖(뒤의 큰 버튼)은 막는다
+      const inMission = e.target && e.target.closest && e.target.closest('.mission-card');
+      if ((which === 'act' && !inMission) || which === 'map' || dir) e.preventDefault();
       return;
     }
     if (which) {
       if (!e.repeat) opts.onKey('down', which);
+      e.preventDefault(); // 스페이스로 화면이 내려가거나 초점 버튼이 한 번 더 눌리지 않게
+      return;
+    }
+    if (!dir) return;
+    // 가방 창이 열려 있으면 방향키는 아이템 고르기 (걷지 않는다)
+    if (opts.onNav && opts.onNav(dir, e.repeat)) {
+      held.clear();
+      syncKeys();
       e.preventDefault();
       return;
     }
-    const k = KEYMAP[e.key];
-    if (!k) return;
-    keys.add(k);
+    held.set(codeOf(e), dir);
+    syncKeys();
     e.preventDefault();
   };
   const onKeyUp = (e) => {
     const which = actionOf(e);
     if (which && role === 'player') opts.onKey('up', which);
-    keys.delete(KEYMAP[e.key]);
-  };
-  const onBlur = () => {
+    if (held.delete(codeOf(e))) syncKeys();
+  };  const onBlur = () => {
+    held.clear();
     keys.clear();
     opts.onKey('up', 'act'); // 꾹 누르던 중 창을 벗어나면 취소
   };
@@ -588,6 +615,7 @@ export async function startGame(opts) {
     if (fxOn('shoes', now)) k *= ITEMS.shoes.speed || 1.4;
     if (fxOn('windcape', now)) k *= ITEMS.windcape.speed || 1.3;
     if (!mafia && myRole === 'chaser' && fogStage() >= 3) k *= FOG.lastNightChaserSpeed || 1;
+    if (!mafia && myRole === 'chaser') k *= info.speedK > 0 ? info.speedK : 1; // 선생님이 고른 잠귀신 속도 (서버가 'me' 로 보낸다)
     return k;
   }
 
@@ -916,7 +944,7 @@ export async function startGame(opts) {
         ctx.fillStyle = g;
         ctx.fillRect(tx - 70, ty - 80, 140, 140);
         if (isBonus) badge('임시', tx, ty - 62, '#7fe0c4', INK);
-        else if (me && ctxKey.startsWith('terminal|' + tm.id + '|')) badge('스페이스', tx, ty - 62, '#ffb547', INK);
+        else if (me && ctxKey.startsWith('terminal|' + tm.id + '|')) badge(KEYS.act.label, tx, ty - 62, '#ffb547', INK);
       }
     }
 

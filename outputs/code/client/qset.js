@@ -1,13 +1,18 @@
-// 선생님용: 퀴즈 문제 세트 만들기 (엑셀 올리기 → 미리보기·고치기 → 확정), 빈 양식, AI 요청문.
+// 선생님용: 퀴즈 문제 세트. 빈 양식 · AI 요청문 · 엑셀 읽기 · 미리보기(고치기) 창 · 이 브라우저에 보관.
+// 방 만들기 전 화면(teacher-setup.js)과 대기방이 함께 쓴다.
+//  - '입력 중인 문제'(초안)는 localStorage(sg-qdraft)에 두어 새로고침해도 남는다.
+//  - '보관한 세트'는 localStorage(sg-qsets)에 이름별로 최대 30개.
 import { readXlsx, writeXlsx } from './shared/xlsx.js';
 import { HEADER, SHEET_NAME, parseSheetRows, checkQuestion, normalizeAnswer, buildPrompt } from './shared/questions.js';
 
 const $ = (id) => document.getElementById(id);
 const STORE_KEY = 'sg-qsets';
+const DRAFT_KEY = 'sg-qdraft';
 const MAX_SAVED = 30;
+export const DRAFT_EVENT = 'sg-qdraft-change';
 
 // ───────────── 이 브라우저에 보관한 세트 ─────────────
-function loadSaved() {
+export function loadSaved() {
   try {
     const v = JSON.parse(localStorage.getItem(STORE_KEY));
     return Array.isArray(v) ? v : [];
@@ -15,7 +20,7 @@ function loadSaved() {
     return [];
   }
 }
-function saveSet(set) {
+export function saveSet(set) {
   const list = loadSaved().filter((s) => s.title !== set.title);
   list.unshift({ ...set, savedAt: Date.now() });
   try {
@@ -24,6 +29,60 @@ function saveSet(set) {
   } catch {
     return false;
   }
+}
+
+// ───────────── 입력 중인 문제 (초안) ─────────────
+// 초안 한 줄: { q, a, wrong: ['', '', ''], alts: '쉼표로 구분한 글' }
+export const blankRow = () => ({ q: '', a: '', wrong: ['', '', ''], alts: '' });
+export function toRow(it) {
+  return {
+    q: it.q || '',
+    a: it.a || '',
+    wrong: [0, 1, 2].map((k) => (it.wrong || [])[k] || ''),
+    alts: Array.isArray(it.alts) ? it.alts.join(', ') : it.alts || '',
+  };
+}
+export const rowFilled = (r) => !!(r.q.trim() || r.a.trim() || r.wrong.some((w) => w.trim()));
+
+export function loadDraft() {
+  try {
+    const v = JSON.parse(localStorage.getItem(DRAFT_KEY));
+    if (v && Array.isArray(v.rows)) return { title: String(v.title || ''), rows: v.rows.map(toRow) };
+  } catch {
+    /* 없거나 깨졌으면 빈 초안 */
+  }
+  return { title: '', rows: [] };
+}
+/** from: 누가 바꿨는지 (같은 화면이 자기 이벤트로 다시 그리지 않게) */
+export function saveDraft(draft, from = '') {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ title: draft.title, rows: draft.rows.filter(rowFilled) }));
+  } catch {
+    /* 저장이 막힌 브라우저: 새로고침하면 사라진다 */
+  }
+  window.dispatchEvent(new CustomEvent(DRAFT_EVENT, { detail: { from } }));
+}
+
+/** 초안 줄들을 검사한다. 빈 줄은 건너뛴다. → { checks: 줄마다 결과(빈 줄은 null), set, good, bad } */
+export function checkRows(rows, title) {
+  const seen = new Set();
+  const questions = [];
+  let bad = 0;
+  const checks = rows.map((r) => {
+    if (!rowFilled(r)) return null;
+    const c = checkQuestion({ q: r.q, a: r.a, wrong: r.wrong });
+    const key = normalizeAnswer(r.q);
+    if (key && seen.has(key)) c.errors.push('같은 문제가 위에 또 있어요');
+    seen.add(key);
+    if (c.errors.length) bad++;
+    else {
+      const alts = c.kind === 'short' ? r.alts.split(',').map((s) => s.trim()).filter(Boolean) : [];
+      questions.push({ q: c.q, a: c.a, wrong: c.wrong, alts });
+    }
+    return c;
+  });
+  const set = { title: (title || '').trim() || '이름 없는 문제 세트', questions };
+  return { checks, set, good: questions.length, bad };
 }
 
 function download(bytes, filename) {
@@ -37,26 +96,51 @@ function download(bytes, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
+export function downloadTemplate(toast) {
+  download(writeXlsx([HEADER], SHEET_NAME, [60, 22, 22, 22, 22]), '퀴즈문제_빈양식.xlsx');
+  toast('빈 양식을 내려받았어요. 첫 줄(제목)은 그대로 두고 둘째 줄부터 적어 주세요.');
+}
+
+/** 지금 초안을 엑셀로 내려받기 (빈 양식과 같은 5칸) */
+export function downloadRows(rows, title) {
+  const body = rows.filter(rowFilled).map((r) => [r.q, r.a, ...r.wrong]);
+  const name = ((title || '').trim() || '퀴즈문제').replace(/[\\/:*?"<>|]/g, '_');
+  download(writeXlsx([HEADER, ...body], SHEET_NAME, [60, 22, 22, 22, 22]), `${name}.xlsx`);
+}
+
+/** 엑셀 파일 → { title, items } (문제가 없거나 양식이 다르면 Error) */
+export async function readQuestionFile(file) {
+  if (file.size > 5 * 1024 * 1024) throw new Error('파일이 너무 커요. (5MB까지)');
+  let rows;
+  try {
+    ({ rows } = await readXlsx(await file.arrayBuffer(), SHEET_NAME));
+  } catch (err) {
+    console.error(err);
+    throw new Error(err.message && err.message.includes('엑셀') ? err.message : '파일을 읽지 못했어요. 엑셀(xlsx) 파일인지 확인해 주세요.');
+  }
+  const parsed = parseSheetRows(rows);
+  if (!parsed.headerOk) throw new Error(`양식이 달라요. 첫 줄이 "${HEADER.join(', ')}" 순서여야 해요. 빈 양식을 내려받아 써 주세요.`);
+  if (!parsed.items.length) throw new Error('문제가 한 줄도 없어요.');
+  return { title: file.name.replace(/\.xlsx$/i, ''), items: parsed.items };
+}
+
 /**
- * opts: { toast(msg), onConfirm(set) }  — set = { title, questions: [{ q, a, wrong, alts }] }
+ * 대화창(AI 요청문·미리보기)과 대기방의 문제 칸을 준비한다.
+ * opts: { toast(msg), onConfirm(set) }  — set = { title, questions: [{ q, a, wrong, alts }] } (대기방: 서버로 보냄)
+ * 돌려주는 것: { openPrompt(), openPreview(title, items, onConfirm?), refreshSaved() }
  */
 export function initQset(opts) {
   let draft = []; // 미리보기에서 고치는 중인 문제들
-
-  // ───── 빈 양식 ─────
-  $('q-template').addEventListener('click', () => {
-    download(writeXlsx([HEADER], SHEET_NAME, [60, 22, 22, 22, 22]), '퀴즈문제_빈양식.xlsx');
-    opts.toast('빈 양식을 내려받았어요. 첫 줄(제목)은 그대로 두고 둘째 줄부터 적어 주세요.');
-  });
+  let confirmCb = opts.onConfirm;
 
   // ───── AI 요청문 팝업 ─────
   const refreshPrompt = () => {
     $('p-text').value = buildPrompt({ count: Number($('p-count').value), grade: $('p-grade').value });
   };
-  $('q-prompt').addEventListener('click', () => {
+  const openPrompt = () => {
     refreshPrompt();
     $('dlg-prompt').showModal();
-  });
+  };
   $('p-count').addEventListener('change', refreshPrompt);
   $('p-grade').addEventListener('change', refreshPrompt);
   $('p-copy').addEventListener('click', async () => {
@@ -70,28 +154,35 @@ export function initQset(opts) {
   });
   $('p-close').addEventListener('click', () => $('dlg-prompt').close());
 
-  // ───── 엑셀 올리기 ─────
+  // ───── 대기방의 문제 칸 ─────
+  $('q-template').addEventListener('click', () => downloadTemplate(opts.toast));
+  $('q-prompt').addEventListener('click', openPrompt);
   $('q-upload').addEventListener('click', () => $('q-file').click());
   $('q-file').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     e.target.value = '';
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) return opts.toast('파일이 너무 커요. (5MB까지)');
     try {
-      const { rows } = await readXlsx(await file.arrayBuffer(), SHEET_NAME);
-      const parsed = parseSheetRows(rows);
-      if (!parsed.headerOk) {
-        return opts.toast(`양식이 달라요. 첫 줄이 "${HEADER.join(', ')}" 순서여야 해요. 빈 양식을 내려받아 써 주세요.`);
-      }
-      if (!parsed.items.length) return opts.toast('문제가 한 줄도 없어요.');
-      openPreview(file.name.replace(/\.xlsx$/i, ''), parsed.items);
+      const { title, items } = await readQuestionFile(file);
+      openPreview(title, items);
     } catch (err) {
-      console.error(err);
-      opts.toast(err.message && err.message.includes('엑셀') ? err.message : '파일을 읽지 못했어요. 엑셀(xlsx) 파일인지 확인해 주세요.');
+      opts.toast(err.message);
     }
   });
+  // 대기방: 지금 넣은 문제를 고치는 버튼 (화면 틀(index.html)은 그대로 두고 여기서 붙인다)
+  const edit = document.createElement('button');
+  edit.id = 'q-edit';
+  edit.type = 'button';
+  edit.className = 'btn small';
+  edit.textContent = '문제 고치기';
+  edit.addEventListener('click', () => {
+    const d = loadDraft();
+    if (!d.rows.length) return opts.toast('고칠 문제가 없어요. 엑셀을 올리거나 보관한 세트를 골라 주세요.');
+    openPreview(d.title, d.rows);
+  });
+  $('q-upload').after(edit);
 
-  // ───── 보관한 세트 고르기 ─────
+  // ───── 보관한 세트 고르기 (대기방) ─────
   function refreshSaved() {
     const list = loadSaved();
     const sel = $('q-saved');
@@ -102,52 +193,37 @@ export function initQset(opts) {
   $('q-saved').addEventListener('change', (e) => {
     const s = loadSaved()[Number(e.target.value)];
     e.target.value = '';
-    if (s) openPreview(s.title, s.questions.map((q, i) => ({ row: i + 1, ...q })));
+    if (s) openPreview(s.title, s.questions);
   });
   refreshSaved();
 
   // ───── 미리보기 · 고치기 ─────
-  function openPreview(title, items) {
-    draft = items.map((it) => ({
-      q: it.q,
-      a: it.a,
-      wrong: [0, 1, 2].map((k) => (it.wrong || [])[k] || ''),
-      alts: (it.alts || []).join(', '),
-    }));
-    $('v-title').value = title;
+  function openPreview(title, items, onConfirm) {
+    confirmCb = onConfirm || opts.onConfirm;
+    draft = items.map(toRow);
+    $('v-title').value = title || '';
     renderRows();
     $('dlg-preview').showModal();
   }
 
-  function evaluate() {
-    const seen = new Set();
-    return draft.map((d) => {
-      const c = checkQuestion({ q: d.q, a: d.a, wrong: d.wrong });
-      const key = normalizeAnswer(d.q);
-      if (key && seen.has(key)) c.errors.push('같은 문제가 위에 또 있어요');
-      seen.add(key);
-      return c;
-    });
-  }
-
   function refreshStatus() {
-    const checks = evaluate();
+    const { checks } = checkRows(draft, '');
     const rows = $('v-rows').children;
     let good = 0;
+    let bad = 0;
     checks.forEach((c, i) => {
       const row = rows[i];
       if (!row) return;
-      const bad = c.errors.length > 0;
-      if (!bad) good++;
-      row.classList.toggle('bad', bad);
-      row.querySelector('.v-kind').textContent = c.kind === 'choice' ? `${c.wrong.length + 1}지선다` : '주관식';
-      row.querySelector('.v-alts').hidden = c.kind !== 'short';
-      row.querySelector('.v-note').textContent = [...c.errors, ...c.warnings.map((w) => '참고: ' + w)].join(' · ');
+      const isBad = !c || c.errors.length > 0;
+      if (c && !isBad) good++;
+      if (c && isBad) bad++;
+      row.classList.toggle('bad', isBad);
+      row.querySelector('.v-kind').textContent = !c ? '빈 줄' : c.kind === 'choice' ? `${c.wrong.length + 1}지선다` : '주관식';
+      row.querySelector('.v-alts').hidden = !c || c.kind !== 'short';
+      row.querySelector('.v-note').textContent = c ? [...c.errors, ...c.warnings.map((w) => '참고: ' + w)].join(' · ') : '비어 있어서 빼요';
     });
-    const bad = checks.length - good;
     $('v-summary').textContent = `쓸 수 있는 문제 ${good}개` + (bad ? ` · 고쳐야 할 문제 ${bad}개 (고치지 않으면 빼고 확정해요)` : '');
     $('v-confirm').disabled = good === 0;
-    return checks;
   }
 
   function field(d, key, placeholder, cls, index) {
@@ -205,19 +281,16 @@ export function initQset(opts) {
 
   $('v-cancel').addEventListener('click', () => $('dlg-preview').close());
   $('v-confirm').addEventListener('click', () => {
-    const checks = refreshStatus();
-    const questions = [];
-    checks.forEach((c, i) => {
-      if (c.errors.length) return;
-      const alts = c.kind === 'short' ? draft[i].alts.split(',').map((s) => s.trim()).filter(Boolean) : [];
-      questions.push({ q: c.q, a: c.a, wrong: c.wrong, alts });
-    });
-    if (!questions.length) return;
-    const set = { title: $('v-title').value.trim() || '이름 없는 문제 세트', questions };
+    const { set } = checkRows(draft, $('v-title').value);
+    if (!set.questions.length) return;
     const kept = saveSet(set);
     refreshSaved();
+    // 확정한 세트가 곧 '입력 중인 문제'가 된다 (방 만들기 전 화면의 표와 같은 내용)
+    saveDraft({ title: set.title, rows: set.questions.map(toRow) }, 'preview');
     $('dlg-preview').close();
-    opts.onConfirm(set);
-    opts.toast(kept ? `"${set.title}" ${questions.length}문제를 확정하고 이 컴퓨터에 보관했어요.` : `"${set.title}" ${questions.length}문제를 확정했어요. (이 브라우저에는 보관하지 못했어요)`);
+    confirmCb(set);
+    opts.toast(kept ? `"${set.title}" ${set.questions.length}문제를 확정하고 이 컴퓨터에 보관했어요.` : `"${set.title}" ${set.questions.length}문제를 확정했어요. (이 브라우저에는 보관하지 못했어요)`);
   });
+
+  return { openPrompt, openPreview, refreshSaved };
 }

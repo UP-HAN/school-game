@@ -474,7 +474,8 @@ async function run() {
 }
 
 const server = spawn(process.execPath, [path.join(here, 'index.js')], {
-  env: { ...process.env, PORT: String(PORT), TEACHER_PASSWORD: PASSWORD },
+  // 비밀번호를 설정한 경우의 시험 (비밀번호 없음 경로·방 제한·자동 정리는 test-rooms.js)
+  env: { ...process.env, PORT: String(PORT), TEACHER_PASSWORD: PASSWORD, MAX_ROOMS: '1000', MAX_ROOMS_PER_IP: '1000', ROOM_CREATE_PER_HOUR: '1000', TEST_OVERRIDES: JSON.stringify({ createGapMs: 0 }) },
   stdio: ['ignore', 'pipe', 'inherit'],
 });
 const timeout = setTimeout(() => {

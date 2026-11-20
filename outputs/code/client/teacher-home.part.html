@@ -1,8 +1,82 @@
-      <!-- 선생님 페이지(teacher/)의 첫 화면 칸. 서버가 index.html 의 home:start~home:end 자리에 끼워 넣는다 (이 파일만 따로 열리지 않는다) -->
-      <form id="create-form" autocomplete="off">
-        <p class="teacher-badge">선생님 페이지</p>
-        <label>선생님 비밀번호
-          <input id="create-password" type="password" autocomplete="current-password" required>
-        </label>
-        <button class="btn accent big" type="submit">방 만들기</button>
+      <!-- 선생님 페이지(teacher/)의 첫 화면: 방을 만들기 전에 한 화면에서 ① 문제 넣기 ② 놀이 방법 ③ 맵 ④ 자세히 설정 → 방 만들기.
+           서버가 index.html 의 home:start~home:end 자리에 끼워 넣는다 (이 파일만 따로 열리지 않는다). 동작은 client/teacher-setup.js.
+           아래 비밀번호 칸 표시 사이의 내용은 서버에 TEACHER_PASSWORD 가 있을 때만 남는다 (기본 운영은 비밀번호 없음). -->
+      <form id="create-form" class="tsetup" autocomplete="off" novalidate>
+        <div class="ts-bar">
+          <p class="teacher-badge">선생님 페이지 · 수업 준비</p>
+          <!--pw:start-->
+          <label class="ts-pw">선생님 비밀번호
+            <input id="create-password" type="password" autocomplete="current-password" required>
+          </label>
+          <!--pw:end-->
+          <button id="ts-create" class="btn primary ts-create" type="submit">방 만들기 <small id="ts-create-sub">문제 0개</small></button>
+        </div>
+        <p id="create-msg" class="create-msg" role="alert" hidden></p>
+
+        <!-- ① 문제 넣기 -->
+        <section class="ts-sec" aria-labelledby="ts-h-q">
+          <div class="ts-head">
+            <h2 id="ts-h-q"><span class="ts-num">1</span> 문제 넣기</h2>
+            <span id="ts-qcount" class="ts-chip">넣은 문제 0개</span>
+          </div>
+          <div class="ts-tools">
+            <button id="ts-upload" class="btn accent small" type="button">엑셀 올리기</button>
+            <button id="ts-template" class="btn small" type="button">빈 양식 받기</button>
+            <button id="ts-prompt" class="btn small" type="button">AI 요청문 보기</button>
+            <button id="ts-example" class="btn small" type="button">예시 문제</button>
+            <select id="ts-saved" class="ts-saved" aria-label="보관한 문제 세트 불러오기"></select>
+            <input id="ts-file" type="file" accept=".xlsx" hidden>
+          </div>
+          <p class="hint">정답만 쓰면 <b>주관식</b>, 오답까지 쓰면 <b>고르는 문제</b>가 돼요. 엑셀에서 여러 줄을 복사해 문제 칸에 붙여넣어도(Ctrl+V) 한 번에 들어가요. 적은 문제는 이 컴퓨터에 저절로 남아요.</p>
+          <div class="ts-grid" role="table" aria-label="문제 표">
+            <div class="ts-row ts-th" role="row">
+              <span role="columnheader">#</span><span role="columnheader">문제</span><span role="columnheader">정답</span>
+              <span role="columnheader">오답 1</span><span role="columnheader">오답 2</span><span role="columnheader">오답 3</span>
+              <span role="columnheader">종류</span><span role="columnheader"><span class="sr">지우기</span></span>
+            </div>
+            <div id="ts-rows" role="rowgroup"></div>
+          </div>
+          <div class="ts-tools ts-foot">
+            <button id="ts-add1" class="btn small" type="button">+ 1줄</button>
+            <button id="ts-add5" class="btn small" type="button">+ 5줄</button>
+            <span class="grow"></span>
+            <label class="ts-title">세트 이름 <input id="ts-title" maxlength="60" placeholder="예: 5학년 과학 2단원"></label>
+            <button id="ts-keep" class="btn small" type="button">세트로 보관</button>
+            <button id="ts-export" class="btn small" type="button">엑셀로 저장</button>
+            <button id="ts-clear" class="btn small danger" type="button">모두 지우기</button>
+          </div>
+        </section>
+
+        <!-- ② 놀이 방법 -->
+        <section class="ts-sec" aria-labelledby="ts-h-mode">
+          <div class="ts-head">
+            <h2 id="ts-h-mode"><span class="ts-num">2</span> 놀이 방법 고르기</h2>
+            <button class="btn small ghost open-manual" type="button">놀이 방법 자세히</button>
+          </div>
+          <div id="ts-modes" class="ts-cards" role="radiogroup" aria-labelledby="ts-h-mode"></div>
+        </section>
+
+        <!-- ③ 맵 -->
+        <section class="ts-sec" aria-labelledby="ts-h-map">
+          <div class="ts-head">
+            <h2 id="ts-h-map"><span class="ts-num">3</span> 맵 고르기</h2>
+          </div>
+          <div id="ts-maps" class="ts-cards maps" role="radiogroup" aria-labelledby="ts-h-map"></div>
+        </section>
+
+        <!-- ④ 자세히 설정 (접혀 있음) -->
+        <details id="ts-more" class="ts-sec ts-more">
+          <summary><span class="ts-num">4</span> 자세히 설정 <small id="ts-more-sum" class="hint"></small></summary>
+          <div class="ts-set">
+            <label><span id="ts-chaser-label">잠귀신 수</span> <select id="ts-chasers"></select></label>
+            <label id="ts-speed-wrap">잠귀신 속도 <select id="ts-speed"></select></label>
+            <label>한 사람이 켤 랜턴 수 <select id="ts-missions"></select></label>
+            <label>제한 시간 <select id="ts-minutes"></select></label>
+            <label>잠 안개 · 보급 상자 <select id="ts-fogloot"><option value="on">켜기</option><option value="off">끄기</option></select></label>
+            <label>퀴즈 수첩 <select id="ts-notebook"><option value="on">켜기</option><option value="off">끄기</option></select></label>
+            <label class="ts-imp">회의 종 횟수 <select id="ts-meetings"></select></label>
+            <label class="ts-imp">추방된 사람 정체 공개 <select id="ts-reveal"><option value="on">켜기</option><option value="off">끄기</option></select></label>
+          </div>
+          <p class="hint">방을 만든 뒤 대기방에서도 바꿀 수 있어요. 꿈도둑을 몰래 정하는 것은 학생이 들어온 뒤 대기방에서 해요.</p>
+        </details>
       </form>

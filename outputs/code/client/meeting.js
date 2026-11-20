@@ -5,6 +5,7 @@
 //     cards:[{ id, color, character, ghost, ejected }], result?:{ ejected, tie, counts, role? } }
 import { playerLabel } from './shared/config.js';
 import { MAF as IMP } from './mafiaconst.js';
+import { KEYS } from './keys.js';
 
 const $ = (id) => document.getElementById(id);
 // 받침이 있으면 a, 없으면 b ("슬라임은" / "고양이는")
@@ -30,6 +31,8 @@ export function initMeeting(opts) {
   let extended = 0; // 선생님이 토론을 늘린 횟수 (서버가 알려 주지 않으면 이 화면에서 센다)
   let sig = '';
   let timer = 0;
+  let kbId = null; // 키보드(방향키)로 고른 카드 id 또는 'skip'
+  const hasKeyboard = () => !document.documentElement.classList.contains('touch-only'); // keys.js watchKeyboard
 
   const label = (id) => {
     const c = m && m.cards ? m.cards.find((x) => x.id === id) : null;
@@ -58,6 +61,7 @@ export function initMeeting(opts) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'mt-card';
+      b.dataset.id = c.id;
       const mine = c.id === who.myId;
       b.classList.toggle('me', mine);
       b.classList.toggle('ghost', !!c.ghost);
@@ -123,7 +127,7 @@ export function initMeeting(opts) {
       if (who.teacher) return ['꿈도둑 지목 투표', '학생들이 투표하는 중이에요'];
       if (!m.canVote) return ['꿈도둑 지목 투표', '이번 회의는 지켜보기만 해요'];
       if (myVote()) return ['투표 완료', '다른 친구들이 투표를 끝낼 때까지 기다려요'];
-      return ['꿈도둑 지목 투표', '꿈도둑이라고 생각하는 친구를 눌러요. 모르겠으면 기권!'];
+      return ['꿈도둑 지목 투표', '꿈도둑이라고 생각하는 친구를 눌러요. 모르겠으면 기권!' + (hasKeyboard() ? ` (${KEYS.pick.label}로 고르고 ${KEYS.act.label})` : '')];
     }
     // 결과
     if (r.ejected) {
@@ -155,6 +159,13 @@ export function initMeeting(opts) {
     skip.disabled = !canVoteNow();
     skip.textContent = skipCount != null ? `기권 ${skipCount}표` : myVote() === 'skip' ? '기권 (투표함)' : '기권';
     skip.classList.toggle('picked', myVote() === 'skip');
+    if (canVoteNow()) {
+      // 키 글자: (방향키 → Space)
+      const kh = document.createElement('small');
+      kh.className = 'kh';
+      kh.textContent = `(${KEYS.pick.label} → ${KEYS.act.label})`;
+      skip.append(' ', kh);
+    }
     // 선생님 조작
     $('mt-teacher').hidden = !(who.teacher && m.stage === 'discuss');
     const used = typeof m.extended === 'number' ? m.extended : extended;
@@ -165,8 +176,61 @@ export function initMeeting(opts) {
       sig = s;
       renderCards();
     }
+    markKb();
     tick();
   }
+
+  // ───── 키보드: 방향키(또는 WASD)로 카드 고르기 → 스페이스·엔터로 확정 (마우스·터치는 그대로) ─────
+  function kbTargets() {
+    const out = [...$('mt-cards').querySelectorAll('.mt-card')].filter((b) => !b.disabled);
+    const skip = $('mt-skip');
+    if (!skip.hidden && !skip.disabled) out.push(skip);
+    return out;
+  }
+  function markKb() {
+    const list = canVoteNow() ? kbTargets() : [];
+    const ids = list.map((b) => b.dataset.id || 'skip');
+    if (kbId && !ids.includes(kbId)) kbId = null;
+    for (const b of document.querySelectorAll('#meeting .kb-sel')) b.classList.remove('kb-sel');
+    if (!kbId) return;
+    const el = list[ids.indexOf(kbId)];
+    if (el) el.classList.add('kb-sel');
+  }
+  function kbMove(step) {
+    const list = kbTargets();
+    if (!list.length) return;
+    const ids = list.map((b) => b.dataset.id || 'skip');
+    const i = ids.indexOf(kbId);
+    kbId = ids[i < 0 ? (step > 0 ? 0 : ids.length - 1) : (i + step + ids.length) % ids.length];
+    markKb();
+  }
+  const MOVE = { ArrowLeft: -1, KeyA: -1, ArrowUp: -1, KeyW: -1, ArrowRight: 1, KeyD: 1, ArrowDown: 1, KeyS: 1 };
+  window.addEventListener('keydown', (e) => {
+    if (!m || who.teacher) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    const code = e.code || { ' ': 'Space' }[e.key] || e.key;
+    const act = code === 'Space' || code === 'Enter' || code === 'NumpadEnter';
+    if (act) e.preventDefault(); // 화면이 내려가거나 초점 버튼이 따로 눌리지 않게
+    if (!canVoteNow()) return;
+    const confirming = !$('mt-confirm').hidden;
+    if (MOVE[code]) {
+      e.preventDefault();
+      if (confirming) $('mt-no').click();
+      kbMove(MOVE[code]);
+      return;
+    }
+    if (code === 'Escape' && confirming) {
+      $('mt-no').click();
+      return;
+    }
+    if (!act || e.repeat) return;
+    if (confirming) return $('mt-yes').click();
+    if (!kbId) return kbMove(1); // 처음 누르면 첫 카드를 고른다
+    if (kbId === 'skip') return $('mt-skip').click();
+    const el = $('mt-cards').querySelector(`.mt-card[data-id="${CSS.escape(kbId)}"]`);
+    if (el && !el.disabled) el.click();
+  });
 
   function tick() {
     if (!m) return;
@@ -180,6 +244,7 @@ export function initMeeting(opts) {
     stage = '';
     pick = null;
     sentVote = null;
+    kbId = null;
     sig = '';
     clearInterval(timer);
     timer = 0;

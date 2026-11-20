@@ -25,7 +25,8 @@ const near = (a, b, d) => Math.hypot(a[0] - b[0], a[1] - b[1]) <= d;
 // ───────── 서버 켜기 ─────────
 function startServer(port, overrides) {
   const proc = spawn(process.execPath, [path.join(here, 'index.js')], {
-    env: { ...process.env, PORT: String(port), TEACHER_PASSWORD: PASSWORD, TEST_OVERRIDES: JSON.stringify(overrides) },
+    // 방 만들기 제한은 풀어 둔다 (한 컴퓨터에서 방을 빠르게 여러 개 만든다. 제한 시험은 test-rooms.js)
+    env: { ...process.env, PORT: String(port), TEACHER_PASSWORD: PASSWORD, MAX_ROOMS: '1000', MAX_ROOMS_PER_IP: '1000', ROOM_CREATE_PER_HOUR: '1000', TEST_OVERRIDES: JSON.stringify({ createGapMs: 0, ...overrides }) },
     stdio: ['ignore', 'pipe', 'inherit'],
   });
   let log = '';

@@ -4,11 +4,13 @@ import { drawCharacter } from './characters.js';
 import { startGame } from './game.js';
 import { initMission } from './mission.js';
 import { initQset } from './qset.js';
+import { initTeacherSetup, arrangeLobby, CHASER_SPEEDS } from './teacher-setup.js';
 import { initReport, showTeacherReport, showMyReport } from './report.js';
 import { initMeeting } from './meeting.js';
 import { initManual } from './manual.js';
 import { showLoading, hideLoading, showEnding, hideEnding } from './screens.js';
 import { MAF, CH, FOG, MEETING_CHOICES, isMafia, terms, itemName, fontsReady } from './mafiaconst.js';
+import { KEYS, keyHint, applyKeyHints, watchKeyboard } from './keys.js';
 
 const $ = (id) => document.getElementById(id);
 // 이 화면이 어느 페이지인가: 학생 출입 페이지(./) 또는 선생님 페이지(./teacher/, body data-role="teacher")
@@ -25,6 +27,7 @@ const inviteUrl = (code) => pageUrl(`./?room=${encodeURIComponent(code)}`);
 let ws = null;
 let session = loadSession(); // { code, token, role, id }
 let room = null;
+let teacherSetup = null; // 선생님 페이지: 방 만들기 전 준비 화면 (teacher-setup.js)
 
 function loadSession() {
   try {
@@ -120,6 +123,7 @@ function renderGameHud() {
     cancelHold();
     if (mission) mission.hide();
     closeSaboMenu();
+    setBag(false);
   }
   // 꿈도둑을 찾아라: 회의 화면, 꿈에 빠진 자리, 안개 뿌리기·문 막기
   if (mafia) {
@@ -135,6 +139,7 @@ function renderGameHud() {
       cancelHold();
       closeSaboMenu();
       setMinimap(false);
+      setBag(false);
       if (mission) mission.hide();
     }
     wasMeeting = inMeeting;
@@ -151,14 +156,14 @@ function renderGameHud() {
 function roleHint({ mafia, chaser, frozen, done, notebookOn }) {
   if (mafia) {
     if (iAmGhost()) return '꿈에 빠졌어요 — 랜턴을 계속 켜서 친구들을 도와요! (회의 때는 말하지 않기)';
-    if (chaser) return '들키지 말고 학생을 꿈에 빠뜨려요 (F)! 작전은 G. 퀴즈를 맞히면 꿈 구슬이 생겨요';
+    if (chaser) return `들키지 말고 학생 곁에서 ${KEYS.act.label}로 꿈에 빠뜨려요! 작전은 숫자 ${KEYS.sabo1.label}·${KEYS.sabo2.label}·${KEYS.sabo3.label}. 퀴즈를 맞히면 꿈 구슬이 생겨요`;
     if (done) return '내 랜턴 다 켰어요! 꿈에 빠진 친구를 보면 호루라기, 수상하면 회의 종';
     return '꺼진 랜턴에서 퀴즈를 풀어요. 꿈에 빠진 친구를 보면 호루라기!';
   }
   if (chaser) return '학생에게 다가가 [꿈에 빠뜨리기]! 꿈 구슬은 랜턴 퀴즈로 모아요. 개구멍·미끄럼틀은 못 타요';
-  if (frozen) return notebookOn ? '꿈에 빠졌어요! 친구가 깨워 줄 때까지 퀴즈 수첩(B)으로 공부해요' : '꿈에 빠졌어요! 친구가 와서 깨워 주길 기다려요';
+  if (frozen) return notebookOn ? `꿈에 빠졌어요! 친구가 깨워 줄 때까지 퀴즈 수첩(${KEYS.act.label} 또는 ${KEYS.notebook.label})으로 공부해요` : '꿈에 빠졌어요! 친구가 와서 깨워 주길 기다려요';
   if (done) return '내 랜턴 다 켰어요! 꿈에 빠진 친구를 찾아 깨워 주세요';
-  return '은은히 빛나는 꺼진 랜턴을 찾아가 스페이스!';
+  return `은은히 빛나는 꺼진 랜턴을 찾아가 ${KEYS.act.label}!`;
 }
 
 function renderOver(mafia) {
@@ -280,12 +285,72 @@ function renderBag() {
   $('g-bag').classList.toggle('empty-bag', !item);
   $('g-bag-name').textContent = item ? itemName(item) : '가방 비어 있음';
   $('g-bag-mini').querySelector('.mini-text').textContent = item ? itemName(item).split(' ').pop() : '가방';
+  if (bagOpen) {
+    if (!on) setBag(false);
+    else renderBagPanel();
+  }
 }
 function useItem() {
   if (!isPlayer() || !room || room.over || (isMafia(room) && room.meeting)) return;
   if (!myInfo.item) return toast('가방이 비어 있어요. 보급 상자를 찾아 열어 보세요!');
   if (myInfo.item === 'chance') return toast('찬스 카드는 퀴즈 창에서 [찬스 카드 쓰기]로 써요');
   send({ t: 'useItem' });
+}
+// 가방 창 (B 키): ←→ 로 아이템을 고르고 스페이스로 쓴다. 다시 B 또는 Esc 로 닫는다. 마우스·터치는 가방 버튼을 바로 눌러 쓴다
+let bagOpen = false;
+let bagSel = 0;
+const bagList = () => {
+  if (!myInfo) return [];
+  if (Array.isArray(myInfo.items)) return myInfo.items.filter(Boolean);
+  return myInfo.item ? [myInfo.item] : [];
+};
+function setBag(v) {
+  const can = !!v && isPlayer() && !!room && !room.over && room.settings.fogLoot !== false && !(isMafia(room) && room.meeting);
+  if (v && !can && isPlayer() && room && room.settings.fogLoot === false) toast('이번 판에는 가방(보급 상자)이 없어요');
+  bagOpen = can;
+  bagSel = 0;
+  $('g-bagpanel').hidden = !bagOpen;
+  $('g-bag-help').textContent = `${KEYS.pick.label}로 고르기 ·${KEYS.act.label} 쓰기 · ${KEYS.bag.label} 또는 ${KEYS.esc.label} 닫기`;
+  if (bagOpen) renderBagPanel();
+}
+function renderBagPanel() {
+  if (!bagOpen) return;
+  const list = bagList();
+  const box = $('g-bag-items');
+  box.replaceChildren();
+  if (!list.length) {
+    const p = document.createElement('p');
+    p.className = 'bp-empty';
+    p.textContent = '가방이 비어 있어요. 보급 상자를 찾아 열어 보세요!';
+    box.append(p);
+    return;
+  }
+  bagSel = Math.max(0, Math.min(bagSel, list.length - 1));
+  list.forEach((id, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn bp-item' + (i === bagSel ? ' kb-sel' : '');
+    b.textContent = id === 'chance' ? `${itemName(id)} (퀴즈 창에서 써요)` : itemName(id);
+    b.addEventListener('click', () => {
+      bagSel = i;
+      useBagSel();
+    });
+    box.append(b);
+  });
+}
+function useBagSel() {
+  const list = bagList();
+  if (!list.length) return setBag(false);
+  useItem();
+  setBag(false);
+}
+function bagNav(dir) {
+  if (!bagOpen) return false;
+  const n = bagList().length;
+  if (n > 1 && (dir === 'L' || dir === 'U')) bagSel = (bagSel - 1 + n) % n;
+  if (n > 1 && (dir === 'R' || dir === 'D')) bagSel = (bagSel + 1) % n;
+  renderBagPanel();
+  return true;
 }
 
 // ───────────── 꿈도둑을 찾아라 HUD ─────────────
@@ -355,30 +420,42 @@ function renderMafiaButtons(hideAll) {
   const chaser = isMafia(room) && iAmChaser() && !iAmGhost();
   const off = hideAll || !chaser;
   $('g-freeze').hidden = off;
-  $('g-sabo').hidden = off;
+  $('g-sabo').hidden = true; // 작전 버튼은 늘 펼쳐 두므로 여닫는 버튼은 쓰지 않는다
   if (off) return closeSaboMenu();
   const noOrb = typeof myInfo.energy === 'number' && myInfo.energy <= 0;
   const w = secsLeft(ready.freeze);
   $('g-freeze').disabled = w > 0 || noOrb;
   $('g-freeze-label').textContent = noOrb ? '꿈 구슬 없음' : w > 0 ? `꿈에 빠뜨리기 (${w})` : '꿈에 빠뜨리기';
-  $('g-freeze-sub').textContent = noOrb ? '퀴즈로 채워요' : 'F';
+  $('g-freeze-sub').textContent = noOrb ? '퀴즈로 채워요' : '';
   const wb = secsLeft(ready.blackout);
   const wl = secsLeft(ready.lock);
   const dl = myInfo.disguiseLeft ?? MAF.disguisePerGame;
   const lastNight = game && game.fogInfo() && game.fogInfo().stage >= 3;
   $('g-sabo-blackout').disabled = wb > 0 || lastNight;
-  $('g-sabo-blackout').textContent = lastNight ? '1 안개 뿌리기 (마지막 밤엔 못 써요)' : wb > 0 ? `1 안개 뿌리기 (${wb})` : '1 안개 뿌리기';
+  // 작전 버튼 3개는 꿈도둑일 때 늘 펼쳐 둔다: 번호(숫자 키) + 남은 쉬는 시간·횟수
+  setSaboBtn('g-sabo-blackout', 'sabo1', '안개 뿌리기', lastNight ? '마지막 밤엔 못 써요' : wb > 0 ? `${wb}초` : '준비됨');
   $('g-sabo-lock').disabled = wl > 0;
-  $('g-sabo-lock').textContent = wl > 0 ? `2 문 막기 (${wl})` : '2 문 막기';
+  setSaboBtn('g-sabo-lock', 'sabo2', '문 막기', wl > 0 ? `${wl}초` : '준비됨');
   $('g-sabo-disguise').disabled = dl <= 0;
-  $('g-sabo-disguise').textContent = `3 변신 (${dl}번 남음)`;
+  setSaboBtn('g-sabo-disguise', 'sabo3', '변신', `${Math.max(0, dl)}번 남음`);
+  saboOpen = true;
+  $('g-sabo-menu').hidden = false;
+}
+// 버튼 안: 이름 / 남은 쉬는 시간·횟수 / 키 "(1)"
+function setSaboBtn(id, key, name, state) {
+  const b = $(id);
+  const html = `<span class="sb-name">${name}</span><small class="sb-state">${state}</small><small class="kh">${keyHint(key)}</small>`;
+  if (b.dataset.html !== html) {
+    b.dataset.html = html;
+    b.innerHTML = html; // 이 파일 안의 고정 글자와 숫자만 넣는다
+  }
+  b.setAttribute('aria-label', `${name}, ${state}, 키 ${KEYS[key].label}`);
 }
 function doSabotage(kind) {
   if (!iAmChaser() || iAmGhost() || !room || room.over || room.meeting) return;
   const btn = { blackout: 'g-sabo-blackout', lock: 'g-sabo-lock', disguise: 'g-sabo-disguise' }[kind];
   if ($(btn).disabled) return;
   send({ t: 'sabotage', kind });
-  closeSaboMenu();
 }
 function doFreeze() {
   if (!iAmChaser() || iAmGhost() || !room || room.over || room.meeting) return;
@@ -482,6 +559,8 @@ function renderAction() {
   }
   const hide = !action || action.type === 'none' || busy;
   btn.hidden = hide;
+  // 큰 버튼이 이미 "꿈에 빠뜨리기"(Space)면 옆의 같은 버튼은 숨겨 헷갈리지 않게
+  if (!hide && action.type === 'tag' && room && isMafia(room)) $('g-freeze').hidden = true;
   // 안내 줄: 장치 앞·출구 쪽 안내가 있으면 그것을 먼저
   if (isPlayer() && room && !room.over) {
     const base = roleHint({ mafia: isMafia(room), chaser: iAmChaser(), frozen: !!(mePlayer() && mePlayer().frozen), done: myInfo.solved >= myInfo.missions, notebookOn: room.settings.notebook !== false });
@@ -499,6 +578,7 @@ function renderAction() {
     label = left <= 0 ? '종 (0번 남음)' : myInfo && myInfo.usedButton ? '종 (이미 씀)' : '종 울리기';
     action.sub = left > 0 && !(myInfo && myInfo.usedButton) ? `${left}번 남음` : '';
   }
+  if (action.type === 'tag' && isMafia(room)) wait = Math.max(wait, secsLeft(ready.freeze));
   if (action.type === 'device' && wait > 0) label = `${action.short || '장치'} (${wait})`;
   else if (wait > 0) label = `${label} (${wait})`;
   const off = wait > 0 || disabled;
@@ -617,7 +697,10 @@ function pressDown() {
     if (iAmChaser()) toast('지금은 울릴 수 없어요');
     else send({ t: 'emergency' });
   } else if (a.type === 'alarm') send({ t: 'alarm', mark: a.id });
-  else if (a.type === 'tag') send({ t: 'tag' });
+  else if (a.type === 'tag') {
+    if (isMafia(room)) doFreeze();
+    else send({ t: 'tag' });
+  }
   else if (a.type === 'notebook') openNotebook();
   else if (a.type === 'thaw' && !hold) startHold('thaw', a.id, a.hold || CH.thawHoldMs, { t: 'thawStart', id: a.id }, { t: 'thawEnd' });
   else if (a.type === 'loot' && !hold) startHold('loot', a.id, a.hold || 1500, { t: 'lootStart', crate: a.id }, { t: 'lootEnd' });
@@ -668,7 +751,7 @@ function showIntro(role, info) {
     $('g-intro-title').textContent = role === 'chaser' ? '당신은 꿈도둑입니다' + (mates.length ? ` (동료: ${mates.join(', ')})` : '') : '당신은 학생입니다';
     $('g-intro-text').textContent =
       role === 'chaser'
-        ? '들키지 말고 학생을 꿈에 빠뜨려요 (F). 작전은 G.\n퀴즈를 맞히면 꿈 구슬이 생겨요.'
+        ? `들키지 말고 학생 곁에서 ${KEYS.act.label}로 꿈에 빠뜨려요.\n작전은 숫자 ${KEYS.sabo1.label}·${KEYS.sabo2.label}·${KEYS.sabo3.label} (안개 뿌리기·문 막기·변신).\n퀴즈를 맞히면 꿈 구슬이 생겨요.`
         : '랜턴을 켜서 새벽빛을 모으고, 숨어 있는 꿈도둑을 찾아내요!\n꿈에 빠진 친구를 보면 호루라기!';
   } else {
     $('g-intro-title').textContent = role === 'chaser' ? '너는 잠귀신!' : '너는 학생!';
@@ -736,6 +819,7 @@ async function enterGame() {
   news = { text: '', until: 0, kind: '' };
   closeSaboMenu();
   setMinimap(false);
+  setBag(false);
   $('g-action').hidden = true;
   $('g-intro').hidden = true;
   $('g-over').hidden = true;
@@ -757,20 +841,32 @@ async function enterGame() {
         action = ctx;
         renderAction();
       },
+      onNav: (dir) => bagNav(dir),
       onKey(dir, which = 'act') {
+        if (which === 'act' && bagOpen) {
+          if (dir === 'down') useBagSel();
+          return;
+        }
         if (which === 'act') {
           if (dir === 'down') pressDown();
           else pressUp();
           return;
         }
         if (dir !== 'down' || !room || loading) return;
+        if (isMafia(room) && room.meeting) return;
+        if (which === 'esc') {
+          if (bagOpen) setBag(false);
+          else if (mapOpen) setMinimap(false);
+          return;
+        }
         if (which === 'map') setMinimap(!mapOpen);
-        else if (which === 'bag') useItem();
-        else if (which === 'notebook') openNotebook();
-        if (!isMafia(room)) return;
-        if (which === 'freeze') doFreeze();
-        else if (which === 'sabo') toggleSabo();
-        else if (which === 'sabo1') doSabotage('blackout');
+        else if (which === 'bag') setBag(!bagOpen);
+        else if (which === 'notebook') {
+          setBag(false);
+          openNotebook();
+        }
+        if (!isMafia(room) || iAmGhost()) return;
+        if (which === 'sabo1') doSabotage('blackout');
         else if (which === 'sabo2') doSabotage('lock');
         else if (which === 'sabo3') doSabotage('disguise');
       },
@@ -820,6 +916,7 @@ function leaveGame() {
   if (meetingView) meetingView.hide();
   closeSaboMenu();
   setMinimap(false);
+  setBag(false);
   $('g-alert').hidden = true;
   $('g-big').hidden = true;
 }
@@ -933,6 +1030,8 @@ const onMessage = {
   created(m) {
     saveSession({ code: m.code, token: m.token, role: 'teacher' });
     if ($('create-password')) $('create-password').value = '';
+    showCreateMsg('');
+    if (teacherSetup) teacherSetup.onCreated(); // 방 만들기 전에 고른 설정·문제를 바로 보낸다
   },
   joined(m) {
     saveSession({ code: m.code, token: m.token, role: 'player', id: m.id });
@@ -1012,17 +1111,30 @@ const onMessage = {
       kicked: '선생님이 방에서 내보냈어요.',
       teacher_closed: '선생님이 방을 닫았어요.',
       expired: '방이 오래되어 닫혔어요.',
+      teacher_gone: '선생님 연결이 오래 끊겨서 방이 닫혔어요.',
+      idle: '오랫동안 아무 활동이 없어서 방이 닫혔어요.',
     };
     goHome(why[m.reason] || '방이 닫혔어요.');
   },
   error(m) {
     if (m.code === 'resume_failed') return goHome();
+    if (CREATE_ERRORS.has(m.code)) showCreateMsg(m.msg); // 선생님 첫 화면: 방 만들기 실패 이유를 버튼 아래에도 남긴다
     notebookPending = false;
     toast(m.msg || '문제가 생겼어요.');
   },
 };
 
+// 방 만들기에서 나오는 오류 (방 꽉 참·횟수 초과·연타·비밀번호)
+const CREATE_ERRORS = new Set(['server_full', 'too_many_rooms', 'too_many_creates', 'too_fast', 'bad_password', 'locked']);
+function showCreateMsg(msg) {
+  const el = $('create-msg');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.hidden = !msg;
+}
+
 function goHome(msg) {
+  showCreateMsg('');
   leaveGame();
   saveSession(null);
   room = null;
@@ -1182,6 +1294,14 @@ function renderTeacher() {
   $('t-minutes').value = String(room.settings.minutes);
   $('t-fogloot').value = room.settings.fogLoot === false ? 'off' : 'on';
   $('t-notebook').value = room.settings.notebook === false ? 'off' : 'on';
+  // 잠귀신 속도 (잠귀신 술래잡기에서만 보인다. 서버가 아직 모르는 값이면 '학생과 같은 속도')
+  const speedId = CHASER_SPEEDS.some((s) => s.id === room.settings.chaserSpeed) ? room.settings.chaserSpeed : 'same';
+  $('t-speed').value = speedId;
+  $('t-speed-wrap').hidden = isMafia(room);
+  $('t-more-sum').textContent =
+    `· ${T().mode} · ${(MAPS.find((m) => m.id === room.settings.map) || {}).name || ''} · 랜턴 ${room.settings.missions}개 · ${room.settings.minutes}분` +
+    (isMafia(room) ? '' : ` · ${CHASER_SPEEDS.find((s) => s.id === speedId).name}`);
+  if (teacherSetup) teacherSetup.remember(room.settings); // 다음에 방을 만들 때도 같은 설정으로
   $('t-report').hidden = !room.recordCount;
   // 퀴즈 문제 상태
   const qs = room.qset;
@@ -1274,11 +1394,8 @@ function renderStudent() {
 // ───────────── 처음 한 번 준비 ─────────────
 function init() {
   if (TEACHER_PAGE) {
-    // 선생님 페이지: 비밀번호 → 방 만들기 (학생 입장 칸은 이 페이지에 없다)
-    $('create-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      send({ t: 'create', password: $('create-password').value });
-    });
+    // 선생님 페이지: 방 만들기 전 준비 화면(문제·놀이 방법·맵·설정 → 방 만들기)은 아래 initTeacherSetup 이 맡는다.
+    // 서버에 비밀번호가 설정된 경우에만 비밀번호 칸이 함께 나온다.
   } else {
     // 학생 출입 페이지: 방 번호 + 이름 → 들어가기 (방 만들기 칸은 이 페이지에 없다)
     const params = new URLSearchParams(location.search);
@@ -1310,6 +1427,7 @@ function init() {
     { id: '3', name: '3명' },
   ]);
   fillSelect($('t-missions'), [3, 4, 5, 6, 7, 8].map((n) => ({ id: String(n), name: `${n}개` })));
+  arrangeLobby(); // 대기방: 게임 시작을 위로, 설정은 '설정 바꾸기' 접기 안으로, 잠귀신 속도 칸 붙이기
   const sendSettings = () => {
     const c = $('t-chasers').value;
     send({
@@ -1323,12 +1441,13 @@ function init() {
       reveal: $('t-reveal-role').value !== 'off',
       fogLoot: $('t-fogloot').value !== 'off',
       notebook: $('t-notebook').value !== 'off',
+      chaserSpeed: $('t-speed').value,
     });
   };
   fillSelect($('t-minutes'), MINUTES.map((n) => ({ id: String(n), name: `${n}분` })));
   fillSelect($('t-meetings'), MEETING_CHOICES.map((n) => ({ id: String(n), name: n ? `${n}번` : '없음' })));
   $('t-meetings').value = String(MAF.meetingsDefault);
-  for (const id of ['t-mode', 't-map', 't-chasers', 't-missions', 't-minutes', 't-meetings', 't-reveal-role', 't-fogloot', 't-notebook']) $(id).addEventListener('change', sendSettings);
+  for (const id of ['t-mode', 't-map', 't-chasers', 't-missions', 't-minutes', 't-meetings', 't-reveal-role', 't-fogloot', 't-notebook', 't-speed']) $(id).addEventListener('change', sendSettings);
   $('t-pick-toggle').addEventListener('click', () => {
     const open = $('t-pick').hidden;
     $('t-pick').hidden = !open;
@@ -1336,6 +1455,8 @@ function init() {
     $('t-pick-toggle').textContent = open ? '꿈도둑 몰래 정하기 닫기' : '꿈도둑 몰래 정하기 열기';
   });
   meetingView = initMeeting({ send, toast });
+  applyKeyHints(); // 버튼 아래 키 글자 "(Space)" 등을 keys.js 값으로 채운다
+  watchKeyboard(); // 터치만 되는 기기는 키 글자를 숨긴다
   $('g-roles').addEventListener('click', () => setRoles(!showRoles));
   $('g-freeze').addEventListener('pointerdown', (e) => {
     e.preventDefault();
@@ -1356,7 +1477,8 @@ function init() {
     sideOpen = !sideOpen;
     if (room && room.phase === 'game') renderSide();
   });
-  initQset({ toast, onConfirm: (set) => send({ t: 'questions', set }) });
+  const qsetApi = initQset({ toast, onConfirm: (set) => send({ t: 'questions', set }) });
+  if (TEACHER_PAGE) teacherSetup = initTeacherSetup({ send, toast, showMsg: showCreateMsg, qset: qsetApi });
   mission = initMission({
     send,
     onOpen: () => {

@@ -1,4 +1,6 @@
 // "놀이 방법 보기" 창 (선생님·학생 모두). 첫 화면·대기방의 .open-manual 버튼으로 연다.
+import { KEYS } from './keys.js';
+
 const $ = (id) => document.getElementById(id);
 
 const PAGES = {
@@ -12,6 +14,7 @@ const PAGES = {
       <li>시간이 지나면 <b>잠 안개</b>가 점점 좁혀 와요. 안개 밖은 느리고 어둡고, 오래 있으면 졸려서 잠들어요.</li>
       <li><b>보급 상자</b>가 방 안 가구 속에 숨겨져요. 찾아서 꾹 눌러 열면 아이템이 가방에 들어가요.</li>
       <li>개구멍·미끄럼틀은 학생만 탈 수 있어요. 잠귀신은 따라오지 못해요.</li>
+      <li>선생님이 <b>잠귀신 속도</b>를 고를 수 있어요. 학생과 같게, 조금 빠르게, 매우 빠르게 중에서요.</li>
     </ul>`,
   mafia: `
     <h3>꿈도둑을 찾아라</h3>
@@ -28,10 +31,12 @@ const PAGES = {
   keys: `
     <h3>조작 방법</h3>
     <ul>
-      <li>움직이기: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 또는 화살표. 태블릿은 화면을 누른 채 끌어요.</li>
-      <li><kbd>스페이스</kbd> (또는 <kbd>엔터</kbd>): 지금 할 수 있는 행동 하나. 오른쪽 아래 큰 동그라미 버튼에 무슨 일이 일어날지 적혀 있어요. 깨우기·상자 열기는 꾹 누르고 있어요.</li>
-      <li><kbd>Q</kbd> 가방 (아이템 쓰기) · <kbd>B</kbd> 퀴즈 수첩 · <kbd>Tab</kbd> 작은 지도</li>
-      <li>꿈도둑만: <kbd>F</kbd> 꿈에 빠뜨리기 · <kbd>G</kbd> 작전 (그다음 <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>)</li>
+      <li>움직이기: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 또는 방향키 <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> (두 개를 같이 누르면 대각선). 태블릿은 화면을 누른 채 끌어요.</li>
+      <li><kbd>${KEYS.act.label}</kbd> (또는 <kbd>Enter</kbd>): 지금 할 수 있는 행동 하나. 오른쪽 아래 큰 동그라미 버튼에 무슨 일이 일어날지 적혀 있어요. 깨우기·상자 열기는 꾹 누르고 있어요.</li>
+      <li><kbd>${KEYS.bag.label}</kbd> 가방 (방향키로 고르고 <kbd>${KEYS.act.label}</kbd>로 쓰기) · <kbd>${KEYS.notebook.label}</kbd> 퀴즈 수첩 · <kbd>${KEYS.map.label}</kbd> 작은 지도 · <kbd>${KEYS.esc.label}</kbd> 닫기</li>
+      <li>꿈도둑만: <kbd>${KEYS.sabo1.label}</kbd><kbd>${KEYS.sabo2.label}</kbd><kbd>${KEYS.sabo3.label}</kbd> = 작전 (1 안개 뿌리기 · 2 문 막기 · 3 변신, 누르면 바로). 학생 곁에서 <kbd>${KEYS.act.label}</kbd> = 꿈에 빠뜨리기</li>
+      <li>모닥불 회의: 방향키로 친구 카드를 고르고 <kbd>${KEYS.act.label}</kbd> 두 번(고르기 → 지목). <kbd>${KEYS.esc.label}</kbd> 취소</li>
+      <li>버튼 아래 작은 글씨 <b>(Space)</b> <b>(B)</b> 같은 것이 그 버튼의 키예요. 마우스로 눌러도 돼요.</li>
       <li>게임 중에는 이름 대신 <b>맛 + 캐릭터</b>(예: 딸기 고양이)로 불러요.</li>
     </ul>`,
 };

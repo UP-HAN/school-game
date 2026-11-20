@@ -137,7 +137,7 @@
     <!-- 왼쪽 위: 내 이름표 · 가방 · 꿈 구슬 -->
     <div class="hud hud-left">
       <span id="g-label" class="chip"></span>
-      <button id="g-bag" class="bag" type="button" hidden aria-label="가방 (Q)"><span class="bag-icon" aria-hidden="true"></span><span id="g-bag-name">비어 있음</span><span class="key">Q</span></button>
+      <button id="g-bag" class="bag" type="button" hidden aria-label="가방 (B)"><span class="bag-icon" aria-hidden="true"></span><span id="g-bag-name">비어 있음</span><small class="kh" data-keyhint="bag">(B)</small></button>
       <span id="g-energy" class="energy" hidden></span>
     </div>
 
@@ -184,31 +184,38 @@
     <!-- 행동 버튼 (오른쪽 아래): 큰 동그라미 하나 + 작은 보조 버튼 -->
     <div id="g-buttons" class="actions">
       <div id="g-sabo-menu" class="sabo-menu" hidden>
-        <button id="g-sabo-blackout" class="btn" type="button">1 안개 뿌리기</button>
-        <button id="g-sabo-lock" class="btn" type="button">2 문 막기</button>
-        <button id="g-sabo-disguise" class="btn" type="button">3 변신</button>
+        <button id="g-sabo-blackout" class="btn" type="button"><span class="sb-name">안개 뿌리기</span></button>
+        <button id="g-sabo-lock" class="btn" type="button"><span class="sb-name">문 막기</span></button>
+        <button id="g-sabo-disguise" class="btn" type="button"><span class="sb-name">변신</span></button>
       </div>
       <div class="mini-row">
-        <button id="g-bag-mini" class="mini" type="button" hidden aria-label="가방 (Q)"><span class="mini-icon bag-icon" aria-hidden="true"></span><span class="mini-text">가방</span></button>
-        <button id="g-notebook" class="mini" type="button" hidden aria-label="퀴즈 수첩 (B)"><span class="mini-icon book-icon" aria-hidden="true"></span><span class="mini-text">수첩</span></button>
-        <button id="g-map" class="mini" type="button" hidden aria-pressed="false" aria-label="작은 지도 (Tab)"><span class="mini-icon map-icon" aria-hidden="true"></span><span class="mini-text">지도</span></button>
+        <button id="g-bag-mini" class="mini" type="button" hidden aria-label="가방 (B)"><span class="mini-icon bag-icon" aria-hidden="true"></span><span class="mini-text">가방</span><small class="kh" data-keyhint="bag">(B)</small></button>
+        <button id="g-notebook" class="mini" type="button" hidden aria-label="퀴즈 수첩 (N)"><span class="mini-icon book-icon" aria-hidden="true"></span><span class="mini-text">수첩</span><small class="kh" data-keyhint="notebook">(N)</small></button>
+        <button id="g-map" class="mini" type="button" hidden aria-pressed="false" aria-label="작은 지도 (M)"><span class="mini-icon map-icon" aria-hidden="true"></span><span class="mini-text">지도</span><small class="kh" data-keyhint="map">(M)</small></button>
       </div>
       <div class="actions-row">
         <div class="mafia-btns">
-          <button id="g-sabo" class="mid sabo" type="button" hidden aria-expanded="false"><span>작전</span><small>G</small></button>
-          <button id="g-freeze" class="mid tag" type="button" hidden><span id="g-freeze-label">꿈에 빠뜨리기</span><small id="g-freeze-sub">F</small></button>
+          <button id="g-sabo" class="mid sabo" type="button" hidden aria-expanded="false"><span>작전</span><small>1·2·3</small></button>
+          <button id="g-freeze" class="mid tag" type="button" hidden><span id="g-freeze-label">꿈에 빠뜨리기</span><small id="g-freeze-sub"></small></button>
         </div>
         <button id="g-action" class="big-action" type="button" hidden>
           <svg class="ring" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54"></circle></svg>
           <span id="g-action-label" class="ba-label">랜턴 켜기</span>
           <small id="g-action-sub" class="ba-sub"></small>
+          <small class="kh" data-keyhint="act">(Space)</small>
         </button>
       </div>
     </div>
 
     <div id="g-minimap" class="minimap card" hidden>
       <canvas id="g-minimap-canvas" aria-label="학교 지도"></canvas>
-      <button id="g-minimap-close" class="btn small" type="button">닫기 (Tab)</button>
+      <button id="g-minimap-close" class="btn small" type="button">닫기 <small class="kh" data-keyhint="esc">(Esc)</small></button>
+    </div>
+    <!-- 가방 창 (B 키): ←→ 로 고르고 스페이스로 쓰기 -->
+    <div id="g-bagpanel" class="bag-panel card" role="dialog" aria-label="가방" hidden>
+      <p class="bp-title"><span class="bag-icon" aria-hidden="true"></span>가방</p>
+      <div id="g-bag-items" class="bp-items"></div>
+      <p id="g-bag-help" class="bp-help kh"></p>
     </div>
     <div id="g-intro" class="intro" hidden>
       <div class="card">
@@ -257,8 +264,8 @@
         <div id="mt-cards" class="mt-cards"></div>
         <div id="mt-confirm" class="mt-confirm" hidden>
           <p id="mt-confirm-text"></p>
-          <button id="mt-yes" class="btn primary" type="button">지목</button>
-          <button id="mt-no" class="btn small" type="button">취소</button>
+          <button id="mt-yes" class="btn primary" type="button">지목 <small class="kh" data-keyhint="act">(Space)</small></button>
+          <button id="mt-no" class="btn small" type="button">취소 <small class="kh" data-keyhint="esc">(Esc)</small></button>
         </div>
         <footer class="mt-foot">
           <button id="mt-skip" class="btn big mt-skip" type="button" hidden>기권</button>

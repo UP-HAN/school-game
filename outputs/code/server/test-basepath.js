@@ -92,7 +92,7 @@ async function main() {
       const label = prefix || '(앞부분 없음)';
       const tp = await get(PORT, prefix + '/teacher/');
       check(`${label}/teacher/ 선생님 페이지 200`, tp.status === 200 && /<html/i.test(tp.body), `상태 ${tp.status}`);
-      check(`${label}/teacher/ 에 비밀번호 칸·방 만들기가 있다`, tp.body.includes('id="create-form"') && tp.body.includes('id="create-password"'));
+      check(`${label}/teacher/ 에 비밀번호 칸·방 만들기가 있다 (비밀번호 설정 시)`, tp.body.includes('id="create-form"') && tp.body.includes('id="create-password"'));
       check(`${label}/teacher/ 에 학생 입장 칸이 없다`, !tp.body.includes('id="join-form"') && !tp.body.includes('id="join-code"'));
       check(`${label}/teacher/ 는 data-role="teacher" + <base href="../">`, tp.body.includes('<body data-role="teacher">') && tp.body.includes('<base href="../">'));
     }
