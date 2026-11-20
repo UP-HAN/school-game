@@ -121,3 +121,9 @@
 2. 선택된 설계서를 `outputs/01-spec.md` 등으로 작성한다 (전역 규칙의 planner 흐름).
 3. 설계서 승인 후 구현. 구현 전에 게임 이름과 기술 구성(DB, 서버 함수, 배포)을 사용자와 확정한다.
 4. 참고작을 다시 보고 싶으면 위 URL을 브라우저로 열면 된다.
+
+## 5-3. 배포 현황 (2026-11-21)
+- **운영 중**: 학생 https://lab.ches.es.kr/lantern/ · 선생님 https://lab.ches.es.kr/lantern/teacher/ (AWS Lightsail Ubuntu 22.04, SSH 별칭 `ras-server`).
+- 서버 구성: 전용 사용자 `lantern`, 폴더 `/opt/lantern`(git clone), Node 22(nvm, lantern 전용), systemd 서비스 `lantern`, 내부 포트 127.0.0.1:3600 (3100 은 다른 프로그램이 사용 중), 설정 `/opt/lantern/outputs/code/.env`(root 소유 600, 선생님 비밀번호는 선생님이 직접 입력).
+- nginx: `/etc/nginx/snippets/lantern.conf` 를 `sites-available/lab.ches.es.kr` 의 443 블록에서 `include` (백업 `lab.ches.es.kr.bak-lantern-*`). 되돌리기·업데이트 방법은 `outputs/code/deploy/DEPLOY.md` 7·8절.
+- 확인: 브라우저에서 학생 페이지·선생님 페이지 열림, 웹소켓 연결 열림. 실제 한 판(여러 기기)과 휴대폰 LTE 접속은 아직 확인 못 함.
