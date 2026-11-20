@@ -1,0 +1,6 @@
+# 비밀번호가 들어가는 파일과 설치된 라이브러리는 올리지 않는다
+node_modules/
+.env
+.env.*
+!.env.example
+.claude/settings.local.json

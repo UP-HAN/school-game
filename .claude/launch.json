@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "school-game-dev",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "--env-file-if-exists=outputs/code/.env.dev",
+        "outputs/code/server/index.js"
+      ],
+      "port": 3210
+    }
+  ]
+}

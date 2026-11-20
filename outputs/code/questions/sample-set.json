@@ -1,0 +1,57 @@
+{
+  "_note": "내부 형식 초안. 1단계는 엑셀 업로드로 choice·short 두 가지만 쓴다(02-spec-questions.md). ox·order·match 는 나중 범위.",
+  "title": "샘플 문제 세트",
+  "subject": "여러 과목",
+  "grade": 5,
+  "questions": [
+    {
+      "type": "choice",
+      "question": "다음 중 약분하면 1/2 이 되는 분수는?",
+      "choices": ["2/6", "3/6", "4/6", "5/6"],
+      "answer": 1,
+      "difficulty": 1,
+      "topic": "약분",
+      "hint": "분자와 분모를 같은 수로 나누어 보세요.",
+      "steps": "분자 ÷ □ = 1, 분모 ÷ □ = 2 가 되는 □ 를 찾습니다.",
+      "explanation": "3/6 은 분자와 분모를 3으로 나누면 1/2 입니다."
+    },
+    {
+      "type": "short",
+      "question": "우리나라의 수도는 어디일까요?",
+      "answer": ["서울", "서울특별시"],
+      "difficulty": 1,
+      "topic": "우리나라",
+      "hint": "한강이 흐르는 도시입니다.",
+      "explanation": "대한민국의 수도는 서울입니다."
+    },
+    {
+      "type": "ox",
+      "question": "식물은 햇빛을 받아 스스로 양분을 만든다.",
+      "answer": true,
+      "difficulty": 1,
+      "topic": "광합성",
+      "explanation": "이 과정을 광합성이라고 합니다."
+    },
+    {
+      "type": "order",
+      "question": "작은 수부터 차례대로 놓으세요.",
+      "items": ["0.5", "1/4", "0.75", "1"],
+      "answer": [1, 0, 2, 3],
+      "difficulty": 2,
+      "topic": "분수와 소수",
+      "hint": "1/4 을 소수로 바꿔 보세요.",
+      "steps": "모두 소수로 바꾼 다음 크기를 비교합니다.",
+      "explanation": "1/4 = 0.25 이므로 0.25, 0.5, 0.75, 1 순서입니다."
+    },
+    {
+      "type": "match",
+      "question": "영어 낱말과 뜻을 짝지으세요.",
+      "left": ["apple", "book", "water"],
+      "right": ["물", "사과", "책"],
+      "answer": [1, 2, 0],
+      "difficulty": 2,
+      "topic": "영어 낱말",
+      "explanation": "apple-사과, book-책, water-물"
+    }
+  ]
+}

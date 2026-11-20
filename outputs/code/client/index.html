@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>학교 술래잡기 (가칭)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="offline" hidden>연결이 끊겼어요. 다시 연결하는 중…</div>
+
+  <!-- 첫 화면 -->
+  <main id="view-home" class="view">
+    <canvas id="parade" aria-hidden="true"></canvas>
+    <section class="card home-card">
+      <h1 class="logo">학교 <span>술래잡기</span></h1>
+      <p class="sub">문제를 풀어 학교를 구하자! <small>(게임 이름은 아직 가칭)</small></p>
+
+      <form id="join-form" autocomplete="off">
+        <label>방 번호
+          <input id="join-code" inputmode="numeric" maxlength="4" placeholder="선생님이 알려 준 4자리" required>
+        </label>
+        <label>이름
+          <input id="join-name" maxlength="8" placeholder="8글자까지" required>
+        </label>
+        <button class="btn primary big" type="submit">들어가기</button>
+      </form>
+
+      <button id="open-teacher" class="btn ghost" type="button">선생님이에요</button>
+
+      <form id="create-form" hidden autocomplete="off">
+        <label>선생님 비밀번호
+          <input id="create-password" type="password" autocomplete="off" required>
+        </label>
+        <button class="btn accent big" type="submit">방 만들기</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- 선생님 대기방 -->
+  <main id="view-teacher" class="view" hidden>
+    <header class="topbar">
+      <div class="card code-card">
+        <span class="label">방 번호</span>
+        <strong id="t-code" class="code">----</strong>
+        <span id="t-link" class="link"></span>
+        <button id="t-copy" class="btn small" type="button">초대 주소 복사</button>
+      </div>
+      <div class="card settings-card">
+        <label>놀이 방법 <select id="t-mode"></select></label>
+        <label>맵 <select id="t-map"></select></label>
+        <label><span id="t-chaser-label">술래 수</span> <select id="t-chasers"></select></label>
+        <div class="row two">
+          <label>학생 한 명이 풀 문제 수 <select id="t-missions"></select></label>
+          <label>제한 시간 <select id="t-minutes"></select></label>
+        </div>
+        <div class="row">
+          <button id="t-start" class="btn primary" type="button">게임 시작</button>
+          <button id="t-close" class="btn danger small" type="button">방 닫기</button>
+        </div>
+        <p id="t-hint" class="hint"></p>
+      </div>
+    </header>
+    <section class="card qset-card">
+      <div class="qset-status">
+        <h2>미션 문제</h2>
+        <p id="q-status" class="sub">아직 문제가 없어요. 엑셀 파일을 올려 주세요.</p>
+        <p id="q-warn" class="hint"></p>
+      </div>
+      <div class="qset-actions">
+        <button id="q-upload" class="btn accent" type="button">엑셀 올리기</button>
+        <button id="q-template" class="btn small" type="button">빈 양식 내려받기</button>
+        <button id="q-prompt" class="btn small" type="button">AI 요청문 보기</button>
+        <select id="q-saved" aria-label="보관한 문제 세트"></select>
+        <button id="t-report" class="btn small" type="button" hidden>지난 게임 학습 기록</button>
+        <input id="q-file" type="file" accept=".xlsx" hidden>
+      </div>
+    </section>
+    <h2 class="section-title">들어온 친구들 <span id="t-count"></span></h2>
+    <div id="t-players" class="players"></div>
+  </main>
+
+  <!-- 학생 대기방 -->
+  <main id="view-student" class="view" hidden>
+    <section class="card me-card">
+      <canvas id="s-me" class="char" width="200" height="200"></canvas>
+      <div>
+        <p class="label">나는</p>
+        <h2 id="s-label">-</h2>
+        <p id="s-name" class="sub"></p>
+        <p class="hint">게임에서는 이름 대신 <b>색 + 캐릭터</b>로 불러요.</p>
+      </div>
+      <button id="s-leave" class="btn small ghost" type="button">나가기</button>
+    </section>
+    <h2 class="section-title">캐릭터 고르기</h2>
+    <div id="s-picker" class="picker"></div>
+    <h2 class="section-title">함께하는 친구들 <span id="s-count"></span></h2>
+    <div id="s-players" class="players compact"></div>
+    <p class="waiting">선생님이 시작하기를 기다리는 중<span class="dots"></span></p>
+  </main>
+
+  <!-- 게임 화면 -->
+  <main id="view-game" class="game" hidden>
+    <canvas id="game-canvas"></canvas>
+    <div class="hud hud-left">
+      <span id="g-label" class="chip"></span>
+    </div>
+    <div class="hud hud-right">
+      <button id="g-reveal" class="btn small" type="button" aria-pressed="false" hidden>학생 위치 보기</button>
+      <button id="g-report" class="btn small" type="button" hidden>학습 기록</button>
+      <button id="g-end" class="btn danger small" type="button" hidden>게임 끝내기</button>
+    </div>
+    <aside id="g-side" class="side card" aria-label="학생 현황" hidden></aside>
+    <div class="hud hud-top">
+      <span id="g-clock" class="chip clock" aria-label="남은 시간">0:00</span>
+      <div class="progress" role="progressbar" aria-label="학교 복구율" aria-valuemin="0" aria-valuemax="100">
+        <div id="g-bar" class="progress-fill"></div>
+        <span id="g-progress" class="progress-text">학교 복구율 0%</span>
+      </div>
+      <span id="g-missions" class="chip"></span>
+    </div>
+    <button id="g-action" class="btn accent action" type="button" hidden><span id="g-action-label">문제 풀기</span></button>
+    <div id="g-intro" class="intro" hidden>
+      <div class="card">
+        <h2 id="g-intro-title"></h2>
+        <p id="g-intro-text"></p>
+      </div>
+    </div>
+    <p id="g-hint" class="hud hud-bottom chip"></p>
+    <div id="g-over" class="over" hidden>
+      <div class="card">
+        <h2 id="g-over-title"></h2>
+        <p id="g-over-text" class="sub"></p>
+        <button id="g-myreport" class="btn primary" type="button" hidden>나의 기록 보기</button>
+      </div>
+    </div>
+
+    <!-- 문제 창 -->
+    <div id="mission" class="mission" hidden>
+      <section class="card mission-card" role="dialog" aria-modal="true" aria-labelledby="m-text">
+        <header class="mission-head">
+          <span class="chip">고장 난 단말기</span>
+          <button id="m-close" class="btn small ghost" type="button">닫기</button>
+        </header>
+        <p id="m-text" class="mission-text"></p>
+        <div id="m-choices" class="choices"></div>
+        <form id="m-form" class="short" autocomplete="off" hidden>
+          <input id="m-input" maxlength="60" placeholder="답을 적어요" aria-label="답">
+          <button id="m-submit" class="btn primary" type="submit">확인</button>
+        </form>
+        <p id="m-help" class="mission-help"></p>
+        <p id="m-feedback" class="mission-feedback" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+  </main>
+
+  <!-- 선생님: 문제 미리보기 -->
+  <dialog id="dlg-preview" class="dlg wide">
+    <h2>문제 미리보기</h2>
+    <p class="hint">정답이 맞는지 확인하고, 필요하면 바로 고쳐 주세요. 오답 칸이 비어 있으면 주관식, 채워져 있으면 고르는 문제가 돼요.</p>
+    <label>문제 세트 이름 <input id="v-title" maxlength="60"></label>
+    <div id="v-rows" class="v-rows"></div>
+    <footer class="dlg-foot">
+      <p id="v-summary" class="sub"></p>
+      <button id="v-cancel" class="btn small" type="button">취소</button>
+      <button id="v-confirm" class="btn primary" type="button">이 세트로 확정</button>
+    </footer>
+  </dialog>
+
+  <!-- 학습 기록 (선생님: 전체 / 학생: 나의 기록) -->
+  <dialog id="dlg-report" class="dlg wide">
+    <h2 id="r-title">학습 기록</h2>
+    <div id="r-body" class="r-body"></div>
+    <footer class="dlg-foot">
+      <button id="r-csv" class="btn small" type="button">CSV 내려받기</button>
+      <button id="r-close" class="btn primary" type="button">닫기</button>
+    </footer>
+  </dialog>
+
+  <!-- 선생님: AI 요청문 -->
+  <dialog id="dlg-prompt" class="dlg">
+    <h2>AI 요청문</h2>
+    <ol class="steps">
+      <li>아래 요청문을 <b>복사</b>해요.</li>
+      <li>ChatGPT·Gemini 같은 AI에 <b>교과서 PDF 등 자료를 첨부</b>하고 요청문을 붙여넣어요.</li>
+      <li>AI가 만들어 준 엑셀 파일을 여기 <b>[엑셀 올리기]</b>로 올려요.</li>
+    </ol>
+    <div class="row">
+      <label>문제 수 <select id="p-count"><option>20</option><option selected>30</option><option>40</option><option>50</option></select></label>
+      <label>대상 <select id="p-grade"><option>초등학교 3학년</option><option>초등학교 4학년</option><option selected>초등학교 5학년</option><option>초등학교 6학년</option><option>중학생</option></select></label>
+    </div>
+    <textarea id="p-text" rows="12" readonly aria-label="AI 요청문"></textarea>
+    <p class="hint">AI가 엑셀 파일 대신 표만 보여 주면, 빈 양식을 내려받아 표를 복사해 붙여넣은 뒤 올려 주세요.</p>
+    <footer class="dlg-foot">
+      <button id="p-close" class="btn small" type="button">닫기</button>
+      <button id="p-copy" class="btn primary" type="button">요청문 복사</button>
+    </footer>
+  </dialog>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
