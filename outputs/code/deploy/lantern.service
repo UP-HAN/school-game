@@ -1,0 +1,56 @@
+# 한밤의 랜턴 대작전 — 게임 서버 (systemd 서비스 파일)
+# 설치 위치: /etc/systemd/system/lantern.service   (DEPLOY.md 4단계)
+# 이 서비스 이름은 'lantern' 하나만 씁니다. 같은 서버의 다른 프로그램 서비스와 겹치지 않습니다.
+#
+# Node.js 22 는 전용 사용자 lantern 의 nvm 으로 설치합니다 (DEPLOY.md 1단계).
+# nvm-exec 는 NODE_VERSION 에 맞는 node 를 찾아 실행해 주는 nvm 의 도우미입니다.
+# 서버의 다른 프로그램이 쓰는 node(/usr/bin/node 등)와는 따로 움직입니다.
+
+[Unit]
+Description=Lantern school game (lab.ches.es.kr/lantern)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lantern
+Group=lantern
+WorkingDirectory=/opt/lantern/outputs/code
+# 비밀번호·포트 등 설정 (선생님이 직접 만든 파일, 권한 600)
+EnvironmentFile=/opt/lantern/outputs/code/.env
+Environment=NODE_ENV=production
+Environment=NODE_VERSION=22
+Environment=NVM_DIR=/var/lib/lantern/.nvm
+ExecStart=/var/lib/lantern/.nvm/nvm-exec node server/index.js
+
+# 꺼지면 5초 뒤 자동으로 다시 켭니다
+Restart=always
+RestartSec=5
+
+# 메모리 한도: 이 게임이 다른 프로그램의 메모리를 빼앗지 않게 (넘으면 서비스만 다시 켜짐)
+MemoryHigh=384M
+MemoryMax=512M
+
+# 권한 최소화 (게임 서버는 파일을 쓰지 않으므로 대부분 읽기 전용으로 둡니다)
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

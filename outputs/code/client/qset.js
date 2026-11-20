@@ -1,6 +1,6 @@
-// 선생님용: 미션 문제 세트 만들기 (엑셀 올리기 → 미리보기·고치기 → 확정), 빈 양식, AI 요청문.
-import { readXlsx, writeXlsx } from '/shared/xlsx.js';
-import { HEADER, SHEET_NAME, parseSheetRows, checkQuestion, normalizeAnswer, buildPrompt } from '/shared/questions.js';
+// 선생님용: 퀴즈 문제 세트 만들기 (엑셀 올리기 → 미리보기·고치기 → 확정), 빈 양식, AI 요청문.
+import { readXlsx, writeXlsx } from './shared/xlsx.js';
+import { HEADER, SHEET_NAME, parseSheetRows, checkQuestion, normalizeAnswer, buildPrompt } from './shared/questions.js';
 
 const $ = (id) => document.getElementById(id);
 const STORE_KEY = 'sg-qsets';
@@ -45,7 +45,7 @@ export function initQset(opts) {
 
   // ───── 빈 양식 ─────
   $('q-template').addEventListener('click', () => {
-    download(writeXlsx([HEADER], SHEET_NAME, [60, 22, 22, 22, 22]), '미션문제_빈양식.xlsx');
+    download(writeXlsx([HEADER], SHEET_NAME, [60, 22, 22, 22, 22]), '퀴즈문제_빈양식.xlsx');
     opts.toast('빈 양식을 내려받았어요. 첫 줄(제목)은 그대로 두고 둘째 줄부터 적어 주세요.');
   });
 

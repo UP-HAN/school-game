@@ -1,10 +1,10 @@
-// 방해꾼 찾기: 회의 화면 (시작 알림 → 토론 → 투표 → 결과). 게임 화면 위에 덮는다.
-// 채팅은 없다. 카드만 보여 주고 토론은 교실에서 말로 한다. 카드에는 이름 대신 "색 + 캐릭터".
+// 꿈도둑을 찾아라: 모닥불 회의 화면 (시작 알림 → 말로 토론 → 꿈도둑 지목 투표 → 결과). 게임 화면 위에 덮는다.
+// 채팅은 없다. 카드만 보여 주고 토론은 교실에서 말로 한다. 카드에는 이름 대신 "맛 + 캐릭터".
 // 서버가 보내는 room.meeting:
 //   { stage, msLeft, reason, reporter?, found?, voted:[id], myVote?, canVote,
 //     cards:[{ id, color, character, ghost, ejected }], result?:{ ejected, tie, counts, role? } }
-import { playerLabel } from '/shared/config.js';
-import { IMP } from '/impconst.js';
+import { playerLabel } from './shared/config.js';
+import { MAF as IMP } from './mafiaconst.js';
 
 const $ = (id) => document.getElementById(id);
 // 받침이 있으면 a, 없으면 b ("슬라임은" / "고양이는")
@@ -38,11 +38,12 @@ export function initMeeting(opts) {
   const myVote = () => (m && m.myVote) || sentVote;
   const canVoteNow = () => !who.teacher && m && m.stage === 'vote' && !!m.canVote && !myVote();
 
-  function charCanvas(kind, color) {
+  function charCanvas(kind, color, halo) {
     const cv = document.createElement('canvas');
     cv.className = 'char';
     cv.dataset.kind = kind;
     cv.dataset.color = color;
+    if (halo) cv.dataset.halo = '1'; // 꿈에 빠진 학생: 작은 천사 고리
     cv.dataset.seed = (Math.random() * 3).toFixed(2);
     cv.width = cv.height = 160;
     return cv;
@@ -63,7 +64,7 @@ export function initMeeting(opts) {
       b.classList.toggle('voted', voted.has(c.id));
       b.classList.toggle('picked', pick === c.id || myVote() === c.id);
       if (m.stage === 'result' && m.result && m.result.ejected === c.id) b.classList.add('fly');
-      b.append(charCanvas(c.character, c.color));
+      b.append(charCanvas(c.character, c.color, !!c.ghost));
       const name = document.createElement('span');
       name.className = 'mt-name';
       name.textContent = playerLabel(c.color, c.character) + (mine ? ' (나)' : '');
@@ -71,13 +72,13 @@ export function initMeeting(opts) {
       if (c.ghost) {
         const s = document.createElement('span');
         s.className = 'mt-badge ice';
-        s.textContent = c.ejected ? '제외됨' : '얼음';
+        s.textContent = c.ejected ? '추방됨' : '꿈에 빠짐';
         b.append(s);
       }
       if (m.reason === 'report' && m.reporter && m.reporter === c.id) {
         const s = document.createElement('span');
         s.className = 'mt-badge alarm';
-        s.textContent = '신고';
+        s.textContent = '호루라기';
         b.append(s);
       }
       if (voted.has(c.id)) {
@@ -96,7 +97,7 @@ export function initMeeting(opts) {
       }
       const disabled = !canVoteNow() || mine || !!c.ghost;
       b.disabled = disabled;
-      b.setAttribute('aria-label', name.textContent + (c.ghost ? ', 얼음' : '') + (voted.has(c.id) ? ', 투표 완료' : ''));
+      b.setAttribute('aria-label', name.textContent + (c.ghost ? ', 꿈에 빠짐' : '') + (voted.has(c.id) ? ', 투표 완료' : ''));
       if (!disabled) {
         b.addEventListener('click', () => {
           pick = c.id;
@@ -111,27 +112,27 @@ export function initMeeting(opts) {
   function texts() {
     const r = m.result || {};
     if (m.stage === 'intro') {
-      if (m.reason === 'report') return ['신고!', m.found ? `${label(m.found)}의 얼음을 찾았어요` : '얼음 흔적을 찾았어요'];
-      return ['긴급회의!', '모두 모여 이야기해요'];
+      if (m.reason === 'report') return ['삐익! 호루라기!', m.found ? `꿈에 빠진 ${label(m.found)}${josa(label(m.found), '을', '를')} 찾았어요` : '꿈에 빠진 친구를 찾았어요'];
+      return ['모닥불 회의!', '회의 종이 울렸어요. 모두 모여 이야기해요'];
     }
     if (m.stage === 'discuss') {
-      const found = m.reason === 'report' && m.found ? `발견된 얼음: ${label(m.found)} · ` : '';
-      return ['토론 시간', found + '교실에서 말로 이야기해요. 곧 투표가 시작돼요'];
+      const found = m.reason === 'report' && m.found ? `꿈에 빠진 친구: ${label(m.found)} · ` : '';
+      return ['말로 토론해요', found + '누가 꿈도둑일까? 교실에서 말로 이야기해요. 곧 투표가 시작돼요'];
     }
     if (m.stage === 'vote') {
-      if (who.teacher) return ['투표 시간', '학생들이 투표하는 중이에요'];
-      if (!m.canVote) return ['투표 시간', '이번 회의는 지켜보기만 해요'];
+      if (who.teacher) return ['꿈도둑 지목 투표', '학생들이 투표하는 중이에요'];
+      if (!m.canVote) return ['꿈도둑 지목 투표', '이번 회의는 지켜보기만 해요'];
       if (myVote()) return ['투표 완료', '다른 친구들이 투표를 끝낼 때까지 기다려요'];
-      return ['투표 시간', '방해꾼이라고 생각하는 친구를 눌러요. 모르겠으면 건너뛰기!'];
+      return ['꿈도둑 지목 투표', '꿈도둑이라고 생각하는 친구를 눌러요. 모르겠으면 기권!'];
     }
     // 결과
     if (r.ejected) {
       const who2 = label(r.ejected);
-      if (r.role === 'chaser') return ['투표 결과', `${who2}${josa(who2, '은', '는')} 방해꾼이었어요!`];
-      if (r.role === 'student') return ['투표 결과', `${who2}${josa(who2, '은', '는')} 방해꾼이 아니었어요…`];
-      return ['투표 결과', `${who2}${josa(who2, '이', '가')} 제외되었어요`];
+      if (r.role === 'chaser') return ['투표 결과', `${who2}${josa(who2, '은', '는')} 꿈도둑이었어요!`];
+      if (r.role === 'student') return ['투표 결과', `${who2}${josa(who2, '은', '는')} 꿈도둑이 아니었어요…`];
+      return ['투표 결과', `${who2}${josa(who2, '이', '가')} 추방되었어요`];
     }
-    return ['투표 결과', `아무도 제외되지 않았어요 (${r.tie ? '동점' : '건너뛰기'})`];
+    return ['투표 결과', `아무도 추방되지 않았어요 (${r.tie ? '동점' : '기권이 많아요'})`];
   }
 
   function render() {
@@ -146,13 +147,13 @@ export function initMeeting(opts) {
     // 확인 창 (실수로 누르지 않게 한 번 더)
     const showConfirm = !!pick && canVoteNow();
     $('mt-confirm').hidden = !showConfirm;
-    if (showConfirm) $('mt-confirm-text').textContent = `${label(pick)}에게 투표할까요?`;
+    if (showConfirm) $('mt-confirm-text').textContent = `${label(pick)}${josa(label(pick), '을', '를')} 꿈도둑으로 지목할까요?`;
     // 건너뛰기
     const skip = $('mt-skip');
     const skipCount = m.result && m.result.counts ? m.result.counts.skip || 0 : null;
     skip.hidden = who.teacher ? m.stage !== 'result' : !(m.stage === 'vote' || m.stage === 'result');
     skip.disabled = !canVoteNow();
-    skip.textContent = skipCount != null ? `건너뛰기 ${skipCount}표` : myVote() === 'skip' ? '건너뛰기 (투표함)' : '건너뛰기';
+    skip.textContent = skipCount != null ? `기권 ${skipCount}표` : myVote() === 'skip' ? '기권 (투표함)' : '기권';
     skip.classList.toggle('picked', myVote() === 'skip');
     // 선생님 조작
     $('mt-teacher').hidden = !(who.teacher && m.stage === 'discuss');

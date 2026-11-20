@@ -1,12 +1,16 @@
-// 학습 기록 화면: 선생님용(많이 틀린 문제·학생별·CSV)과 학생용(나의 기록).
-import { playerLabel } from '/shared/config.js';
+// 퀴즈 리포트 화면: 선생님용(많이 틀린 문제·학생별·CSV)과 학생용(내 퀴즈 노트).
+import { playerLabel } from './shared/config.js';
 
 const $ = (id) => document.getElementById(id);
 const RESULT = { first: '첫 시도에 정답', retry: '다시 도전해 해결', unsolved: '아직 못 푼 문제' };
 const KIND = { choice: '고르기', short: '주관식' };
 const sec = (ms) => (ms / 1000).toFixed(1);
-// 방해꾼 찾기 기록에는 role('student'|'chaser')·ghost(유령일 때 풂) 가 붙는다
-const roleName = (r) => (r.role === 'chaser' ? '방해꾼' : r.role === 'student' ? '학생' : '');
+// 기록에는 role('student'|'chaser')·ghost(꿈에 빠져서 풂)·source('lantern'|'notebook') 가 붙는다.
+// 역할 이름은 모드에 따라 다르다 (모드를 모르면 '잠귀신/꿈도둑').
+let MODE = '';
+const roleName = (r) => (r.role === 'chaser' ? (MODE === 'mafia' ? '꿈도둑' : MODE ? '잠귀신' : '잠귀신/꿈도둑') : r.role === 'student' ? '학생' : '');
+const SOURCE = { lantern: '랜턴', notebook: '수첩' };
+const whereOf = (r) => SOURCE[r.source] || '랜턴';
 const hasRoles = (records) => records.some((r) => r.role === 'chaser' || r.ghost);
 
 function el(tag, text, cls) {
@@ -25,7 +29,10 @@ function table(headers, rows) {
     r.forEach((c, i) => tr.append(el('td', String(c), i === 0 ? 'left' : '')));
     t.append(tr);
   }
-  return t;
+  // 좁은 화면에서는 표만 옆으로 밀어 볼 수 있게 감싼다
+  const wrap = el('div', null, 'r-scroll');
+  wrap.append(t);
+  return wrap;
 }
 
 // 문제별로 모으기: 많이 틀린 문제가 위로 오게
@@ -45,8 +52,9 @@ export function byStudent(records) {
   const map = new Map();
   for (const r of records) {
     const key = r.name;
-    const s = map.get(key) || { name: r.name, label: playerLabel(r.color, r.character), role: '', ghost: 0, first: 0, retry: 0, unsolved: 0, wrong: 0, ms: 0, solved: 0 };
+    const s = map.get(key) || { name: r.name, label: playerLabel(r.color, r.character), role: '', ghost: 0, first: 0, retry: 0, unsolved: 0, wrong: 0, ms: 0, solved: 0, notebook: 0 };
     s[r.result]++;
+    if (r.source === 'notebook') s.notebook++;
     if (roleName(r)) s.role = roleName(r);
     if (r.ghost && r.result !== 'unsolved') s.ghost++;
     s.wrong += r.wrong;
@@ -65,9 +73,9 @@ export function toCsv(records) {
     if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // 엑셀이 수식으로 읽지 않게
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   };
-  const lines = [['학생', '캐릭터', '역할', '유령일 때', '문제', '정답', '형식', '결과', '오답 횟수', '걸린 시간(초)']];
+  const lines = [['학생', '캐릭터', '역할', '꿈에 빠져서', '어디서', '문제', '정답', '형식', '결과', '오답 횟수', '걸린 시간(초)']];
   for (const r of records) {
-    lines.push([r.name, playerLabel(r.color, r.character), roleName(r), r.ghost ? 'O' : '', r.question, r.answer, KIND[r.kind] || r.kind, RESULT[r.result] || r.result, r.wrong, sec(r.ms)]);
+    lines.push([r.name, playerLabel(r.color, r.character), roleName(r), r.ghost ? 'O' : '', whereOf(r), r.question, r.answer, KIND[r.kind] || r.kind, RESULT[r.result] || r.result, r.wrong, sec(r.ms)]);
   }
   return '﻿' + lines.map((l) => l.map(cell).join(',')).join('\r\n'); // 맨 앞 표시는 엑셀에서 한글이 깨지지 않게 하는 것
 }
@@ -87,14 +95,16 @@ function downloadText(text, filename) {
 export function showTeacherReport(m) {
   const box = $('r-body');
   box.replaceChildren();
-  $('r-title').textContent = '학습 기록' + (m.title ? ` · ${m.title}` : '');
+  $('r-title').textContent = '퀴즈 리포트' + (m.title ? ` · ${m.title}` : '');
   const recs = m.records;
+  MODE = m.mode || '';
   if (!recs.length) {
-    box.append(el('p', '아직 기록이 없어요. 학생이 문제를 풀면 여기에 쌓여요.', 'sub'));
+    box.append(el('p', '아직 기록이 없어요. 학생이 퀴즈를 풀면 여기에 쌓여요.', 'sub'));
   } else {
     const solved = recs.filter((r) => r.result !== 'unsolved').length;
     const first = recs.filter((r) => r.result === 'first').length;
-    box.append(el('p', `문제를 연 횟수 ${recs.length}번 · 해결 ${solved}번 · 첫 시도 정답 ${first}번 (${Math.round((first / recs.length) * 100)}%)`, 'sub'));
+    const nb = recs.filter((r) => r.source === 'notebook').length;
+    box.append(el('p', `퀴즈를 연 횟수 ${recs.length}번 (랜턴 ${recs.length - nb} · 수첩 ${nb}) · 해결 ${solved}번 · 첫 시도 정답 ${first}번 (${Math.round((first / recs.length) * 100)}%)`, 'sub'));
     box.append(el('h3', '많이 틀린 문제'));
     box.append(
       table(
@@ -107,12 +117,12 @@ export function showTeacherReport(m) {
     box.append(
       roles
         ? table(
-            ['학생', '캐릭터', '역할', '첫 시도 정답', '다시 풀어 해결', '못 풂', '오답 수', '평균 시간(초)', '유령일 때 푼 문제'],
-            byStudent(recs).map((s) => [s.name, s.label, s.role || '학생', s.first, s.retry, s.unsolved, s.wrong, s.solved ? sec(s.ms / s.solved) : '-', s.ghost])
+            ['학생', '캐릭터', '역할', '첫 시도 정답', '다시 풀어 해결', '못 풂', '오답 수', '평균 시간(초)', '수첩에서 연 퀴즈', '꿈에 빠져서 푼 퀴즈'],
+            byStudent(recs).map((s) => [s.name, s.label, s.role || '학생', s.first, s.retry, s.unsolved, s.wrong, s.solved ? sec(s.ms / s.solved) : '-', s.notebook, s.ghost])
           )
         : table(
-            ['학생', '캐릭터', '첫 시도 정답', '다시 풀어 해결', '못 풂', '오답 수', '평균 시간(초)'],
-            byStudent(recs).map((s) => [s.name, s.label, s.first, s.retry, s.unsolved, s.wrong, s.solved ? sec(s.ms / s.solved) : '-'])
+            ['학생', '캐릭터', '첫 시도 정답', '다시 풀어 해결', '못 풂', '오답 수', '평균 시간(초)', '수첩에서 연 퀴즈'],
+            byStudent(recs).map((s) => [s.name, s.label, s.first, s.retry, s.unsolved, s.wrong, s.solved ? sec(s.ms / s.solved) : '-', s.notebook])
           )
     );
   }
@@ -120,7 +130,7 @@ export function showTeacherReport(m) {
   $('r-csv').onclick = () => {
     const d = new Date();
     const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-    downloadText(toCsv(recs), `학습기록_${m.title || m.code}_${stamp}.csv`);
+    downloadText(toCsv(recs), `퀴즈리포트_${m.title || m.code}_${stamp}.csv`);
   };
   if (!$('dlg-report').open) $('dlg-report').showModal();
 }
@@ -129,9 +139,9 @@ export function showTeacherReport(m) {
 export function showMyReport(m) {
   const box = $('r-body');
   box.replaceChildren();
-  $('r-title').textContent = '나의 기록';
+  $('r-title').textContent = '내 퀴즈 노트';
   $('r-csv').hidden = true;
-  if (!m.records.length) box.append(el('p', '아직 푼 문제가 없어요.', 'sub'));
+  if (!m.records.length) box.append(el('p', '아직 푼 퀴즈가 없어요.', 'sub'));
   const order = { unsolved: 0, retry: 1, first: 2 };
   // 같은 문제를 여러 번 열었으면 가장 좋은 결과 하나만 보여 준다
   const best = new Map();
@@ -142,7 +152,7 @@ export function showMyReport(m) {
   for (const r of [...best.values()].sort((a, b) => order[a.result] - order[b.result])) {
     const card = el('div', null, 'r-card ' + r.result);
     card.append(el('p', r.question, 'r-q'));
-    card.append(el('p', RESULT[r.result] + (r.answer ? ` · 정답: ${r.answer}` : ''), 'r-res'));
+    card.append(el('p', `${whereOf(r)} · ` + RESULT[r.result] + (r.answer ? ` · 정답: ${r.answer}` : ''), 'r-res'));
     box.append(card);
   }
   if (!$('dlg-report').open) $('dlg-report').showModal();

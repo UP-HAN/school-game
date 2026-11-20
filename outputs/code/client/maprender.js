@@ -1,10 +1,10 @@
 // 맵 데이터를 만화풍 그림 한 장으로 미리 그려 둔다 (게임 중에는 이 그림을 그대로 붙인다).
-import { VOID, WALL } from '/shared/mapgrid.js';
+import { VOID, WALL, SIGN, signRect, deviceMarks } from './shared/mapgrid.js';
+import { FONT } from './mafiaconst.js';
 
 const INK = '#2a2140';
 const WALL_FILL = '#8a78d8';
 const WALL_TOP = '#a99bea';
-const FONT = "'Jua', 'Malgun Gothic', sans-serif";
 
 function clipRect(c, r, fn) {
   c.save();
@@ -107,6 +107,8 @@ function shadow(c, x, y, w, h) {
   c.fill();
 }
 
+// 가구 그림. 그림이 rect 를 꽉 채우지 않는 종류는 shared/mapgrid.js 의 DRAWN 에 그려지는 범위를 적어 둔다
+// (막힘 영역 = 그 범위의 아랫부분). 그림 크기·위치를 바꾸면 DRAWN 도 같이 고치고 `node tools/map-check.mjs` 로 확인한다.
 const FURNITURE = {
   piano(c, x, y, w, h) {
     rr(c, x, y, w, h, 10, '#3b3252');
@@ -197,7 +199,7 @@ const FURNITURE = {
   },
   scoretable(c, x, y, w, h) {
     rr(c, x, y, w, h, 6, '#3b3252');
-    c.font = `26px ${FONT}`;
+    c.font = `700 26px ${FONT}`;
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillStyle = '#ff5c5c';
@@ -594,28 +596,103 @@ function drawCourt(c, r) {
 }
 
 function label(c, text, cx, cy, size, color = 'rgba(42,33,64,.28)') {
-  c.font = `${size}px ${FONT}`;
+  c.font = `700 ${size}px ${FONT}`;
   c.textAlign = 'center';
   c.textBaseline = 'middle';
   c.fillStyle = color;
   c.fillText(text, cx, cy);
 }
 
-function drawTerminal(c, x, y) {
-  shadow(c, x - 24, y - 26, 48, 50);
-  rr(c, x - 22, y + 8, 44, 16, 5, '#5b4b8a');
-  rr(c, x - 26, y - 30, 52, 40, 8, '#3b3252');
-  rr(c, x - 20, y - 24, 40, 28, 4, '#7df0c8', 3);
-  label(c, '?', x, y - 9, 26, INK);
+// 퀴즈 랜턴 (꺼진 모습: 회색 유리 + "?"). 켠 랜턴의 불빛은 게임 화면이 내 기록대로 덧그린다.
+export function drawLantern(c, x, y, lit = false, s = 1) {
+  c.save();
+  c.translate(x, y);
+  c.scale(s, s);
+  c.fillStyle = 'rgba(42,33,64,.2)';
+  c.beginPath();
+  c.ellipse(4, 26, 26, 8, 0, 0, Math.PI * 2);
+  c.fill();
+  // 손잡이 고리
+  c.lineWidth = 4;
+  c.strokeStyle = INK;
+  c.beginPath();
+  c.arc(0, -40, 9, Math.PI, 0);
+  c.stroke();
+  rr(c, -20, -38, 40, 10, 4, '#5b4b8a', 3); // 뚜껑
+  rr(c, -17, -28, 34, 42, 8, lit ? '#ffd76a' : '#8f8aa8', 4); // 유리 몸통
+  if (lit) {
+    const g = c.createRadialGradient(0, -8, 2, 0, -8, 18);
+    g.addColorStop(0, 'rgba(255,255,255,.95)');
+    g.addColorStop(1, 'rgba(255,181,71,0)');
+    c.fillStyle = g;
+    c.fillRect(-15, -26, 30, 38);
+  }
+  // 창살
+  c.strokeStyle = 'rgba(42,33,64,.45)';
+  c.lineWidth = 2.5;
+  c.beginPath();
+  c.moveTo(-6, -28);
+  c.lineTo(-6, 14);
+  c.moveTo(6, -28);
+  c.lineTo(6, 14);
+  c.stroke();
+  rr(c, -21, 12, 42, 10, 4, '#5b4b8a', 3); // 받침
+  if (!lit) label(c, '?', 0, -6, 24, '#fff6e5');
+  c.restore();
 }
-function drawMeetingButton(c, x, y) {
-  circle(c, x, y + 5, 46, 'rgba(42,33,64,.18)', 0);
-  circle(c, x, y, 44, '#fff3b8');
-  circle(c, x, y, 30, '#b8262b');
-  circle(c, x, y - 5, 28, '#f25c54');
-  label(c, '모여!', x, y - 4, 20, '#fff');
+// 회의 종 (놋쇠 종 + 받침대). 꿈도둑을 찾아라 모드에서만 그린다
+function drawBell(c, x, y) {
+  circle(c, x, y + 30, 40, 'rgba(42,33,64,.18)', 0);
+  rr(c, x - 34, y - 70, 8, 98, 3, '#8a5a3c', 3);
+  rr(c, x + 26, y - 70, 8, 98, 3, '#8a5a3c', 3);
+  rr(c, x - 40, y - 78, 80, 12, 5, '#8a5a3c', 3);
+  c.beginPath();
+  c.moveTo(x - 22, y + 12);
+  c.quadraticCurveTo(x - 24, y - 52, x, y - 58);
+  c.quadraticCurveTo(x + 24, y - 52, x + 22, y + 12);
+  c.quadraticCurveTo(x, y + 20, x - 22, y + 12);
+  c.fillStyle = '#e0a43a';
+  c.fill();
+  c.lineWidth = 4;
+  c.strokeStyle = INK;
+  c.stroke();
+  c.strokeStyle = 'rgba(255,246,229,.7)';
+  c.lineWidth = 4;
+  c.beginPath();
+  c.moveTo(x - 10, y - 40);
+  c.quadraticCurveTo(x - 14, y - 16, x - 12, y);
+  c.stroke();
+  circle(c, x, y + 18, 7, '#8a5a3c', 3);
+  label(c, '회의 종', x, y + 52, 22, INK);
 }
-function drawHole(c, x, y, isExit) {
+// 나무 팻말: (x, y) = 기둥이 땅에 박힌 곳, lines = [{ text, color }] (한 줄에 나란히), foot = 아래 작은 글씨
+// 크기·자리는 shared/mapgrid.js 의 signRect 와 같다 (맵 검사가 이 사각형으로 겹침을 본다)
+function drawSign(c, x, y, lines, foot) {
+  const [bx, by, w, hh] = signRect(x, y, foot);
+  const h = hh - SIGN.post;
+  rr(c, x - 5, by + h - 6, 10, SIGN.post + 6, 3, '#8a5a3c', 3); // 기둥
+  rr(c, bx, by, w, h, 8, '#e8b97a', 4);
+  const pad = 12;
+  const gap = 8;
+  const pw = (w - pad * 2 - gap * (lines.length - 1)) / lines.length;
+  lines.forEach((ln, i) => {
+    const px = bx + pad + i * (pw + gap);
+    rr(c, px, by + 11, pw, 24, 10, ln.color, 3);
+    label(c, ln.text, px + pw / 2, by + 24, 15, '#fff');
+  });
+  if (foot) label(c, foot, x, by + h - 12, 14, INK);
+}
+// 장치 who 에서 지금 모드의 팻말 글씨
+function whoLines(d, mode) {
+  const who = (d.who && d.who[mode]) || (mode === 'mafia' ? ['student', 'chaser'] : ['student']);
+  if (who.includes('student') && who.includes('chaser')) return [{ text: '모두 O', color: '#3fae6a' }];
+  const chaser = mode === 'mafia' ? '꿈도둑' : '잠귀신';
+  return [
+    { text: `학생 ${who.includes('student') ? 'O' : 'X'}`, color: who.includes('student') ? '#3fae6a' : '#e5484d' },
+    { text: `${chaser} ${who.includes('chaser') ? 'O' : 'X'}`, color: who.includes('chaser') ? '#3fae6a' : '#e5484d' },
+  ];
+}
+function drawHole(c, x, y) {
   c.fillStyle = '#b07a4f';
   c.strokeStyle = INK;
   c.lineWidth = 4;
@@ -623,12 +700,54 @@ function drawHole(c, x, y, isExit) {
   c.ellipse(x, y, 40, 26, 0, 0, Math.PI * 2);
   c.fill();
   c.stroke();
-  c.fillStyle = isExit ? '#5a4632' : '#1c1530';
+  c.fillStyle = '#1c1530';
   c.beginPath();
   c.ellipse(x, y + 2, 29, 17, 0, 0, Math.PI * 2);
   c.fill();
   c.stroke();
   for (const [dx, dy] of [[-44, -14], [40, -20], [48, 12]]) circle(c, x + dx, y + dy, 6, '#b07a4f', 3);
+}
+// 개구멍 출구: 반쯤 덮은 나무 뚜껑 + 밖으로 나가는 화살표 + 글씨
+function drawHoleExit(c, x, y) {
+  c.fillStyle = '#b07a4f';
+  c.strokeStyle = INK;
+  c.lineWidth = 4;
+  c.beginPath();
+  c.ellipse(x, y, 36, 22, 0, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
+  c.fillStyle = '#3a2c20';
+  c.beginPath();
+  c.ellipse(x, y + 2, 26, 14, 0, 0, Math.PI * 2);
+  c.fill();
+  c.save();
+  c.translate(x + 6, y - 2);
+  c.rotate(-0.18);
+  rr(c, -20, -18, 46, 34, 10, '#d9a066', 4); // 뚜껑
+  c.strokeStyle = 'rgba(110,60,20,.45)';
+  c.lineWidth = 2.5;
+  c.beginPath();
+  c.moveTo(-14, -6);
+  c.lineTo(20, -6);
+  c.moveTo(-14, 5);
+  c.lineTo(20, 5);
+  c.stroke();
+  c.restore();
+  // 밖으로 나가는 화살표
+  c.fillStyle = '#7fe0c4';
+  c.strokeStyle = INK;
+  c.lineWidth = 3;
+  c.beginPath();
+  c.moveTo(x - 6, y - 30);
+  c.lineTo(x + 6, y - 30);
+  c.lineTo(x + 6, y - 44);
+  c.lineTo(x + 14, y - 44);
+  c.lineTo(x, y - 60);
+  c.lineTo(x - 14, y - 44);
+  c.lineTo(x - 6, y - 44);
+  c.closePath();
+  c.fill();
+  c.stroke();
 }
 function drawSlide(c, d) {
   const pts = [d.from, ...(d.path || []), d.to];
@@ -655,13 +774,20 @@ function drawSlide(c, d) {
   c.setLineDash([]);
   circle(c, d.from[0], d.from[1], 34, '#ff7a59');
   circle(c, d.from[0], d.from[1], 22, '#1c1530');
-  label(c, '타는 곳', d.from[0], d.from[1] + 52, 20, INK);
   circle(c, d.to[0], d.to[1], 34, '#ff7a59');
   circle(c, d.to[0], d.to[1], 22, '#ffd94a');
-  label(c, '도착', d.to[0], d.to[1] + 52, 20, INK);
+}
+// 장치 글씨·팻말: 자리는 shared/mapgrid.js deviceMarks (맵 데이터 marks 로 옮길 수 있고, 맵 검사가 겹침을 본다)
+function drawMarks(c, d, mode) {
+  for (const mk of deviceMarks(d)) {
+    if (mk.kind === 'label') label(c, mk.text, mk.x, mk.y, mk.size, INK);
+    if (mk.kind === 'sign') drawSign(c, mk.x, mk.y, whoLines(d, mode), mk.foot);
+  }
 }
 
-export function renderMap(map, grid) {
+/** opts: { mode } — 'sleep-tag' 이면 회의 종을 그리지 않고, 팻말 글씨도 모드에 맞춘다 */
+export function renderMap(map, grid, opts = {}) {
+  const mode = opts.mode || 'sleep-tag';
   const cv = document.createElement('canvas');
   cv.width = map.size[0];
   cv.height = map.size[1];
@@ -775,12 +901,14 @@ export function renderMap(map, grid) {
   for (const d of map.devices || []) {
     if (d.type === 'slide') drawSlide(c, d);
     if (d.type === 'teleport') {
-      drawHole(c, d.from[0], d.from[1], false);
-      label(c, d.name, d.from[0], d.from[1] - 42, 20, INK);
-      for (const e of d.exits || []) drawHole(c, e[0], e[1], true);
+      drawHole(c, d.from[0], d.from[1]);
+      for (const e of d.exits || []) drawHoleExit(c, e[0], e[1]);
     }
   }
-  if (map.meetingButton) drawMeetingButton(c, ...map.meetingButton.pos);
+  // 글씨·팻말은 모든 장치 그림(미끄럼틀 띠 포함) 위에
+  for (const d of map.devices || []) drawMarks(c, d, mode);
+  const bell = map.bell || map.meetingButton;
+  if (bell && mode === 'mafia') drawBell(c, ...bell.pos);
 
   // 6. 밤 분위기: 전체에 푸르스름한 어둠을 입히고, 달빛이 든 것처럼 가운데만 조금 밝게 둔다
   c.globalCompositeOperation = 'multiply';
@@ -793,22 +921,22 @@ export function renderMap(map, grid) {
   c.fillRect(0, 0, W, H);
   c.globalCompositeOperation = 'source-over';
 
-  // 7. 어둠 속에서 빛나는 것들: 고장 난 단말기 화면
+  // 7. 꺼진 퀴즈 랜턴 (어둠 속에서 희미한 호박빛)
   for (const t of map.terminals || []) {
     const [tx, ty] = t.pos;
-    const glow = c.createRadialGradient(tx, ty - 10, 6, tx, ty - 10, 110);
-    glow.addColorStop(0, 'rgba(125,240,200,.5)');
-    glow.addColorStop(1, 'rgba(125,240,200,0)');
+    const glow = c.createRadialGradient(tx, ty - 10, 6, tx, ty - 10, 90);
+    glow.addColorStop(0, 'rgba(255,181,71,.28)');
+    glow.addColorStop(1, 'rgba(255,181,71,0)');
     c.fillStyle = glow;
-    c.fillRect(tx - 110, ty - 120, 220, 220);
-    drawTerminal(c, tx, ty);
+    c.fillRect(tx - 90, ty - 100, 180, 180);
+    drawLantern(c, tx, ty, false);
   }
 
   // 8. 맵 이름 팻말
   c.lineWidth = 10;
   c.lineJoin = 'round';
   c.strokeStyle = INK;
-  c.font = `64px ${FONT}`;
+  c.font = `700 64px ${FONT}`;
   c.textAlign = 'center';
   c.textBaseline = 'middle';
   c.strokeText(map.name, W / 2, 90);

@@ -1,10 +1,12 @@
-// 학생용 문제 창. 정답은 서버만 알고, 여기서는 고른 답을 보내고 결과만 받는다.
+// 퀴즈 창 (퀴즈 랜턴 / 퀴즈 수첩). 정답은 서버만 알고, 여기서는 고른 답을 보내고 결과만 받는다.
 const $ = (id) => document.getElementById(id);
 
-/** opts: { send(msg), onOpen(), onClose() } */
+/** opts: { send(msg), onOpen(), onClose(), onNotebookNext() } */
 export function initMission(opts) {
   let open = false;
   let kind = null;
+  let notebook = false; // 퀴즈 수첩으로 연 창인가
+  let nextTimer = 0;
   let lockTimer = 0;
   let lockedUntil = 0;
 
@@ -50,9 +52,19 @@ export function initMission(opts) {
     });
   }
 
-  function show(m) {
+  // 가방에 찬스 카드가 있으면 [찬스 카드 쓰기] 버튼
+  function setChance(v) {
+    $('m-chance').hidden = !v;
+  }
+  /** view: { notebook, chance } */
+  function show(m, view = {}) {
+    clearTimeout(nextTimer);
     open = true;
     kind = m.kind;
+    notebook = !!view.notebook;
+    $('m-where').textContent = notebook ? '퀴즈 수첩' : m.bonus ? '임시 랜턴' : '꺼진 랜턴';
+    document.querySelector('.mission-card').classList.toggle('notebook', notebook);
+    setChance(!!view.chance);
     $('m-text').textContent = m.text;
     $('m-feedback').textContent = '';
     $('m-feedback').className = 'mission-feedback';
@@ -96,11 +108,16 @@ export function initMission(opts) {
     const fb = $('m-feedback');
     if (m.ok) {
       clearInterval(lockTimer);
-      fb.textContent = '정답! 단말기를 고쳤어요!';
+      fb.textContent = notebook ? '정답! 다음 문제로 넘어가요' : '정답! 랜턴에 불이 켜졌어요!';
       fb.className = 'mission-feedback ok';
       for (const b of $('m-choices').children) b.disabled = true;
       $('m-submit').disabled = true;
-      setTimeout(hide, 900);
+      const wasNotebook = notebook;
+      setTimeout(() => {
+        hide();
+        // 수첩: 맞히면 다음 문제를 바로 연다
+        if (wasNotebook && opts.onNotebookNext) nextTimer = setTimeout(opts.onNotebookNext, 150);
+      }, 800);
       return;
     }
     fb.className = 'mission-feedback no';
@@ -119,12 +136,18 @@ export function initMission(opts) {
     if (value) opts.send({ t: 'answer', value });
   });
   $('m-close').addEventListener('click', () => {
+    clearTimeout(nextTimer);
     opts.send({ t: 'closeq' });
     hide();
+  });
+  $('m-chance').addEventListener('click', () => {
+    if (!open) return;
+    opts.send({ t: 'chance' });
+    setChance(false);
   });
   window.addEventListener('keydown', (e) => {
     if (open && e.key === 'Escape') $('m-close').click();
   });
 
-  return { show, result, hide, isOpen: () => open };
+  return { show, result, hide, setChance, isOpen: () => open, isNotebook: () => open && notebook };
 }

@@ -1,15 +1,16 @@
-// 방해꾼 찾기 자동 시험 (05 명세 8절 28항목). 실행: npm test (test-lobby.js 다음에 돈다)
+// 꿈도둑을 찾아라(mode id: mafia) 자동 시험 (05 명세 8절 28항목). 실행: npm test (test-lobby.js 다음에 돈다)
 // 서버를 임시 포트에 켜고, 시험용으로 시간 규칙을 줄인다 (환경변수 TEST_OVERRIDES).
 import { spawn } from 'node:child_process';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
-import { chaserCount, maxChasers, IMPOSTOR } from '../shared/config.js';
+import { chaserCount, maxChasers } from '../shared/config.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PASSWORD = crypto.randomBytes(9).toString('base64url'); // 시험용 임시 비밀번호 (매번 새로 만듦)
-const SPAWN = [1400, 920]; // 몬스터 체육관 시작 자리 = 긴급회의 버튼
+const SPAWN = [1400, 920]; // 몬스터 체육관 시작 자리
+const BELL = [1400, 640]; // 회의 종 (무대 앞)
 
 let passed = 0;
 let failed = 0;
@@ -126,7 +127,7 @@ async function route(c, points) {
   return true;
 }
 const QSET = {
-  title: '방해꾼 시험 세트',
+  title: '꿈도둑 시험 세트',
   questions: [
     { q: '1 더하기 1은?', a: '2', wrong: ['1', '3', '4'] },
     { q: '4 빼기 2는?', a: '2' },
@@ -167,7 +168,7 @@ const waitNoMeeting = (c, ms = 8000) => c.wait((m) => m.t === 'room' && !m.meeti
 // ════════════ 서버 A: 역할·정체 숨기기·얼리기·방해·회의·투표·복구 ════════════
 async function runA() {
   const srv = await startServer(3978, {
-    impostor: {
+    mafia: {
       freezeGraceMs: 1500,
       freezeCooldownMs: 2500,
       freezeAfterMeetingMs: 1500,
@@ -177,40 +178,41 @@ async function runA() {
       lockMs: 2000,
       lockCooldownMs: 6000,
       disguiseMs: 1000,
-      buttonGraceMs: 1500,
+      buttonGraceMs: 3000,
       meetingIntroMs: 200,
       discussMs: 3000,
       voteMs: 4000,
       resultMs: 300,
       extendMs: 500,
     },
+    energy: { mafia: { start: 2, max: 2 } }, // 꿈 구슬은 test-streak.js 에서 본다
   });
   const port = srv.port;
   try {
     const teacher = await teacherOf(port);
     const code = teacher.code;
-    check('긴급회의 횟수 기본 3회, 정체 공개 기본 켜기', teacher.room.settings.meetings === 3 && teacher.room.settings.reveal === true);
+    check('회의 종 횟수 기본 3회, 정체 공개 기본 켜기', teacher.room.settings.meetings === 3 && teacher.room.settings.reveal === true);
     teacher.send({ t: 'questions', set: QSET });
     await teacher.next((m) => m.t === 'room' && m.qset);
-    teacher.send({ t: 'settings', mode: 'impostor', missions: 3, meetings: 9, reveal: 'yes' });
-    let v = await teacher.next((m) => m.t === 'room' && m.settings.mode === 'impostor');
-    check('긴급회의 횟수·정체 공개는 정해진 값만 받는다', v.settings.meetings === 3 && v.settings.reveal === true);
+    teacher.send({ t: 'settings', mode: 'mafia', missions: 3, meetings: 9, reveal: 'yes', fogLoot: false });
+    let v = await teacher.next((m) => m.t === 'room' && m.settings.mode === 'mafia');
+    check('회의 종 횟수·정체 공개는 정해진 값만 받는다', v.settings.meetings === 3 && v.settings.reveal === true);
 
     const names = ['가람', '나래', '다온', '라온', '마루', '바다', '사랑', '아라'];
     let P = [];
     for (const n of names) P.push(await joinAs(port, code, n));
 
-    // ── 2. 인원별 방해꾼 수 ──
+    // ── 2. 인원별 꿈도둑 수 ──
     v = await startGame(teacher, P);
-    check('1. 방해꾼 찾기 모드로 시작이 된다 (mode_not_ready 없음)', v.t === 'room' && v.phase === 'game');
+    check('1. 꿈도둑을 찾아라 모드로 시작이 된다 (mode_not_ready 없음)', v.t === 'room' && v.phase === 'game');
     let ch = P.filter((c) => roleOf(v, c) === 'chaser');
-    check('2. 8명이면 방해꾼 2명', ch.length === 2);
+    check('2. 8명이면 꿈도둑 2명', ch.length === 2);
     // ── 4. 정체 숨기기 ──
     const [ca, cb] = ch;
     const st = P.find((c) => roleOf(v, c) === 'student');
     const other = P.find((c) => c !== st && c !== ca && c !== cb);
     const meA = await ca.next((m) => m.t === 'me');
-    check('4. 방해꾼은 동료의 역할을 받는다 (me.mates · room)', meA.mates.length === 1 && meA.mates[0] === cb.id && ca.see(cb).role === 'chaser' && ca.see(other).role === undefined);
+    check('4. 꿈도둑은 동료의 역할을 받는다 (me.mates · room)', meA.mates.length === 1 && meA.mates[0] === cb.id && ca.see(cb).role === 'chaser' && ca.see(other).role === undefined);
     check('4. 학생이 받는 room 에 다른 사람의 role·solved 가 없다', P.every((c) => c === st || (st.see(c).role === undefined && st.see(c).solved === undefined)) && st.see(st).role === 'student');
     check('4. 선생님은 모든 역할·진행 수를 받는다', v.players.every((p) => (p.role === 'student' || p.role === 'chaser') && Number.isFinite(p.solved)));
     const stMe = await st.next((m) => m.t === 'me');
@@ -222,7 +224,7 @@ async function runA() {
     teacher.send({ t: 'settings', chasers: 3 });
     await teacher.next((m) => m.t === 'room' && m.settings.chasers === 3 && m.players.length === 6);
     v = await startGame(teacher, P);
-    check('2. 선생님이 3명으로 정해도 6명이면 2명', v.players.filter((p) => p.role === 'chaser').length === 2 && chaserCount({ mode: 'impostor', chasers: 3 }, 6) === 2 && maxChasers('impostor', 4) === 1);
+    check('2. 선생님이 3명으로 정해도 6명이면 2명', v.players.filter((p) => p.role === 'chaser').length === 2 && chaserCount({ mode: 'mafia', chasers: 3 }, 6) === 2 && maxChasers('mafia', 4) === 1);
     await endGame(teacher, P);
     teacher.send({ t: 'settings', chasers: 'auto' });
 
@@ -239,11 +241,11 @@ async function runA() {
     teacher.send({ t: 'settings', meetings: 2, missions: 3, reveal: true });
     await teacher.next((m) => m.t === 'room' && m.settings.meetings === 2);
 
-    // ════ G1: 7명 (C1·C2 방해꾼, S1~S5 학생) ════
+    // ════ G1: 7명 (C1·C2 꿈도둑, S1~S5 학생) ════
     const [C1, C2, S1, S2, S3, S4, S5] = P;
     v = await startGame(teacher, P);
     const startAt = Date.now();
-    check('3. 지정한 학생만 방해꾼이 된다', roleOf(v, C1) === 'chaser' && roleOf(v, C2) === 'chaser' && v.players.filter((p) => p.role === 'chaser').length === 2);
+    check('3. 지정한 학생만 꿈도둑이 된다', roleOf(v, C1) === 'chaser' && roleOf(v, C2) === 'chaser' && v.players.filter((p) => p.role === 'chaser').length === 2);
 
     // 6. 얼리기: 시작 직후에는 안 됨, 학생의 tag 는 아무 일 없음
     for (const c of P) c.clear();
@@ -263,9 +265,9 @@ async function runA() {
     ]);
     await sleep(Math.max(0, startAt + 1700 - Date.now()));
     C1.clear();
-    C1.send({ t: 'tag' }); // 둘레 100 안에는 방해꾼 C2 뿐, 학생은 모두 130 밖
+    C1.send({ t: 'tag' }); // 둘레 100 안에는 꿈도둑 C2 뿐, 학생은 모두 130 밖
     let miss = await C1.type('me');
-    check('6. 거리 100 밖은 못 얼리고, 방해꾼은 얼려지지 않는다 (헛손질)', miss.freezeMs > 0 && miss.freezeMs <= 800 && teacher.room.players.every((p) => !p.ghost));
+    check('6. 거리 100 밖은 못 얼리고, 꿈도둑은 얼려지지 않는다 (헛손질)', miss.freezeMs > 0 && miss.freezeMs <= 800 && teacher.room.players.every((p) => !p.ghost));
 
     // S1 이 문제를 열어 둔 채로 얼려진다
     S1.send({ t: 'open', terminal: 't8' });
@@ -284,25 +286,25 @@ async function runA() {
     check('7. 다른 살아 있는 학생은 freeze 를 받지 않고 그 사람의 ghost 도 모른다', !s2Ev && S2.see(S1).ghost === undefined && S2.see(S1).x === undefined);
     await sleep(200);
     check('8. 살아 있는 학생의 state 에 유령 위치가 없다', !S2.state.p.some((r) => r[0] === S1.id) && S2.state.p.length === 6);
-    check('8. 유령·방해꾼·선생님은 모두의 위치를 받는다', S1.state.p.length === 7 && C2.state.p.length === 7 && teacher.state.p.length === 7);
+    check('8. 유령·꿈도둑·선생님은 모두의 위치를 받는다', S1.state.p.length === 7 && C2.state.p.length === 7 && teacher.state.p.length === 7);
     // 6. 쿨타임: 바로 다시 얼리기 → S2(57 거리)도 안 얼려진다
     C1.send({ t: 'tag' });
     await sleep(300);
     check('6. 얼린 직후에는 쿨타임 동안 다시 못 얼린다', !teacher.see(S2).ghost && C1.meMsg.freezeMs > 1500);
 
-    // 9. 유령 학생이 문제를 맞히면 복구율이 오른다
+    // 9. 유령 학생이 문제를 맞히면 새벽빛이 오른다
     const before = teacher.room.progress.solved;
     check('9. 유령 학생이 문제를 맞힌다', (await solve(S1, 't8')) === 'ok');
     await sleep(200);
-    check('9. 유령이 맞혀도 복구율이 오른다', teacher.room.progress.solved === before + 1);
-    // 10. 방해꾼 가짜 미션
-    check('10. 방해꾼도 단말기 문제를 푼다', (await solve(C1, 't8')) === 'ok');
+    check('9. 유령이 맞혀도 새벽빛이 오른다', teacher.room.progress.solved === before + 1);
+    // 10. 꿈도둑 가짜 미션
+    check('10. 꿈도둑도 단말기 문제를 푼다', (await solve(C1, 't8')) === 'ok');
     await sleep(200);
     teacher.send({ t: 'report' });
     const rep = await teacher.type('report');
     const lastRec = rep.records[rep.records.length - 1];
-    check('10. 방해꾼이 맞히면 본인 solved 는 오르고 복구율은 그대로, 기록에 role chaser', C1.meMsg.solved === 1 && teacher.room.progress.solved === before + 1 && lastRec.role === 'chaser' && rep.records.some((r) => r.ghost === true && r.role === 'student'));
-    check('10. 다른 학생은 방해꾼의 진행 수를 모른다', S2.see(C1).solved === undefined);
+    check('10. 꿈도둑이 맞히면 본인 solved 는 오르고 새벽빛은 그대로, 기록에 role chaser', C1.meMsg.solved === 1 && teacher.room.progress.solved === before + 1 && lastRec.role === 'chaser' && rep.records.some((r) => r.ghost === true && r.role === 'student'));
+    check('10. 다른 학생은 꿈도둑의 진행 수를 모른다', S2.see(C1).solved === undefined);
 
     // 6. 유령은 얼려지지 않는다 (S2 는 비켜 준다)
     await route(S2, [[1780, 1000]]);
@@ -319,7 +321,7 @@ async function runA() {
     await sleep(150);
     check('11. 정전: 모두에게 이벤트·blackoutMs, 쓴 사람 id 는 없다', !JSON.stringify(bo).includes(C1.id) && bo.by === undefined && S3.room.sabo.blackoutMs > 0 && teacher.room.sabo.blackoutMs > 0);
     C2.send({ t: 'sabotage', kind: 'blackout' });
-    check('11. 정전 쿨타임은 방해꾼 팀이 같이 쓴다', (await C2.error()) === 'sabo_cooldown' && C2.meMsg.saboMs.blackout > 4000);
+    check('11. 정전 쿨타임은 꿈도둑 팀이 같이 쓴다', (await C2.error()) === 'sabo_cooldown' && C2.meMsg.saboMs.blackout > 4000);
     await sleep(1600);
     check('11. 정전은 시간이 지나면 풀린다', teacher.room.sabo.blackoutMs === 0);
 
@@ -329,8 +331,8 @@ async function runA() {
     C2.send({ t: 'sabotage', kind: 'disguise' });
     await sleep(200);
     const look = S3.see(C2);
-    check('13. 위장: 다른 학생이 받는 그 방해꾼의 색이 살아 있는 학생 중 하나로 바뀐다', look.color !== realColor && studentColors.includes(look.color) && look.disguise === undefined);
-    check('13. 선생님·방해꾼은 진짜 모습 + 위장 정보를 받는다', teacher.see(C2).color === realColor && !!teacher.see(C2).disguise && C1.see(C2).color === realColor && !!C1.see(C2).disguise);
+    check('13. 위장: 다른 학생이 받는 그 꿈도둑의 색이 살아 있는 학생 중 하나로 바뀐다', look.color !== realColor && studentColors.includes(look.color) && look.disguise === undefined);
+    check('13. 선생님·꿈도둑은 진짜 모습 + 위장 정보를 받는다', teacher.see(C2).color === realColor && !!teacher.see(C2).disguise && C1.see(C2).color === realColor && !!C1.see(C2).disguise);
     C2.send({ t: 'sabotage', kind: 'disguise' });
     check('13. 위장 중에는 다시 위장할 수 없다', (await C2.error()) === 'already_disguised');
     await sleep(1100);
@@ -368,11 +370,11 @@ async function runA() {
     check('14. 얼음 흔적에서 110 밖이면 신고할 수 없다', (await C2.error()) === 'too_far');
     const timeBefore = teacher.room.timeLeft;
     for (const c of [teacher, ...P]) c.clear();
-    C1.send({ t: 'alarm', mark: S1.id }); // 방해꾼도 신고할 수 있다
+    C1.send({ t: 'alarm', mark: S1.id }); // 꿈도둑도 신고할 수 있다
     const mEv = await S3.next((m) => m.t === 'event' && m.kind === 'meeting');
     let mv = await teacher.next((m) => m.t === 'room' && m.meeting);
     const paused1 = mv.timeLeft;
-    check('14. 방해꾼도 신고할 수 있고, 회의가 열리고 흔적이 사라진다', mEv.reason === 'report' && mEv.found === S1.id && mv.meeting.reporter === C1.id && mv.marks.length === 0);
+    check('14. 꿈도둑도 신고할 수 있고, 회의가 열리고 흔적이 사라진다', mEv.reason === 'report' && mEv.found === S1.id && mv.meeting.reporter === C1.id && mv.marks.length === 0);
     const s2Closeq = await S2.next((m) => m.t === 'closeq').then(() => true, () => false);
 
     // ── 25. 회의 중 도중 입장 ──
@@ -455,20 +457,20 @@ async function runA() {
     for (const c of P) c.sync();
     L.sync();
 
-    // ── 15. 긴급회의 ──
+    // ── 15. 회의 종 ──
     const Q = [...P, L];
     for (const c of Q) c.clear();
     C1.send({ t: 'emergency' });
-    check('15. 방해꾼은 긴급회의를 열 수 없다', (await C1.error()) === 'not_now');
+    check('15. 꿈도둑은 회의 종를 열 수 없다', (await C1.error()) === 'not_now');
     S2.send({ t: 'emergency' });
     check('15. 버튼 90 밖은 거부', (await S2.error()) === 'too_far');
-    await walk(S2, ...SPAWN);
+    await walk(S2, ...BELL);
     S2.send({ t: 'emergency' });
     check('15. 회의가 끝난 뒤 대기 시간 안은 거부', (await S2.error()) === 'too_early');
-    await sleep(Math.max(0, endAt + 1600 - Date.now()));
+    await sleep(Math.max(0, endAt + 3100 - Date.now()));
     S2.send({ t: 'emergency' });
     mv = await teacher.wait((m) => m.t === 'room' && m.meeting);
-    check('15. 학생은 긴급회의를 연다 (연 사람은 보내지 않는다)', mv.meeting.reason === 'button' && mv.meeting.reporter === undefined && mv.meetingsLeft === 1, JSON.stringify(mv.meeting) + mv.meetingsLeft);
+    check('15. 학생은 회의 종를 연다 (연 사람은 보내지 않는다)', mv.meeting.reason === 'button' && mv.meeting.reporter === undefined && mv.meetingsLeft === 1, JSON.stringify(mv.meeting) + mv.meetingsLeft);
     // 동점 → 아무도 제외 안 됨
     await waitStage(teacher, 'discuss');
     teacher.send({ t: 'meetingCtl', action: 'vote' });
@@ -483,11 +485,11 @@ async function runA() {
     await sleep(150);
     for (const c of Q) (c.sync(), c.clear());
     S2.send({ t: 'emergency' });
-    check('15. 긴급회의는 1인 1회', (await S2.error()) === 'button_used');
+    check('15. 회의 종는 1인 1회', (await S2.error()) === 'button_used');
 
     // 최다가 건너뛰기와 같으면 제외 없음
-    await walk(S3, ...SPAWN);
-    await sleep(Math.max(0, end2 + 1600 - Date.now()));
+    await walk(S3, ...BELL);
+    await sleep(Math.max(0, end2 + 3100 - Date.now()));
     S3.send({ t: 'emergency' });
     mv = await teacher.wait((m) => m.t === 'room' && m.meeting);
     await waitStage(teacher, 'discuss');
@@ -501,17 +503,17 @@ async function runA() {
     end2 = Date.now();
     await sleep(150);
     for (const c of Q) (c.sync(), c.clear());
-    await walk(S4, ...SPAWN);
+    await walk(S4, ...BELL);
     S4.send({ t: 'emergency' });
-    check('15. 긴급회의 총 횟수를 넘으면 거부', (await S4.error()) === 'no_meetings' && teacher.room.meetingsLeft === 0);
+    check('15. 회의 종 총 횟수를 넘으면 거부', (await S4.error()) === 'no_meetings' && teacher.room.meetingsLeft === 0);
 
-    // ── 20. 마지막 방해꾼 제외 → 학생 승리 ──
-    await walk(C1, ...SPAWN);
-    await sleep(Math.max(0, end2 + 1600 - Date.now()));
+    // ── 20. 마지막 꿈도둑 제외 → 학생 승리 ──
+    await walk(C1, ...BELL);
+    await sleep(Math.max(0, end2 + 3100 - Date.now()));
     C1.send({ t: 'tag' });
     await sleep(250);
     check('7. 회의 뒤 다시 얼릴 수 있다', teacher.see(S4).ghost === true);
-    await walk(S3, ...SPAWN);
+    await walk(S3, ...BELL);
     S3.send({ t: 'alarm', mark: S4.id });
     await waitStage(teacher, 'discuss');
     teacher.send({ t: 'meetingCtl', action: 'vote' });
@@ -519,7 +521,7 @@ async function runA() {
     for (const c of [S2, S3, S5, L]) c.send({ t: 'vote', target: C1.id });
     C1.send({ t: 'vote', target: 'skip' });
     v = await teacher.next((m) => m.t === 'room' && m.over, 5000);
-    check('20. 마지막 방해꾼을 제외하면 학생 승리 all_found', v.over.winner === 'students' && v.over.reason === 'all_found');
+    check('20. 마지막 꿈도둑을 제외하면 학생 승리 all_found', v.over.winner === 'students' && v.over.reason === 'all_found');
     await sleep(150);
     const s2View = S2.room;
     check('27. 게임이 끝나면 모두가 모든 역할을 받는다', s2View.players.every((p) => p.role === 'student' || p.role === 'chaser') && S2.see(C1).role === 'chaser' && S2.see(C2).role === 'chaser');
@@ -528,7 +530,7 @@ async function runA() {
     check('18. 누가 누구를 찍었는지는 어떤 메시지에도 없다', ![...allRaw, ...teacher.raw].some((t) => t.includes('"votes"')));
     await endGame(teacher, Q);
 
-    // ════ G2: 4명, 정체 공개 끄기, 복구율 100% ════
+    // ════ G2: 4명, 정체 공개 끄기, 새벽빛 100% ════
     for (const c of [S3, S4, S5, L]) (c.send({ t: 'leave' }), await c.type('left'));
     const G = [C1, C2, S1, S2];
     teacher.send({ t: 'pickChasers', ids: [] });
@@ -538,10 +540,10 @@ async function runA() {
     v = await startGame(teacher, G);
     const g2Start = Date.now();
     const gc = G.filter((c) => roleOf(v, c) === 'chaser');
-    check('2. 4명이면 방해꾼 1명', gc.length === 1);
+    check('2. 4명이면 꿈도둑 1명', gc.length === 1);
     const [A, B, D] = G.filter((c) => roleOf(v, c) === 'student');
-    await walk(D, ...SPAWN);
-    await sleep(Math.max(0, g2Start + 1600 - Date.now()));
+    await walk(D, ...BELL);
+    await sleep(Math.max(0, g2Start + 3100 - Date.now()));
     D.send({ t: 'emergency' });
     await waitStage(teacher, 'discuss');
     teacher.send({ t: 'meetingCtl', action: 'vote' });
@@ -569,7 +571,7 @@ async function runA() {
     };
     const tours = await Promise.all([tour(A), tour(B)]);
     v = await teacher.next((m) => m.t === 'room' && m.over, 3000).catch(() => teacher.room);
-    check('21. 복구율 100% → 학생 승리 restored', tours.flat().every((r) => r === 'ok') && v.over && v.over.reason === 'restored' && v.over.winner === 'students', JSON.stringify(tours));
+    check('21. 새벽빛 100% → 학생 승리 restored', tours.flat().every((r) => r === 'ok') && v.over && v.over.reason === 'restored' && v.over.winner === 'students', JSON.stringify(tours));
     check('맵 검사에서 문제가 나오지 않는다 (who 역할 이름)', !srv.log().includes('문제가 있어요'), srv.log());
   } finally {
     await srv.stop();
@@ -579,7 +581,7 @@ async function runA() {
 // ════════════ 서버 B: 짧은 게임 시간 — 승패 ③④, 끊김 정리 ════════════
 async function runB() {
   const srv = await startServer(3979, {
-    impostor: {
+    mafia: {
       freezeGraceMs: 1000,
       freezeCooldownMs: 1500,
       freezeAfterMeetingMs: 1000,
@@ -590,6 +592,7 @@ async function runB() {
       voteMs: 3000,
       resultMs: 200,
     },
+    energy: { mafia: { start: 2, max: 2 } },
     minuteMs: 1000, // 게임 "1분" = 1초
     rejoinMs: 600,
     cleanupMs: 200,
@@ -599,7 +602,7 @@ async function runB() {
     const teacher = await teacherOf(port);
     teacher.send({ t: 'questions', set: QSET });
     await teacher.next((m) => m.t === 'room' && m.qset);
-    teacher.send({ t: 'settings', mode: 'impostor', minutes: 15 });
+    teacher.send({ t: 'settings', mode: 'mafia', minutes: 15, fogLoot: false });
     await teacher.next((m) => m.t === 'room' && m.settings.minutes === 15);
     const P = [];
     for (const n of ['하나', '두리', '세찬', '네오']) P.push(await joinAs(port, teacher.code, n));
@@ -607,7 +610,7 @@ async function runB() {
     await teacher.type('picked');
     const [C, S1, S2, S3] = P;
 
-    // ── 22. 얼리기로 학생 수 ≤ 방해꾼 수 → 방해꾼 승리 ──
+    // ── 22. 얼리기로 학생 수 ≤ 꿈도둑 수 → 꿈도둑 승리 ──
     let v = await startGame(teacher, P);
     const t0 = Date.now();
     await Promise.all([walk(S1, ...SPAWN), walk(S2, 1430, 920), route(C, [[C.x, 960], [1400, 960]])]);
@@ -617,15 +620,15 @@ async function runB() {
     check('22. (준비) 한 명 얼린 뒤에는 게임이 이어진다', !teacher.room.over && teacher.room.players.filter((p) => p.ghost).length === 1);
     C.send({ t: 'tag' });
     v = await teacher.next((m) => m.t === 'room' && m.over, 2000);
-    check('22. 얼리기로 학생 수 ≤ 방해꾼 수 → outnumbered (회의 없이 바로)', v.over.winner === 'chasers' && v.over.reason === 'outnumbered' && !v.meeting);
+    check('22. 얼리기로 학생 수 ≤ 꿈도둑 수 → outnumbered (회의 없이 바로)', v.over.winner === 'chasers' && v.over.reason === 'outnumbered' && !v.meeting);
     await endGame(teacher, P);
 
-    // ── 23. 시간 끝 → 방해꾼 승리, 회의 중에는 시간이 끝나지 않는다 ──
+    // ── 23. 시간 끝 → 꿈도둑 승리, 회의 중에는 시간이 끝나지 않는다 ──
     teacher.send({ t: 'settings', minutes: 5 }); // 시험값: 5초
     await teacher.next((m) => m.t === 'room' && m.settings.minutes === 5);
     v = await startGame(teacher, P);
     const t1 = Date.now();
-    await walk(S1, ...SPAWN);
+    await walk(S1, ...BELL);
     await sleep(Math.max(0, t1 + 1100 - Date.now()));
     S1.send({ t: 'emergency' });
     const mv = await teacher.wait((m) => m.t === 'room' && m.meeting);
@@ -636,16 +639,16 @@ async function runB() {
     await sleep(100);
     check('23. 회의 뒤 남은 시간이 이어진다', Math.abs(teacher.room.timeLeft - (paused - 100)) < 400);
     v = await teacher.next((m) => m.t === 'room' && m.over, paused + 2000);
-    check('23. 시간 끝 → 방해꾼 승리 time_up', v.over.winner === 'chasers' && v.over.reason === 'time_up');
+    check('23. 시간 끝 → 꿈도둑 승리 time_up', v.over.winner === 'chasers' && v.over.reason === 'time_up');
     await endGame(teacher, P);
 
-    // ── 26. 방해꾼이 끊겨 정리되면 승패 확인 ──
+    // ── 26. 꿈도둑이 끊겨 정리되면 승패 확인 ──
     teacher.send({ t: 'settings', minutes: 15 });
     await teacher.next((m) => m.t === 'room' && m.settings.minutes === 15);
     v = await startGame(teacher, P);
     await C.close();
     v = await teacher.next((m) => m.t === 'room' && m.over, 3000);
-    check('26. 마지막 방해꾼이 끊겨 정리되면 학생 승리 all_found', v.over.winner === 'students' && v.over.reason === 'all_found' && v.players.length === 3);
+    check('26. 마지막 꿈도둑이 끊겨 정리되면 학생 승리 all_found', v.over.winner === 'students' && v.over.reason === 'all_found' && v.players.length === 3);
   } finally {
     await srv.stop();
   }
@@ -665,5 +668,5 @@ for (const run of [runA, runB]) {
   }
 }
 clearTimeout(timeout);
-console.log(`\n결과(방해꾼 찾기): 통과 ${passed} · 실패 ${failed}`);
+console.log(`\n결과(꿈도둑을 찾아라): 통과 ${passed} · 실패 ${failed}`);
 setTimeout(() => process.exit(failed ? 1 : 0), 100);

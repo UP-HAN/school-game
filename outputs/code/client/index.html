@@ -2,11 +2,15 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>학교 술래잡기 (가칭)</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css">
+  <!-- 확대 막기(두 번 톡·두 손가락), 노치·둥근 모서리 안전 영역, 가상 키보드가 올라오면 화면 높이를 줄인다 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#1f2a52">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+  <title>한밤의 랜턴 대작전</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="./style.css">
 </head>
 <body>
   <div id="toast" role="status" aria-live="polite"></div>
@@ -14,11 +18,17 @@
 
   <!-- 첫 화면 -->
   <main id="view-home" class="view">
+    <div class="stars" aria-hidden="true"></div>
     <canvas id="parade" aria-hidden="true"></canvas>
     <section class="card home-card">
-      <h1 class="logo">학교 <span>술래잡기</span></h1>
-      <p class="sub">문제를 풀어 학교를 구하자! <small>(게임 이름은 아직 가칭)</small></p>
+      <h1 class="logo">
+        <span class="logo-small">한밤의</span>
+        <span class="logo-big">랜턴<i class="lantern" aria-hidden="true"><b></b></i></span>
+        <span class="logo-small">대작전</span>
+      </h1>
+      <p class="sub">퀴즈를 맞혀 랜턴을 켜고, 아침을 불러와요!</p>
 
+      <!--home:start-->
       <form id="join-form" autocomplete="off">
         <label>방 번호
           <input id="join-code" inputmode="numeric" maxlength="4" placeholder="선생님이 알려 준 4자리" required>
@@ -28,15 +38,11 @@
         </label>
         <button class="btn primary big" type="submit">들어가기</button>
       </form>
+      <!--home:end-->
 
-      <button id="open-teacher" class="btn ghost" type="button">선생님이에요</button>
-
-      <form id="create-form" hidden autocomplete="off">
-        <label>선생님 비밀번호
-          <input id="create-password" type="password" autocomplete="off" required>
-        </label>
-        <button class="btn accent big" type="submit">방 만들기</button>
-      </form>
+      <div class="row home-row">
+        <button class="btn ghost open-manual" type="button">놀이 방법 보기</button>
+      </div>
     </section>
   </main>
 
@@ -50,22 +56,29 @@
         <button id="t-copy" class="btn small" type="button">초대 주소 복사</button>
       </div>
       <div class="card settings-card">
-        <label>놀이 방법 <select id="t-mode"></select></label>
+        <div class="row settings-head">
+          <label class="grow">게임 방식 <select id="t-mode"></select></label>
+          <button class="btn small open-manual" type="button">놀이 방법 보기</button>
+        </div>
         <label>맵 <select id="t-map"></select></label>
-        <label><span id="t-chaser-label">술래 수</span> <select id="t-chasers"></select></label>
+        <label><span id="t-chaser-label">잠귀신 수</span> <select id="t-chasers"></select></label>
         <div class="row two">
-          <label>학생 한 명이 풀 문제 수 <select id="t-missions"></select></label>
+          <label>한 사람이 켤 랜턴 수 <select id="t-missions"></select></label>
           <label>제한 시간 <select id="t-minutes"></select></label>
         </div>
-        <!-- 방해꾼 찾기에서만 보이는 설정 -->
+        <div class="row two">
+          <label>잠 안개 · 보급 상자 <select id="t-fogloot"><option value="on">켜기</option><option value="off">끄기</option></select></label>
+          <label>퀴즈 수첩 <select id="t-notebook"><option value="on">켜기</option><option value="off">끄기</option></select></label>
+        </div>
+        <!-- 꿈도둑을 찾아라에서만 보이는 설정 -->
         <div id="t-imp" class="imp-settings" hidden>
           <div class="row two">
-            <label>긴급회의 횟수 <select id="t-meetings"></select></label>
-            <label>제외된 사람 정체 공개 <select id="t-reveal-role"><option value="on">켜기</option><option value="off">끄기</option></select></label>
+            <label>회의 종 횟수 <select id="t-meetings"></select></label>
+            <label>추방된 사람 정체 공개 <select id="t-reveal-role"><option value="on">켜기</option><option value="off">끄기</option></select></label>
           </div>
-          <button id="t-pick-toggle" class="btn small" type="button" aria-expanded="false">방해꾼 고르기 열기</button>
+          <button id="t-pick-toggle" class="btn small" type="button" aria-expanded="false">꿈도둑 몰래 정하기 열기</button>
           <div id="t-pick" class="pick-list" hidden>
-            <p class="hint">체크한 학생만 방해꾼이 돼요. 아무도 고르지 않으면 무작위예요. (TV에 띄울 때는 닫아 두세요)</p>
+            <p class="hint">체크한 학생만 꿈도둑이 돼요. 아무도 고르지 않으면 무작위예요. (TV에 띄울 때는 닫아 두세요)</p>
             <div id="t-pick-rows"></div>
           </div>
         </div>
@@ -78,7 +91,7 @@
     </header>
     <section class="card qset-card">
       <div class="qset-status">
-        <h2>미션 문제</h2>
+        <h2>퀴즈 문제</h2>
         <p id="q-status" class="sub">아직 문제가 없어요. 엑셀 파일을 올려 주세요.</p>
         <p id="q-warn" class="hint"></p>
       </div>
@@ -87,7 +100,7 @@
         <button id="q-template" class="btn small" type="button">빈 양식 내려받기</button>
         <button id="q-prompt" class="btn small" type="button">AI 요청문 보기</button>
         <select id="q-saved" aria-label="보관한 문제 세트"></select>
-        <button id="t-report" class="btn small" type="button" hidden>지난 게임 학습 기록</button>
+        <button id="t-report" class="btn small" type="button" hidden>지난 판 퀴즈 리포트</button>
         <input id="q-file" type="file" accept=".xlsx" hidden>
       </div>
     </section>
@@ -103,9 +116,12 @@
         <p class="label">나는</p>
         <h2 id="s-label">-</h2>
         <p id="s-name" class="sub"></p>
-        <p class="hint">게임에서는 이름 대신 <b>색 + 캐릭터</b>로 불러요.</p>
+        <p class="hint">게임에서는 이름 대신 <b>맛 + 캐릭터</b>로 불러요. (예: 딸기 고양이)</p>
       </div>
-      <button id="s-leave" class="btn small ghost" type="button">나가기</button>
+      <div class="me-actions">
+        <button class="btn small open-manual" type="button">놀이 방법 보기</button>
+        <button id="s-leave" class="btn small ghost" type="button">나가기</button>
+      </div>
     </section>
     <h2 class="section-title">캐릭터 고르기</h2>
     <div id="s-picker" class="picker"></div>
@@ -117,44 +133,82 @@
   <!-- 게임 화면 -->
   <main id="view-game" class="game" hidden>
     <canvas id="game-canvas"></canvas>
+
+    <!-- 왼쪽 위: 내 이름표 · 가방 · 꿈 구슬 -->
     <div class="hud hud-left">
       <span id="g-label" class="chip"></span>
+      <button id="g-bag" class="bag" type="button" hidden aria-label="가방 (Q)"><span class="bag-icon" aria-hidden="true"></span><span id="g-bag-name">비어 있음</span><span class="key">Q</span></button>
+      <span id="g-energy" class="energy" hidden></span>
     </div>
+
+    <!-- 왼쪽: 새벽빛 랜턴 게이지 -->
+    <div id="g-gauge" class="gauge" role="progressbar" aria-label="새벽빛" aria-valuemin="0" aria-valuemax="100">
+      <span class="gauge-title">새벽빛</span>
+      <div class="gauge-lamp"><div class="gauge-cap"></div><div class="gauge-glass"><div id="g-bar" class="gauge-fill"></div></div><div class="gauge-cap"></div></div>
+      <span id="g-progress" class="gauge-pct">0%</span>
+      <span id="g-missions" class="gauge-mine"></span>
+      <span id="g-stars" class="stars-row" hidden></span>
+      <span id="g-hintbank" class="gauge-bank" hidden>다음 택배 힌트 1개</span>
+    </div>
+
+    <!-- 오른쪽 위: 달 시계 · 종 · 안개 단계 / 선생님 메뉴 -->
     <div class="hud hud-right">
-      <button id="g-reveal" class="btn small" type="button" aria-pressed="false" hidden>학생 위치 보기</button>
-      <button id="g-roles" class="btn small" type="button" aria-pressed="false" hidden>역할 보기</button>
-      <button id="g-report" class="btn small" type="button" hidden>학습 기록</button>
-      <button id="g-end" class="btn danger small" type="button" hidden>게임 끝내기</button>
-    </div>
-    <aside id="g-side" class="side card" aria-label="학생 현황" hidden></aside>
-    <div class="hud hud-top">
-      <span id="g-clock" class="chip clock" aria-label="남은 시간">0:00</span>
-      <div class="progress" role="progressbar" aria-label="학교 복구율" aria-valuemin="0" aria-valuemax="100">
-        <div id="g-bar" class="progress-fill"></div>
-        <span id="g-progress" class="progress-text">학교 복구율 0%</span>
+      <div class="moon card">
+        <span class="moon-icon" aria-hidden="true"></span>
+        <div class="moon-text">
+          <span class="moon-label">아침까지</span>
+          <span id="g-clock" class="clock" aria-label="아침까지 남은 시간">0:00</span>
+        </div>
       </div>
-      <span id="g-missions" class="chip"></span>
-      <span id="g-meetings" class="chip" hidden></span>
+      <span id="g-meetings" class="chip small-chip" hidden></span>
+      <span id="g-fog" class="chip small-chip fog-chip" hidden></span>
+      <button id="g-tmenu-btn" class="btn small" type="button" aria-expanded="false" hidden>선생님 메뉴</button>
+      <div id="g-tmenu" class="tmenu card" hidden>
+        <button id="g-reveal" class="btn small" type="button" aria-pressed="false">모두 위치 표시</button>
+        <button id="g-roles" class="btn small" type="button" aria-pressed="false" hidden>정체 표시</button>
+        <button id="g-report" class="btn small" type="button">퀴즈 리포트</button>
+        <button id="g-end" class="btn danger small" type="button">이번 판 끝내기</button>
+      </div>
     </div>
+
+    <!-- 선생님: 참가자 상태판 (왼쪽 아래, 접이식) -->
+    <aside id="g-side" class="side card" aria-label="참가자 상태판" hidden>
+      <button id="g-side-toggle" class="side-toggle" type="button" aria-expanded="true">참가자 상태판</button>
+      <div id="g-side-body"></div>
+    </aside>
+
+    <p id="g-big" class="big-news" role="status" aria-live="polite" hidden></p>
     <p id="g-alert" class="hud hud-alert chip" role="status" aria-live="polite" hidden></p>
-    <!-- 행동 버튼 묶음 (오른쪽 아래). 얼음땡은 g-action 하나만 쓴다 -->
+    <p id="g-hint" class="hud hud-bottom chip"></p>
+
+    <!-- 행동 버튼 (오른쪽 아래): 큰 동그라미 하나 + 작은 보조 버튼 -->
     <div id="g-buttons" class="actions">
       <div id="g-sabo-menu" class="sabo-menu" hidden>
-        <button id="g-sabo-blackout" class="btn" type="button">1 정전</button>
-        <button id="g-sabo-lock" class="btn" type="button">2 문 잠금</button>
-        <button id="g-sabo-disguise" class="btn" type="button">3 위장</button>
+        <button id="g-sabo-blackout" class="btn" type="button">1 안개 뿌리기</button>
+        <button id="g-sabo-lock" class="btn" type="button">2 문 막기</button>
+        <button id="g-sabo-disguise" class="btn" type="button">3 변신</button>
+      </div>
+      <div class="mini-row">
+        <button id="g-bag-mini" class="mini" type="button" hidden aria-label="가방 (Q)"><span class="mini-icon bag-icon" aria-hidden="true"></span><span class="mini-text">가방</span></button>
+        <button id="g-notebook" class="mini" type="button" hidden aria-label="퀴즈 수첩 (B)"><span class="mini-icon book-icon" aria-hidden="true"></span><span class="mini-text">수첩</span></button>
+        <button id="g-map" class="mini" type="button" hidden aria-pressed="false" aria-label="작은 지도 (Tab)"><span class="mini-icon map-icon" aria-hidden="true"></span><span class="mini-text">지도</span></button>
       </div>
       <div class="actions-row">
-        <button id="g-map" class="btn small" type="button" hidden aria-pressed="false">지도 (M)</button>
-        <button id="g-sabo" class="btn action-sm sabo" type="button" hidden aria-expanded="false">방해 (F)</button>
-        <button id="g-alarm" class="btn action-sm alarm" type="button" hidden>신고 (R)</button>
-        <button id="g-freeze" class="btn action tag" type="button" hidden><span id="g-freeze-label">얼리기</span></button>
-        <button id="g-action" class="btn accent action" type="button" hidden><span id="g-action-label">문제 풀기</span></button>
+        <div class="mafia-btns">
+          <button id="g-sabo" class="mid sabo" type="button" hidden aria-expanded="false"><span>작전</span><small>G</small></button>
+          <button id="g-freeze" class="mid tag" type="button" hidden><span id="g-freeze-label">꿈에 빠뜨리기</span><small id="g-freeze-sub">F</small></button>
+        </div>
+        <button id="g-action" class="big-action" type="button" hidden>
+          <svg class="ring" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54"></circle></svg>
+          <span id="g-action-label" class="ba-label">랜턴 켜기</span>
+          <small id="g-action-sub" class="ba-sub"></small>
+        </button>
       </div>
     </div>
+
     <div id="g-minimap" class="minimap card" hidden>
       <canvas id="g-minimap-canvas" aria-label="학교 지도"></canvas>
-      <button id="g-minimap-close" class="btn small" type="button">닫기</button>
+      <button id="g-minimap-close" class="btn small" type="button">닫기 (Tab)</button>
     </div>
     <div id="g-intro" class="intro" hidden>
       <div class="card">
@@ -162,19 +216,38 @@
         <p id="g-intro-text"></p>
       </div>
     </div>
-    <p id="g-hint" class="hud hud-bottom chip"></p>
     <div id="g-over" class="over" hidden>
       <div class="card">
         <h2 id="g-over-title"></h2>
         <p id="g-over-text" class="sub"></p>
         <p id="g-over-roles" class="sub"></p>
-        <button id="g-myreport" class="btn primary" type="button" hidden>나의 기록 보기</button>
+        <p id="g-over-chaser" class="sub"></p>
+        <button id="g-myreport" class="btn primary" type="button" hidden>내 퀴즈 노트</button>
       </div>
     </div>
 
-    <!-- 방해꾼 찾기: 회의 화면 -->
+    <!-- 시작 로딩 화면 / 끝 연출 화면 (screens.js) -->
+    <div id="g-loading" class="loading" hidden>
+      <canvas id="g-loading-canvas" aria-hidden="true"></canvas>
+      <div class="loading-box">
+        <p id="g-loading-mode" class="loading-mode"></p>
+        <h2 id="g-loading-map" class="loading-map"></h2>
+        <p class="loading-text">로딩중<span class="dots"></span></p>
+        <div class="loading-bar"><div id="g-loading-fill"></div></div>
+        <p class="loading-tip"><b>TIP</b> <span id="g-loading-tip"></span></p>
+      </div>
+    </div>
+    <div id="g-ending" class="ending" hidden>
+      <canvas id="g-ending-canvas" aria-hidden="true"></canvas>
+      <div class="ending-box">
+        <h2 id="g-ending-title"></h2>
+        <p id="g-ending-sub"></p>
+      </div>
+    </div>
+
+    <!-- 꿈도둑을 찾아라: 모닥불 회의 화면 -->
     <div id="meeting" class="meeting" hidden>
-      <div class="siren" aria-hidden="true"><span></span><span></span></div>
+      <div class="campfire" aria-hidden="true"><span></span><span></span><span></span></div>
       <section class="card meeting-card" role="dialog" aria-modal="true" aria-labelledby="mt-title">
         <header class="mt-head">
           <h2 id="mt-title"></h2>
@@ -184,11 +257,11 @@
         <div id="mt-cards" class="mt-cards"></div>
         <div id="mt-confirm" class="mt-confirm" hidden>
           <p id="mt-confirm-text"></p>
-          <button id="mt-yes" class="btn primary" type="button">투표</button>
+          <button id="mt-yes" class="btn primary" type="button">지목</button>
           <button id="mt-no" class="btn small" type="button">취소</button>
         </div>
         <footer class="mt-foot">
-          <button id="mt-skip" class="btn big mt-skip" type="button" hidden>건너뛰기</button>
+          <button id="mt-skip" class="btn big mt-skip" type="button" hidden>기권</button>
           <div id="mt-teacher" class="row" hidden>
             <button id="mt-extend" class="btn" type="button">토론 15초 더</button>
             <button id="mt-vote" class="btn primary" type="button">바로 투표로</button>
@@ -197,11 +270,12 @@
       </section>
     </div>
 
-    <!-- 문제 창 -->
+    <!-- 퀴즈 창 (랜턴 / 퀴즈 수첩) -->
     <div id="mission" class="mission" hidden>
       <section class="card mission-card" role="dialog" aria-modal="true" aria-labelledby="m-text">
         <header class="mission-head">
-          <span class="chip">고장 난 단말기</span>
+          <span id="m-where" class="chip">꺼진 랜턴</span>
+          <button id="m-chance" class="btn small chance" type="button" hidden>찬스 카드 쓰기</button>
           <button id="m-close" class="btn small ghost" type="button">닫기</button>
         </header>
         <p id="m-text" class="mission-text"></p>
@@ -216,6 +290,20 @@
     </div>
   </main>
 
+  <!-- 놀이 방법 (manual.js) -->
+  <dialog id="dlg-manual" class="dlg wide">
+    <h2>놀이 방법</h2>
+    <div class="manual-tabs" role="tablist">
+      <button id="mn-tab-sleep" class="btn small" type="button" role="tab" aria-selected="true">잠귀신 술래잡기</button>
+      <button id="mn-tab-mafia" class="btn small" type="button" role="tab" aria-selected="false">꿈도둑을 찾아라</button>
+      <button id="mn-tab-keys" class="btn small" type="button" role="tab" aria-selected="false">조작 방법</button>
+    </div>
+    <div id="mn-body" class="manual-body"></div>
+    <footer class="dlg-foot">
+      <button id="mn-close" class="btn primary" type="button">닫기</button>
+    </footer>
+  </dialog>
+
   <!-- 선생님: 문제 미리보기 -->
   <dialog id="dlg-preview" class="dlg wide">
     <h2>문제 미리보기</h2>
@@ -229,9 +317,9 @@
     </footer>
   </dialog>
 
-  <!-- 학습 기록 (선생님: 전체 / 학생: 나의 기록) -->
+  <!-- 퀴즈 리포트 (선생님: 전체 / 학생: 내 퀴즈 노트) -->
   <dialog id="dlg-report" class="dlg wide">
-    <h2 id="r-title">학습 기록</h2>
+    <h2 id="r-title">퀴즈 리포트</h2>
     <div id="r-body" class="r-body"></div>
     <footer class="dlg-foot">
       <button id="r-csv" class="btn small" type="button">CSV 내려받기</button>
@@ -259,6 +347,6 @@
     </footer>
   </dialog>
 
-  <script type="module" src="/app.js"></script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>

@@ -1,0 +1,50 @@
+# ==================================================================
+#  [lantern] 한밤의 랜턴 대작전 — https://lab.ches.es.kr/lantern/
+#  이 조각은 nginx 의 "server { ... }" 블록 '안'에 들어가는 location 3개뿐입니다.
+#  - 서버 파일: /etc/nginx/snippets/lantern.conf 로 복사한 뒤,
+#    lab.ches.es.kr 의 HTTPS(listen 443) server 블록 안에 아래 한 줄을 넣습니다.
+#        include snippets/lantern.conf;
+#  - /lantern 으로 시작하는 주소만 다룹니다. 다른 주소(다른 프로그램)는 건드리지 않습니다.
+#  - 게임 서버 주소: 127.0.0.1:3100 (아래 3곳). 포트를 바꾸면 3곳 모두 + .env 의 PORT 를 같이 바꿉니다.
+#  - 되돌리기: server 블록의 include 줄을 지우고(또는 앞에 # ) → sudo nginx -t → sudo systemctl reload nginx
+# ==================================================================
+
+# [lantern] 1) /lantern (끝 슬래시 없음) → 게임 서버가 /lantern/ 으로 다시 보내 줍니다.
+location = /lantern {
+    proxy_pass http://127.0.0.1:3100;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Forwarded-For   $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host  $host;
+}
+
+# [lantern] 2) 실시간 통신(웹소켓): wss://lab.ches.es.kr/lantern/ws
+location = /lantern/ws {
+    proxy_pass http://127.0.0.1:3100;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade           $http_upgrade;
+    proxy_set_header Connection        "upgrade";
+    proxy_set_header Host              $host;
+    # 학생 컴퓨터 주소를 덮어써서 넘깁니다 (학생이 꾸며 보낸 값은 버림). 게임 서버는 TRUST_PROXY=1 일 때 이 값을 씁니다.
+    proxy_set_header X-Forwarded-For   $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host  $host;
+    # 수업(최대 15분 게임 + 대기) 동안 연결이 끊기지 않게 길게
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
+    proxy_buffering off;
+}
+
+# [lantern] 3) 화면 파일(학생 /lantern/, 선생님 /lantern/teacher/, 그림·스크립트)
+#     ^~ : 이 서버에 다른 정규식 location(예: ~ \.js$ 캐시 규칙)이 있어도 /lantern/ 아래는 이 규칙이 먼저 잡습니다.
+location ^~ /lantern/ {
+    proxy_pass http://127.0.0.1:3100;
+    proxy_http_version 1.1;
+    proxy_set_header Connection        "";
+    proxy_set_header Host              $host;
+    proxy_set_header X-Forwarded-For   $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host  $host;
+    proxy_read_timeout 60s;
+    client_max_body_size 1m;
+}

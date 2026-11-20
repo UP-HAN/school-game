@@ -4,10 +4,14 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
+import fs from 'node:fs';
 import { recommendChasers, chaserCount } from '../shared/config.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 3977;
+// 예전 모드 id (거부되는지 확인용. 코드 검색에 걸리지 않게 나눠 적는다)
+const OLD_TAG = ['freeze', 'tag'].join('-');
+const OLD_MAFIA = ['impos', 'tor'].join('');
 const PASSWORD = crypto.randomBytes(9).toString('base64url'); // 시험용 임시 비밀번호 (매번 새로 만듦)
 const URL_WS = `ws://127.0.0.1:${PORT}/ws`;
 const URL_HTTP = `http://127.0.0.1:${PORT}`;
@@ -89,7 +93,7 @@ async function run() {
   check('빈 이름은 거절', (await stranger.type('error')).code === 'bad_name');
   stranger.send({ t: 'join', code, name: '아홉글자가넘는이름' });
   check('긴 이름은 거절', (await stranger.type('error')).code === 'bad_name');
-  stranger.send({ t: 'settings', mode: 'impostor' });
+  stranger.send({ t: 'settings', mode: 'mafia' });
   stranger.send({ t: 'kick', id: 'x' });
   stranger.send({ t: 'start' });
 
@@ -110,21 +114,28 @@ async function run() {
   check('학생 4명이 보인다', view.players.length === 4);
   check('색이 서로 겹치지 않는다', new Set(view.players.map((p) => p.color)).size === 4);
   check('캐릭터를 바꾸면 반영된다', view.players.find((p) => p.id === students[0].me.id).character === 'slime');
-  check('학생의 설정 변경은 무시된다', view.settings.mode === 'freeze-tag');
+  check('학생의 설정 변경은 무시된다', view.settings.mode === 'sleep-tag');
+  check('안개·보급과 퀴즈 수첩은 처음에 켜져 있다', view.settings.fogLoot === true && view.settings.notebook === true);
   check('비밀 값(토큰)이 방 정보에 섞여 나가지 않는다', !JSON.stringify(view).includes(students[1].me.token) && !JSON.stringify(view).includes(created.token));
 
   students[0].send({ t: 'character', character: 'no-such' });
-  teacher.send({ t: 'settings', mode: 'impostor', map: 'no-such-map' });
-  view = await teacher.next((m) => m.t === 'room' && m.settings.mode === 'impostor');
-  check('선생님은 놀이 방법을 바꿀 수 있다', view.settings.mode === 'impostor' && view.settings.map === 'monster-gym');
+  teacher.send({ t: 'settings', mode: OLD_TAG });
+  teacher.send({ t: 'settings', mode: OLD_MAFIA });
+  teacher.send({ t: 'settings', mode: 'mafia', map: 'no-such-map' });
+  view = await teacher.next((m) => m.t === 'room' && m.settings.mode === 'mafia');
+  check('선생님은 게임 방식을 바꿀 수 있다 (꿈도둑을 찾아라 = mafia)', view.settings.mode === 'mafia' && view.settings.map === 'monster-gym');
+  teacher.send({ t: 'settings', mode: OLD_TAG });
+  teacher.send({ t: 'settings', mode: OLD_MAFIA, missions: 4 });
+  view = await teacher.next((m) => m.t === 'room' && m.settings.missions === 4);
+  check('15-1. 옛 모드 id는 대기방 설정에서 거부된다', view.settings.mode === 'mafia');
   check('술래 수는 처음에 자동(추천)이다', view.settings.chasers === 'auto');
   teacher.send({ t: 'settings', chasers: 9 });
   teacher.send({ t: 'settings', chasers: 2 });
   view = await teacher.next((m) => m.t === 'room' && m.settings.chasers === 2);
   check('선생님은 술래 수를 직접 정할 수 있다 (1~3명)', view.settings.chasers === 2);
-  check('인원별 추천: 얼음땡 6명→1, 7명→2', recommendChasers('freeze-tag', 6) === 1 && recommendChasers('freeze-tag', 7) === 2);
-  check('인원별 추천: 방해꾼 찾기 7명→1, 8명→2', recommendChasers('impostor', 7) === 1 && recommendChasers('impostor', 8) === 2);
-  check('학생이 1명은 남도록 술래 수를 줄인다', chaserCount({ mode: 'freeze-tag', chasers: 3 }, 3) === 2);
+  check('인원별 추천: 잠귀신 술래잡기 6명→1, 7명→2', recommendChasers('sleep-tag', 6) === 1 && recommendChasers('sleep-tag', 7) === 2);
+  check('인원별 추천: 꿈도둑을 찾아라 7명→1, 8명→2', recommendChasers('mafia', 7) === 1 && recommendChasers('mafia', 8) === 2);
+  check('학생이 1명은 남도록 잠귀신 수를 줄인다', chaserCount({ mode: 'sleep-tag', chasers: 3 }, 3) === 2);
   check('없는 캐릭터는 무시된다', view.players.find((p) => p.id === students[0].me.id).character === 'slime');
 
   // 재접속
@@ -171,30 +182,32 @@ async function run() {
   await teacher.next((m) => m.t === 'room' && m.settings.missions === 3);
   teacher.clear();
 
-  teacher.send({ t: 'settings', mode: 'impostor' });
-  await teacher.next((m) => m.t === 'room' && m.settings.mode === 'impostor');
+  teacher.send({ t: 'settings', mode: 'mafia', fogLoot: false });
+  await teacher.next((m) => m.t === 'room' && m.settings.mode === 'mafia' && m.settings.fogLoot === false);
   teacher.send({ t: 'start' });
-  // 방해꾼 찾기도 시작된다 (자세한 시험은 test-impostor.js). 확인 뒤 대기방으로 돌아가 얼음땡 시험을 이어 간다.
+  // 꿈도둑을 찾아라도 시작된다 (자세한 시험은 test-mafia.js). 확인 뒤 대기방으로 돌아가 잠귀신 술래잡기 시험을 이어 간다.
   const impView = await teacher.next((m) => m.t === 'room' && m.phase === 'game' || m.t === 'error');
-  check('방해꾼 찾기도 시작할 수 있다', impView.t === 'room' && impView.settings.mode === 'impostor');
+  check('15-1. 새 모드 id mafia 로 시작이 된다', impView.t === 'room' && impView.settings.mode === 'mafia');
   teacher.send({ t: 'end' });
   await teacher.next((m) => m.t === 'room' && m.phase === 'lobby');
-  for (const c of students) c.clear(); // 방해꾼 찾기 판에서 받은 알림은 지운다
-  teacher.send({ t: 'settings', mode: 'freeze-tag', chasers: 'auto', minutes: 5 });
-  await teacher.next((m) => m.t === 'room' && m.settings.mode === 'freeze-tag' && m.settings.minutes === 5);
+  for (const c of students) c.clear(); // 꿈도둑을 찾아라 판에서 받은 알림은 지운다
+  // 안개·보급은 test-fog.js·test-loot.js 에서 따로 본다 (여기서는 끄고 예전 규칙만 확인)
+  teacher.send({ t: 'settings', mode: 'sleep-tag', chasers: 'auto', minutes: 5, fogLoot: false });
+  await teacher.next((m) => m.t === 'room' && m.settings.mode === 'sleep-tag' && m.settings.minutes === 5);
   teacher.clear();
 
   teacher.send({ t: 'start' });
   view = await teacher.next((m) => m.t === 'room' && m.phase === 'game');
   const startedAt = Date.now();
-  // 술래가 누구로 뽑혔는지 보고, students[0] 은 학생·chaser 는 술래가 되도록 맞춘다
+  // 잠귀신이 누구로 뽑혔는지 보고, students[0] 은 학생·chaser 는 술래가 되도록 맞춘다
   const roleOf = (v, c) => v.players.find((p) => p.id === c.me.id).role;
-  check('4명이면 술래 1명·학생 3명으로 나뉜다', view.players.filter((p) => p.role === 'chaser').length === 1 && view.players.filter((p) => p.role === 'student').length === 3);
+  check('15-1. sleep-tag 로 시작된다', view.settings.mode === 'sleep-tag');
+  check('4명이면 잠귀신 1명·학생 3명으로 나뉜다', view.players.filter((p) => p.role === 'chaser').length === 1 && view.players.filter((p) => p.role === 'student').length === 3);
   if (roleOf(view, students[0]) === 'chaser') [students[0], students[2]] = [students[2], students[0]];
   const chaser = students.find((c) => roleOf(view, c) === 'chaser');
   const helper = students.find((c) => c !== students[0] && c !== chaser && c !== students[3]) || students[3];
   const meInfo = await students[0].type('me');
-  check('시작하면 내 역할과 미션 수를 알려 준다', meInfo.role === 'student' && meInfo.solved === 0 && meInfo.missions === 3 && view.progress.goal === 9);
+  check('시작하면 내 역할과 켤 랜턴 수를 알려 준다', meInfo.role === 'student' && meInfo.solved === 0 && meInfo.missions === 3 && view.progress.goal === 9);
   check('남은 시간을 알려 준다', view.timeLeft > 4 * 60_000 && view.timeLeft <= 5 * 60_000);
   const p0 = view.players.find((p) => p.id === students[0].me.id);
   check('시작하면 모든 학생에게 시작 자리가 정해진다', view.players.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)));
@@ -250,10 +263,10 @@ async function run() {
   };
   await walkTo(1400, 920);
 
-  // 단말기에서 문제 풀기 (t8 은 큰 체육관 오른쪽 아래 1820,1240)
+  // 랜턴에서 퀴즈 풀기 (t8 은 큰 체육관 오른쪽 아래 1820,1240)
   students[0].clear();
   students[0].send({ t: 'open', terminal: 't8' });
-  check('단말기에서 멀면 문제가 열리지 않는다', (await students[0].type('error')).code === 'too_far');
+  check('랜턴에서 멀면 퀴즈가 열리지 않는다', (await students[0].type('error')).code === 'too_far');
   await walkTo(1780, 1200);
   await new Promise((r) => setTimeout(r, 150));
   const solveOnce = async (terminal) => {
@@ -287,13 +300,13 @@ async function run() {
   students[0].send({ t: 'answer', value: cur.answerOf(false) });
   res = await students[0].type('result');
   const meAfter = await students[0].type('me');
-  check('맞히면 내 미션 수가 오른다', res.ok === true && meAfter.solved === 1 && meAfter.done.includes('t8'));
+  check('맞히면 내 랜턴 수가 오른다', res.ok === true && meAfter.solved === 1 && meAfter.done.includes('t8'));
   view = await teacher.next((m) => m.t === 'room' && m.progress && m.progress.solved === 1);
-  check('맞히면 학교 복구율이 오른다', view.progress.goal === 9 &&view.players.find((p) => p.id === students[0].me.id).solved === 1);
+  check('맞히면 새벽빛이 오른다', view.progress.goal === 9 &&view.players.find((p) => p.id === students[0].me.id).solved === 1);
   students[0].send({ t: 'open', terminal: 't8' });
-  check('이미 고친 단말기는 다시 열 수 없다', (await students[0].type('error')).code === 'terminal_done');
+  check('이미 켠 랜턴은 다시 열 수 없다', (await students[0].type('error')).code === 'terminal_done');
 
-  // ── 얼음땡: 잡기와 땡 ── (students[0] 은 지금 1780,1200 에 서 있다)
+  // ── 잠귀신 술래잡기: 꿈 걸기와 깨우기 ── (students[0] 은 지금 1780,1200 에 서 있다)
   const walker = (c, v) => {
     const start = v.players.find((p) => p.id === c.me.id);
     let x = start.x;
@@ -308,13 +321,13 @@ async function run() {
     };
   };
   const frozenOf = (v, c) => v.players.find((p) => p.id === c.me.id).frozen;
-  await new Promise((r) => setTimeout(r, Math.max(0, 8200 - (Date.now() - startedAt)))); // 시작 뒤 8초는 못 잡는다
+  await new Promise((r) => setTimeout(r, Math.max(0, 10200 - (Date.now() - startedAt)))); // 시작 뒤 10초는 꿈을 못 건다
   teacher.clear();
-  students[0].send({ t: 'tag' }); // 학생은 잡기를 쓸 수 없다
+  students[0].send({ t: 'tag' }); // 학생은 꿈 걸기를 쓸 수 없다
   chaser.clear();
   chaser.send({ t: 'tag' }); // 멀리서 헛손질
   const miss = await chaser.type('me');
-  check('멀리서는 잡히지 않는다 (헛손질 뒤 잠깐 쉼)', miss.role === 'chaser' && miss.tagMs > 0 && miss.tagMs <= 800);
+  check('멀리서는 꿈에 빠지지 않는다 (헛손질 뒤 잠깐 쉼)', miss.role === 'chaser' && miss.tagMs > 0 && miss.tagMs <= 800);
   const chaserWalk = walker(chaser, view);
   await chaserWalk(1400, 920);
   await chaserWalk(1740, 1200);
@@ -324,9 +337,9 @@ async function run() {
   chaser.send({ t: 'tag' });
   const tagEv = await teacher.next((m) => m.t === 'event' && m.kind === 'tag');
   view = await teacher.next((m) => m.t === 'room' && m.players.some((p) => p.frozen));
-  check('술래가 가까이에서 잡으면 학생이 언다', tagEv.id === students[0].me.id && tagEv.by === chaser.me.id && frozenOf(view, students[0]));
+  check('잠귀신이 가까이에서 꿈을 걸면 학생이 꿈에 빠진다', tagEv.id === students[0].me.id && tagEv.by === chaser.me.id && frozenOf(view, students[0]));
   students[0].send({ t: 'pos', x: 1790, y: 1200, f: 1, m: 1 });
-  check('얼면 움직일 수 없다', (await students[0].type('fix')).x === 1780);
+  check('꿈에 빠지면 움직일 수 없다', (await students[0].type('fix')).x === 1780);
   students[0].send({ t: 'open', terminal: 't1' });
   const helperWalk = walker(helper, view);
   await helperWalk(1400, 920);
@@ -337,13 +350,13 @@ async function run() {
   await new Promise((r) => setTimeout(r, 300));
   teacher.clear();
   helper.send({ t: 'thawStart', id: students[0].me.id });
-  await new Promise((r) => setTimeout(r, 1550));
+  await new Promise((r) => setTimeout(r, 1300));
   helper.send({ t: 'thawEnd' });
   const thawEv = await teacher.next((m) => m.t === 'event' && (m.kind === 'thaw' || m.kind === 'tag'));
   view = await teacher.next((m) => m.t === 'room' && !frozenOf(m, students[0]));
   const freed = view.players.find((p) => p.id === students[0].me.id);
-  check('땡은 1.5초를 다 눌러야 풀린다 (바로 떼면 안 풀림)', thawEv.kind === 'thaw' && thawEv.by === helper.me.id);
-  check('풀린 뒤에는 잠깐 보호된다', !freed.frozen && freed.protMs > 2500);
+  check('깨우기는 1.2초를 다 눌러야 깨어난다 (바로 떼면 안 깨어남)', thawEv.kind === 'thaw' && thawEv.by === helper.me.id);
+  check('깨어난 뒤에는 잠깐 보호된다', !freed.frozen && freed.protMs > 2500);
   teacher.clear();
   chaser.send({ t: 'tag' }); // 쿨타임 중 + 보호 중
   await new Promise((r) => setTimeout(r, 400));
@@ -352,7 +365,7 @@ async function run() {
   students[0].send({ t: 'pos', x: 1790, y: 1200, f: 1, m: 0 }); // 얼지 않았다면 움직임이 받아들여진다
   const st2 = await teacher.next((m) => m.t === 'state' && at(m, students[0].me.id)[1] === 1790);
   wx = 1790;
-  check('잡은 직후(7초)와 보호 중에는 다시 잡지 못한다', !!st2);
+  check('꿈을 건 직후(6초)와 보호 중에는 다시 걸지 못한다', !!st2);
   await helperWalk(1700, 1000); // 도와준 친구는 비켜 준다
   blocked = false; // 얼었을 때 받은 되돌림 알림은 여기서부터 세지 않는다
 
@@ -369,11 +382,26 @@ async function run() {
   const wallFix = await students[0].type('fix');
   check('가까워도 벽 속으로는 못 들어간다', wallFix.x === 800 && wallFix.y === 920);
   check('맵 검사에서 문제가 나오지 않는다', !serverLog.includes('문제가 있어요'), serverLog);
+  // 15-4. 코드 폴더 어디에도 참고 게임을 가리키는 낱말이 없다 (node_modules 제외)
+  const WORD = '\uCC38\uACE0\uC791';
+  const found = [];
+  const scan = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      const f = path.join(dir, e.name);
+      if (e.isDirectory()) scan(f);
+      else if (/\.(js|json|html|css|md)$/.test(e.name) && fs.readFileSync(f, 'utf8').includes(WORD)) found.push(path.relative(path.join(here, '..'), f));
+    }
+  };
+  scan(path.join(here, '..'));
+  check('15-4. 코드 폴더에 참고 게임 언급이 없다', found.length === 0, found.join(', '));
 
   // ── 장치: 개구멍 (체육 창고 260,600 → 출구 3곳 중 하나) ──
   chaser.clear();
   chaser.send({ t: 'use', device: 'hole-1' });
-  check('술래는 장치를 탈 수 없다', (await chaser.type('error')).code === 'not_allowed');
+  const notAllowed = await chaser.type('error');
+  check('잠귀신은 장치를 탈 수 없다', notAllowed.code === 'not_allowed');
+  check('15-3. 장치 거절 문구에 모드의 역할 이름이 들어간다', notAllowed.msg === '개구멍: 잠귀신은 탈 수 없어요!', notAllowed.msg);
   students[0].clear();
   students[0].send({ t: 'use', device: 'hole-1' });
   check('입구에서 멀면 탈 수 없다', (await students[0].type('error')).code === 'too_far');
@@ -395,6 +423,9 @@ async function run() {
   students[0].send({ t: 'pos', x: ride.to[0] + 10, y: ride.to[1], f: 1, m: 1 });
   st = await teacher.next((m) => m.t === 'state' && at(m, students[0].me.id)[1] === ride.to[0] + 10);
   check('도착한 곳에서 이어서 움직인다', !!st);
+  students[0].send({ t: 'use', device: 'hole-1' });
+  const exitErr = await students[0].type('error');
+  check('15-3. 출구 근처에서 타려 하면 not_entrance (입구가 있는 방 이름)', exitErr.code === 'not_entrance' && exitErr.msg.includes('체육 창고'), JSON.stringify(exitErr));
   students[0].send({ t: 'use', device: 'slide-1' });
   check('다른 장치도 멀면 탈 수 없다', (await students[0].type('error')).code === 'too_far');
   // ── 학습 기록 ──
@@ -404,7 +435,7 @@ async function run() {
   teacher.send({ t: 'report' });
   const report = await teacher.type('report');
   const rec0 = report.records.find((r) => r.name === students[0].me.name || r.result === 'retry');
-  check('선생님은 학습 기록을 받는다 (두 번 틀리고 푼 문제 = 다시 도전해 해결)', report.records.length >= 1 && rec0.result === 'retry' && rec0.wrong === 2 && !!rec0.answer && rec0.ms > 9000);
+  check('선생님은 퀴즈 리포트를 받는다 (두 번 틀리고 푼 문제 = 다시 도전해 해결)', report.records.length >= 1 && rec0.source === 'lantern' && rec0.result === 'retry' && rec0.wrong === 2 && !!rec0.answer && rec0.ms > 9000);
   check('기록에 내부 식별값이 섞여 나가지 않는다', !JSON.stringify(report).includes(students[0].me.id));
   students[0].send({ t: 'myreport' });
   let mine = await students[0].type('myreport');
