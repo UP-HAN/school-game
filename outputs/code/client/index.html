@@ -52,8 +52,16 @@
       <div class="card code-card">
         <span class="label">방 번호</span>
         <strong id="t-code" class="code">----</strong>
-        <span id="t-link" class="link"></span>
-        <button id="t-copy" class="btn small" type="button">초대 주소 복사</button>
+        <div class="invite">
+          <div class="invite-text">
+            <span id="t-link" class="link"></span>
+            <button id="t-copy" class="btn small" type="button">초대 주소 복사</button>
+          </div>
+          <figure id="t-qr-box" class="qr" hidden>
+            <canvas id="t-qr" role="img" aria-label="초대 주소 QR코드"></canvas>
+            <figcaption>카메라로 찍으면 바로 들어와요</figcaption>
+          </figure>
+        </div>
       </div>
       <div class="card settings-card">
         <div class="row settings-head">

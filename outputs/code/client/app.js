@@ -11,6 +11,7 @@ import { initManual } from './manual.js';
 import { showLoading, hideLoading, showEnding, hideEnding } from './screens.js';
 import { MAF, CH, FOG, MEETING_CHOICES, isMafia, terms, itemName, fontsReady } from './mafiaconst.js';
 import { KEYS, keyHint, applyKeyHints, watchKeyboard } from './keys.js';
+import { drawQr } from './qr.js';
 
 const $ = (id) => document.getElementById(id);
 // 이 화면이 어느 페이지인가: 학생 출입 페이지(./) 또는 선생님 페이지(./teacher/, body data-role="teacher")
@@ -1304,11 +1305,17 @@ function renderPlayers(container, opts) {
 function fillSelect(sel, items) {
   for (const it of items) sel.add(new Option(it.name, it.id));
 }
+let qrShown = '';
 function renderTeacher() {
   show('teacher');
   $('t-code').textContent = room.code;
   const invite = inviteUrl(room.code);
   $('t-link').textContent = invite.host + invite.pathname + invite.search;
+  // QR코드: 방 번호가 바뀔 때만 다시 그린다 (찍으면 방 번호가 채워진 초대 주소로 들어온다)
+  if (qrShown !== invite.href) {
+    qrShown = invite.href;
+    $('t-qr-box').hidden = !drawQr($('t-qr'), invite.href);
+  }
   $('t-mode').value = room.settings.mode;
   $('t-map').value = room.settings.map;
   const n = room.players.length;
