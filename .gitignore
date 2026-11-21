@@ -4,3 +4,16 @@ node_modules/
 .env.*
 !.env.example
 .claude/settings.local.json
+
+# 영상 제작 중간 파일 (용량이 커서 올리지 않는다. 구성 파일·스크립트·장면표는 올린다)
+outputs/video/*.mp4
+outputs/video/guide/shots/
+outputs/video/guide/output/
+outputs/video/guide/work/*.wav
+outputs/video/guide/work/frames*/
+outputs/video/guide/work/demo_assets/
+outputs/video/guide/work/_*
+outputs/video/guide/capture/*.log
+outputs/video/guide/work/*_thumbs/
+outputs/video/guide/work/*.log
+outputs/video/guide/work/*.jpg

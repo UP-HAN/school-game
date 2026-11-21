@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>한밤의 랜턴 대작전 — 선생님용 안내</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=block" rel="stylesheet">
+<link rel="stylesheet" href="video.css">
+<style>
+  /* 선생님 편 전용: 오른쪽 안내 카드(노트) · 캡처 가림 조각 · 선생님 추천 스티커 */
+  .tnote { position: absolute; left: 1345px; width: 520px; padding: 18px 26px 16px; border-radius: 26px; transform-origin: 0 50%; }
+  .tnote .h { font: 400 40px/1.2 'Jua'; color: var(--ink); }
+  .tnote .h b { color: var(--violet); font-weight: 400; }
+  .tnote .s { font-size: 27px; font-weight: 800; color: #5d5478; margin-top: 6px; line-height: 1.3; word-break: keep-all; }
+  .tnote .s.url { font-size: 29px; color: var(--ink); letter-spacing: -.5px; }
+  .tnote.on { box-shadow: 8px 8px 0 var(--ink), 0 0 0 6px var(--lantern), 0 0 40px rgba(255, 194, 71, .6); }
+  .patch { position: absolute; overflow: hidden; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
+  .tip { position: absolute; padding: 14px 30px 10px; border-radius: 22px; font: 400 40px 'Jua'; color: var(--ink); background: var(--lantern);
+    border: 5px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); white-space: nowrap; z-index: 5; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script src="lib.js"></script>
+<script src="teacher_qr.js"></script>
+<script>
+// 선생님용 안내 영상 (약 75초, mood=teacher 112 BPM)
+// 핵심: "문제만 넣으면 준비 끝. 퀴즈와 게임을 섞어 단원 정리를 아주 쉽게."
+// 부품은 lib.js 의 Q.* 를 쓰고, 이 편에만 필요한 것(Q.tshot)은 아래에 따로 만든다 (lib.js 는 고치지 않음).
+const { mk, pop, text, P, lerp, clamp, TOK, LIN, OUT, F1, ROOT } = MG;
+const ILL = '@art/illust/';
+const STUDENT_URL = 'lab.ches.es.kr/lantern', TEACHER_URL = 'lab.ches.es.kr/lantern/teacher';
+
+// ───────────── 캡처 화면 한 장면: 노트북 + 카메라 + 고리·말풍선 + 오른쪽 안내 카드 ─────────────
+// 좌표는 모두 캡처 원본 픽셀(1600×900)로 적는다. cam = [배율, cx, cy] (0~1) — 그 카메라일 때의 화면 위치로 바꿔 준다.
+const IW = 1600, IH = 900;
+const DEV = { x: 90, y: 180, w: 1180 }; DEV.h = Math.round(DEV.w * 9 / 16);
+const SX = DEV.x + 18, SY = DEV.y + 18; // 노트북 화면 왼쪽 위 (틀 두께 18)
+function pt(px, py, cam) {
+  const [z, cx, cy] = cam, W = DEV.w, H = DEV.h, w = W * z, h = H * z;
+  const tx = clamp(W / 2 - cx * w, W - w, 0), ty = clamp(H / 2 - cy * h, H - h, 0);
+  return [SX + tx + px / IW * w, SY + ty + py / IH * h];
+}
+// 고리: 원본 사각형 → 무대 사각형 (+여백)
+const ringOf = (r, cam, at, out, pad = 12) => { const [a, b] = pt(r[0], r[1], cam), [c, d] = pt(r[2], r[3], cam); return { x: a - pad, y: b - pad, w: c - a + pad * 2, h: d - b + pad * 2, at, out, br: 22 }; };
+// 말풍선: 꼬리 끝이 (px,py) 를 가리키도록. tx = 말풍선 왼쪽에서 꼬리까지 거리
+const callOf = (t, p, cam, at, out, tx = 60) => { const [x, y] = pt(p[0], p[1], cam); return { t, x: x - tx - 15, y: y - 128, at, out, tx }; };
+
+// o: { img, img2, swap, path, path2, enter, head:{t, style, mark}, notes:[[at, 제목html, 작은글html, cls]], rings, callouts, chips,
+//      patches:[{img:1|2, r:[x0,y0,x1,y1], clone:[dx,dy], html, css}] }
+Q.tshot = (el, o) => {
+  const r = Q.device(el, { device: 'laptop', x: DEV.x, y: DEV.y, w: DEV.w, img: o.img, img2: o.img2, swap: o.swap, path: o.path, path2: o.path2,
+    enter: o.enter, rings: o.rings, callouts: o.callouts, chips: o.chips, caps: o.caps });
+  // 캡처 가림 조각: 그림 래퍼 안에 넣어 카메라와 함께 움직인다
+  const pics = el.querySelectorAll('.dev .scr > .pic'), k = DEV.w / IW;
+  (o.patches || []).forEach(p => {
+    const host = pics[(p.img || 1) - 1], src = p.img === 2 ? o.img2 : o.img;
+    const [x0, y0, x1, y1] = p.r;
+    const e = mk('div', 'patch', host, p.html || '', { left: x0 * k + 'px', top: y0 * k + 'px', width: (x1 - x0) * k + 'px', height: (y1 - y0) * k + 'px' });
+    if (p.clone) { e.style.backgroundImage = `url(${ROOT.shots}${src})`; e.style.backgroundSize = `${DEV.w}px ${DEV.h}px`; e.style.backgroundPosition = `${-(x0 + p.clone[0]) * k}px ${-(y0 + p.clone[1]) * k}px`; }
+    if (p.css) Object.assign(e.style, p.css);
+    // QR: 흰 바탕 + 벡터(SVG) 칸이라 카메라로 확대해도 흐려지지 않는다. quiet = 둘레 흰 여백(칸 수)
+    if (p.qr) {
+      const M = p.qr, n = M.length, q = p.quiet ?? 2.6, V = n + q * 2;
+      let d = ''; M.forEach((row, y) => [...row].forEach((c, x) => { if (c === '1') d += `M${x + q} ${y + q}h1v1h-1z`; }));
+      e.style.background = '#fff';
+      e.innerHTML = `<svg viewBox="0 0 ${V} ${V}" width="100%" height="100%" shape-rendering="crispEdges" style="display:block"><path d="${d}" fill="#000"/></svg>`;
+    }
+  });
+  const H = o.head ? text(el, o.head.t, { style: o.head.style || 'mask', x: 92, y: 46, size: 66, at: o.head.at ?? 0.15, align: 'left', mark: o.head.mark, markColor: 'var(--lantern)' }) : null;
+  const N = (o.notes || []).map(([at, h, s, cls], i) => ({ at, e: mk('div', 'tnote paper', el, `<div class="h">${h}</div>${s ? `<div class="s ${cls || ''}">${s}</div>` : ''}`, { top: (o.noteY ?? 200) + i * (o.noteGap ?? 158) + 'px' }) }));
+  const s0 = r.seek;
+  r.seek = lt => {
+    s0(lt); if (H) H.seek(lt);
+    N.forEach((n, i) => {
+      pop(n.e, lt, n.at, { dx: 140, dy: 0, s0: 0.9 });
+      const next = N[i + 1] ? N[i + 1].at : 1e9, cur = lt >= n.at && lt < next;
+      n.e.classList.toggle('on', cur);
+      if (lt >= next) n.e.style.opacity = +n.e.style.opacity * lerp(1, 0.55, P(lt, next, TOK.fade, LIN));
+    });
+  };
+  r.events = [...r.events, ...(H ? H.events : []), ...N.map(n => [n.at, 'tick'])];
+  return r;
+};
+
+// ───────────── 규칙 설명은 학생용 영상으로: 안내 페이지(guide.html) 모양 그래픽 ─────────────
+// 탭 이름은 client/guide.html 그대로 (🏮 소개 · 👩‍🏫 선생님용 · 🧒 학생용). o: { url, tabAt, playAt }
+Q.guideCard = (el, o) => {
+  const BX = 360, BY = 250, BW = 1200, BH = 600;
+  const win = mk('div', 'paper', el, null, { position: 'absolute', left: BX + 'px', top: BY + 'px', width: BW + 'px', height: BH + 'px', borderRadius: '30px', overflow: 'hidden' });
+  const bar = mk('div', null, win, null, { position: 'absolute', left: 0, right: 0, top: 0, height: '86px', background: '#efe4cc', borderBottom: '4px solid var(--ink)', display: 'flex', alignItems: 'center', gap: '14px', padding: '0 28px' });
+  ['#ff6b6b', '#ffc247', '#7fe0c4'].forEach(c => mk('i', null, bar, null, { width: '22px', height: '22px', borderRadius: '50%', background: c, border: '3px solid var(--ink)', display: 'block' }));
+  mk('div', null, bar, `🔒 ${o.url}`, { marginLeft: '20px', flex: '1', padding: '10px 26px', borderRadius: '999px', background: '#fff', border: '3px solid var(--ink)', font: '800 36px/1.2 Pretendard, "Malgun Gothic", sans-serif', color: 'var(--ink)' });
+  const tabsRow = mk('div', null, win, null, { position: 'absolute', left: 0, right: 0, top: '120px', display: 'flex', justifyContent: 'center', gap: '22px' });
+  const TABS = ['🏮 소개', '👩‍🏫 선생님용', '🧒 학생용'];
+  const tabs = TABS.map(t => mk('div', 'jua', tabsRow, t, { padding: '12px 34px 8px', borderRadius: '999px', border: '4px solid var(--ink)', background: '#fff', fontSize: '40px', color: 'var(--ink)', boxShadow: '5px 5px 0 var(--ink)' }));
+  const player = mk('div', null, win, null, { position: 'absolute', left: '200px', top: '230px', width: '800px', height: '330px', borderRadius: '22px', background: 'linear-gradient(160deg, #2b2163, #0b0a24)', border: '4px solid var(--ink)', overflow: 'hidden' });
+  const ptitle = mk('div', 'jua', player, '🧒 학생용 사용법 영상', { position: 'absolute', left: 0, right: 0, top: '34px', textAlign: 'center', fontSize: '44px', color: '#fff' });
+  const play = mk('div', null, player, '', { position: 'absolute', left: '340px', top: '115px', width: '120px', height: '120px', borderRadius: '50%', background: 'var(--lantern)', border: '5px solid var(--ink)', boxShadow: '0 0 40px rgba(255,194,71,.6)' });
+  mk('div', null, play, '', { position: 'absolute', left: '44px', top: '30px', width: 0, height: 0, borderTop: '28px solid transparent', borderBottom: '28px solid transparent', borderLeft: '44px solid var(--ink)' });
+  const prog = mk('div', null, player, null, { position: 'absolute', left: '40px', right: '40px', bottom: '34px', height: '14px', borderRadius: '7px', background: 'rgba(255,255,255,.18)' });
+  const fill = mk('div', null, prog, null, { position: 'absolute', left: 0, top: 0, bottom: 0, width: '100%', borderRadius: '7px', background: 'var(--lantern)', transformOrigin: '0 50%' });
+  const ring = mk('div', 'ring', el, null, {});
+  const hand = mk('div', null, el, '👆', { position: 'absolute', left: 0, top: 0, fontSize: '96px', filter: 'drop-shadow(0 8px 10px rgba(0,0,0,.4))' });
+  const TA = o.tabAt ?? 1.7, PA = o.playAt ?? 3.0;
+  return {
+    seek(lt) {
+      pop(win, lt, 0.05, { dy: 220, s0: 0.9, e: MG.F2, d: TOK.moveSlow });
+      tabs.forEach((t, i) => { pop(t, lt, 0.5 + i * TOK.stag, { dy: 30, s0: 0.7 }); });
+      const sel = P(lt, TA, TOK.fade, LIN);
+      tabs[2].style.background = sel > 0.5 ? 'var(--lantern)' : '#fff';
+      if (lt > TA) tabs[2].style.transform += ` scale(${lerp(0.9, 1.08, P(lt, TA, TOK.moveFast, F1))})`;
+      // 고리: 학생용 탭 둘레 (탭 위치를 재서 맞춘다)
+      const r = tabs[2].getBoundingClientRect(), sr = el.getBoundingClientRect(), k = (sr.width / 1920) || 1; // 장면 자신 기준(전환 중 이동에도 맞게)
+      Object.assign(ring.style, { left: (r.left - sr.left) / k - 16 + 'px', top: (r.top - sr.top) / k - 16 + 'px', width: r.width / k + 32 + 'px', height: r.height / k + 32 + 'px', borderRadius: '999px' });
+      pop(ring, lt, TA + 0.15, { dy: 0, s0: 1.35 });
+      // 손가락: 학생용 탭 → 재생 버튼
+      const tx = (r.left - sr.left) / k + 60, ty = (r.top - sr.top) / k + 30, px2 = BX + 200 + 400, py2 = BY + 230 + 175;
+      const m1 = P(lt, TA - 0.6, TOK.move, MG.IO), m2 = P(lt, PA - 0.6, TOK.move, MG.IO);
+      hand.style.opacity = P(lt, TA - 0.6, TOK.fade, LIN) * (1 - P(lt, PA + 0.5, TOK.fade, LIN));
+      hand.style.transform = `translate(${lerp(lerp(1700, tx, m1), px2, m2)}px, ${lerp(lerp(900, ty, m1), py2, m2)}px) scale(${(lt > TA && lt < TA + 0.12) || (lt > PA && lt < PA + 0.12) ? 0.86 : 1})`;
+      pop(player, lt, TA + 0.35, { dy: 60, s0: 0.85 });
+      pop(ptitle, lt, TA + 0.55, { dy: 20, s0: 0.9 });
+      play.style.transform = `scale(${lt < PA ? 1 + 0.06 * Math.sin(lt * 6) : lerp(1, 0.6, P(lt, PA, TOK.fade, LIN))})`;
+      play.style.opacity = 1 - P(lt, PA + 0.1, TOK.fade, LIN);
+      fill.style.transform = `scaleX(${P(lt, PA, 6, LIN)})`;
+    },
+    events: [[0.05, 'swish'], [0.5, 'tick'], [0.6, 'tick'], [0.7, 'tick'], [TA, 'click'], [TA + 0.15, 'sparkle'], [TA + 0.35, 'pop'], [PA, 'click']],
+    caps: o.caps || [],
+  };
+};
+
+// ───────────── 장면 ─────────────
+const MODES = {
+  left: { icon: '👻', title: '잠귀신 술래잡기', line: '도망치고 구해 주는 술래잡기',
+    items: ['술래(잠귀신)는 모두가 알아요', '잡히면 친구가 꾹 눌러 깨워 줘요', '잠 안개가 점점 좁혀 와요', '퀴즈로 랜턴 켜기 → 새벽빛 100%'] },
+  right: { icon: '🕵️', title: '꿈도둑을 찾아라', line: '의심하고 추리하는 범인 찾기',
+    items: ['꿈도둑이 누군지 아무도 몰라요', '회의 종 → 모닥불 회의 → 투표', '퀴즈로 랜턴 켜기는 똑같이', '꿈도둑을 모두 찾으면 승리'] },
+};
+
+// 카메라 (장면별)
+const C_BTN = [2.0, 0.33, 0.28];      // t_home: 버튼 줄
+const C_Q = [1.5, 0.52, 0.6];         // t_questions: 정답·오답·종류 칸
+const C_AI1 = [1.45, 0.5, 0.3], C_AI2 = [1.45, 0.55, 0.75];
+const C_MODE = [2.1, 0.4, 0.95], C_SET = [1.55, 0.5, 0.95];
+const C_ROOM = [2.0, 0.33, 0.24], C_KIDS = [1.4, 0.5, 0.78];
+const C_SIDE = [2.0, 0.12, 0.82], C_MENU = [2.2, 0.92, 0.12];
+const C_HEAD = [1.8, 0.42, 0.12], C_ROWS = [1.6, 0.5, 0.35];
+
+const SCENES = [
+  // 1. 오프닝 — 한마디를 먼저
+  { name: '오프닝: 문제만 넣으면 준비 끝', bars: 2.5, bg: 'deep', thumbs: [3.0, 4.9],
+    build: el => {
+      const r = Q.logo(el, { bg: ILL + 'landing.png', litAt: 0.7, ty: 300, tag: '선생님을 위한 사용 안내', sub: '문제만 넣으면 준비 끝!' });
+      const L2 = text(el, [['퀴즈', { c: 'var(--lantern)', s: 70 }], ['+', { s: 56 }], ['게임으로', { c: 'var(--mint)', s: 70 }], ['단원 정리를', { s: 56 }], ['아주 쉽게', { s: 64, c: 'var(--lantern)' }]], { style: 'glow', y: 690, size: 60, at: 2.9 });
+      const s0 = r.seek; r.seek = lt => { s0(lt); L2.seek(lt); }; r.events = [...r.events, ...L2.events];
+      return r;
+    } },
+  // 2. 왜 몰입할까 — 다른 게임 이름은 글자로만
+  { name: '아이들이 빠지는 그 재미', bars: 2.5, bg: 'violet', trans: 'flip', thumbs: [2.0, 4.6],
+    build: el => Q.likeCard(el, { title: [['아이들이', {}], ['푹', { s: 92, c: 'var(--lantern)' }], ['빠지는', {}], ['그 재미', { s: 84 }]], titleMark: [3], at: 0.35, step: 1.15,
+      pairs: [['숨은 범인 찾기', '꿈도둑을 찾아라', '어몽어스에서 즐기던', '모닥불 회의 · 투표'], ['좁혀 오는 안전 구역', '잠 안개', '배틀그라운드에서 즐기던', '점점 좁아지는 안개']],
+      caps: [[2.5, 5.2, '그런데 랜턴은 <b>퀴즈를 맞혀야</b> 켜져요 — 놀면서 문제를 풀어요']] }) },
+  // 3. 두 모드 비교 + 선생님 추천
+  // (읽을 시간 넉넉히: 항목 0.42초 간격, 자막 한 줄 3초 이상)
+  { name: '모드 2개 비교', bars: 5.5, section: 'build', trans: 'slide', thumbs: [4.2, 6.4, 9.8],
+    build: el => {
+      const r = Q.modeSplit(el, { ...MODES, itemsAt: 1.0, itemStep: 0.42, focus: [{ at: 4.6, side: 'left' }, { at: 7.9, side: 'right' }],
+        caps: [[0.5, 4.5, '모드는 두 가지 — <b>차이</b>를 한눈에 볼까요?'],
+          [4.6, 7.85, '<b>잠귀신 술래잡기</b>: 규칙이 쉬워 <b>처음 할 때 · 저학년</b>에 좋아요'],
+          [7.9, 11.7, '<em>꿈도둑을 찾아라</em>: 말로 토론하는 회의가 있어 <em>익숙해진 뒤</em>에 좋아요']] });
+      const tL = mk('div', 'tip', el, '👩‍🏫 처음 · 저학년 추천', { left: '470px', top: '170px' });
+      const tR = mk('div', 'tip', el, '👩‍🏫 익숙해진 뒤 추천', { left: '1010px', top: '70px', background: 'var(--mint)' });
+      const s0 = r.seek; r.seek = lt => { s0(lt); pop(tL, lt, 4.85, { out: 7.7, dy: -40, r0: -8, r: -3 }); pop(tR, lt, 8.15, { dy: -40, r0: 8, r: 3 }); };
+      r.events = [...r.events, [4.85, 'pop2'], [8.15, 'pop2']];
+      return r;
+    } },
+  // 3-2. 규칙 설명은 학생용 영상으로 (보충 문구)
+  { name: '규칙은 학생용 영상으로', bars: 3, bg: 'violet', trans: 'push', thumbs: [2.6, 5.4],
+    build: el => {
+      const T = text(el, [['규칙 설명은', { s: 70 }], ['학생용 영상으로!', { s: 92, c: 'var(--lantern)' }]], { style: 'type', y: 70, size: 72, at: 0.15, cps: 18 });
+      const r = Q.guideCard(el, { url: 'lab.ches.es.kr/lantern/guide.html', tabAt: 1.9, playAt: 3.2,
+        caps: [[0.4, 3.35, '규칙은 <b>짧은 학생용 영상</b>이 아이들에게 알려 줘요'], [3.4, 6.35, '시작 전에 안내 페이지의 <em>학생용</em> 탭 영상을 틀어 주세요']] });
+      const s0 = r.seek; r.seek = lt => { s0(lt); T.seek(lt); }; r.events = [...r.events, ...T.events];
+      return r;
+    } },
+  // 4. 선생님 주소 → ① 문제 넣기 (빈 양식 받기 → 엑셀 올리기 → 4지선다/주관식)
+  { name: '① 문제 넣기 (선생님 화면)', bars: 4, trans: 'door', thumbs: [1.2, 3.8, 6.6],
+    build: el => Q.tshot(el, { img: 't_home.png', img2: 't_questions.png', swap: 4.9, enter: 'rise',
+      head: { t: [['①', { c: 'var(--lantern)', s: 76 }], ['문제 넣기', {}]], style: 'mask' },
+      path: [[0, 1, 0.5, 0.5], [1.7, ...C_BTN]], path2: [[0, ...C_BTN], [4.9, ...C_BTN], [5.65, ...C_Q]],
+      notes: [[0.5, '🔗 선생님 주소로 들어가요', TEACHER_URL, 'url'], [2.0, '<b>빈 양식 받기</b>', '엑셀 양식을 내려받아 문제를 적고'], [3.4, '<b>엑셀 올리기</b>', '한 번에 쏙 들어가요'], [5.8, '종류는 저절로 정해져요', '정답만 → 주관식<br>오답 3개까지 → 4지선다']],
+      rings: [ringOf([415, 216, 530, 257], C_BTN, 2.1, 3.3), ringOf([293, 216, 403, 257], C_BTN, 3.5, 4.75), ringOf([831, 375, 1176, 413], C_Q, 5.9, 7.1, 8), ringOf([831, 427, 1176, 465], C_Q, 7.2, 8.4, 8)],
+      callouts: [callOf('① 빈 양식 받기', [472, 214], C_BTN, 2.2, 3.3), callOf('② 채워서 올리기', [348, 214], C_BTN, 3.6, 4.75),
+        callOf('오답까지 쓰면 4지선다', [1221, 380], C_Q, 6.0, 7.1, 440), callOf('정답만 쓰면 주관식', [1221, 450], C_Q, 7.25, 8.4, 400)],
+      caps: [[0.3, 2.3, '선생님 주소로 들어가면 바로 <b>수업 준비</b> 화면이에요'], [2.4, 4.8, '<b>빈 양식</b>에 문제를 적어 <b>엑셀 올리기</b> — 한꺼번에 들어가요'],
+        [5.0, 8.4, '정답만 쓰면 <em>주관식</em>, 오답 3개까지 쓰면 <b>4지선다</b>가 돼요']] }) },
+  // 5. AI 요청문 보기
+  { name: 'AI 요청문 보기', bars: 2, trans: 'push', thumbs: [1.9, 3.8],
+    build: el => Q.tshot(el, { img: '@shots/extra/t_ai_prompt.png', enter: 'right', head: { t: [['문제 만들기도', { s: 54 }], ['AI 요청문 보기', { c: 'var(--lantern)' }]], style: 'type', at: 0.1 },
+      path: [[0, 1, 0.5, 0.5], [0.9, ...C_AI1], [2.5, ...C_AI2]],
+      notes: [[0.5, '<b>AI 요청문 보기</b>', '요청문을 복사해서'], [1.6, '교과서 PDF와 함께 AI에게', 'AI가 만든 엑셀을 [엑셀 올리기]로']],
+      rings: [ringOf([527, 165, 1075, 214], C_AI1, 1.6, 2.4, 8), ringOf([940, 745, 1075, 797], C_AI2, 3.0)],
+      callouts: [callOf('요청문 복사', [1000, 742], C_AI2, 3.1, null, 60)],
+      caps: [[0.2, 4.2, '<b>AI 요청문</b>을 복사해 교과서 자료와 함께 AI에 주면, 문제 엑셀이 나와요']] }) },
+  // 6. ② 모드 · 맵 · 시간 고르기
+  { name: '② 모드 · 맵 · 시간 고르기', bars: 3, trans: 'fog', thumbs: [1.5, 3.0, 5.6],
+    build: el => Q.tshot(el, { img: 't_home.png', img2: 't_maps.png', swap: 2.0, enter: 'left',
+      head: { t: [['②', { c: 'var(--lantern)', s: 76 }], ['모드', {}], ['·', {}], ['맵', {}], ['·', {}], ['시간', { c: 'var(--mint)' }]], style: 'wobble' },
+      path: [[0, ...C_MODE]], path2: [[0, 1, 0.5, 0.5], [3.6, ...C_SET]],
+      notes: [[0.5, '✔ <b>놀이 방법</b> 고르기', '잠귀신 술래잡기 / 꿈도둑을 찾아라'], [2.2, '✔ <b>맵</b> 고르기', '맵 5곳 중 하나'], [4.1, '✔ <b>자세히 설정</b>', '잠귀신 수 · 속도 · 랜턴 수 · 제한 시간']],
+      rings: [ringOf([290, 800, 966, 897], C_MODE, 0.9, 1.9), ringOf([630, 390, 968, 708], [1, 0.5, 0.5], 2.5, 3.5, 6), ringOf([290, 822, 1310, 898], C_SET, 4.3)],
+      callouts: [callOf('놀이 방법 2가지', [460, 800], C_MODE, 1.0, 1.9), callOf('한밤의 놀이공원 ✓', [800, 392], [1, 0.5, 0.5], 2.6, 3.5)],
+      caps: [[0.3, 2.2, '② <b>놀이 방법</b>을 고르고'], [2.25, 4.1, '<b>맵</b>을 고르고'], [4.15, 6.3, '잠귀신 수 · 속도, 랜턴 수, <b>제한 시간</b>도 골라요']] }) },
+  // 7. ③ 방 번호 · 초대 주소 · QR → 학생 입장
+  { name: '③ 방 열기 (번호 · QR)', bars: 3, trans: 'lantern', tx: 560, ty: 330, thumbs: [2.0, 3.0, 5.4],
+    build: el => Q.tshot(el, { img: 't_lobby.png', enter: 'drop',
+      head: { t: [['③', { c: 'var(--lantern)', s: 76 }], ['방 번호', {}], ['띄우기', { s: 56 }]], style: 'pop' },
+      path: [[0, 1, 0.5, 0.5], [1.0, ...C_ROOM], [3.9, ...C_KIDS]],
+      patches: [
+        // 시험 주소(127.0.0.1…) 줄 → 같은 카드의 빈 곳으로 덮고 학생 주소 글자
+        { r: [286, 276, 520, 300], clone: [0, -40], html: STUDENT_URL, css: { font: '800 12.5px/1 Pretendard, \"Malgun Gothic\", sans-serif', color: '#2a2140' } },
+        // "(8/10)" 인원 숫자 → 바로 오른쪽 배경으로 덮기
+        { r: [410, 500, 500, 536], clone: [100, 0] },
+        // QR 그림(시험 주소) → 학생 주소 QR (게임의 client/qr.js 로 만든 무늬, teacher_qr.js)
+        { r: [545, 197, 755, 407], qr: window.TEACHER_QR, quiet: 2.6 },
+      ],
+      notes: [[0.5, '<b>방 번호 4자리</b>', '방 만들기를 누르면 생겨요'], [2.1, '<b>초대 주소 · QR코드</b>', '카메라로 찍으면 바로 들어와요'], [4.2, '학생 주소', STUDENT_URL, 'url'], [5.2, '모두 모이면 <b>게임 시작</b>!']],
+      callouts: [callOf('방 번호 4자리', [470, 70], C_ROOM, 1.5, 2.3), callOf('QR코드로 바로 입장', [650, 192], C_ROOM, 2.4, 3.8)],
+      rings: [ringOf([536, 188, 764, 416], C_ROOM, 2.4, 3.8, 8)],
+      chips: [{ t: '🙋 들어온 학생이 여기 떠요', ...(([x, y]) => ({ x: x - 20, y: y - 90 }))(pt(270, 548, C_KIDS)), at: 4.6 }],
+      caps: [[0.3, 2.3, '③ <b>방 만들기</b>를 누르면 방 번호가 생겨요'], [2.35, 4.3, '화면에 띄우면 학생은 <b>번호</b>나 <em>QR코드</em>로 들어와요'], [4.35, 6.3, '모두 모이면 <b>게임 시작</b>!']] }) },
+  // 8. 실제 플레이 (연속 장면)
+  { name: '아이들은 이렇게 놀아요 (실제 화면)', bars: 1.5, section: 'drop', trans: 'punch', thumbs: [1.2, 2.9],
+    build: el => {
+      const r = Q.flipbook(el, { name: 'walk_lantern', frames: 43, fps: 12, start: 4, loop: false, label: '실제 게임 화면',
+        caps: [[0.25, 3.15, '아이들은 꺼진 <b>랜턴</b>을 찾아 밤의 놀이공원을 돌아다녀요']] });
+      const T = text(el, [['아이들은', { s: 70 }], ['이렇게', { s: 96, c: 'var(--lantern)' }], ['놀아요!', { s: 112 }]], { style: 'stack', x: 1420, y: 250, size: 80, at: 0.2, align: 'left' });
+      const s0 = r.seek; r.seek = lt => { s0(lt); T.seek(lt); }; r.events = [...r.events, ...T.events];
+      return r;
+    } },
+  // 9. 선생님이 넣은 문제가 그대로 퀴즈로
+  { name: '넣은 문제가 그대로 퀴즈로', bars: 2.5, trans: 'door', thumbs: [1.6, 3.6],
+    build: el => {
+      const r = Q.quizPop(el, { bg: 'map_night-park.png', head: '❓ 꺼진 랜턴', q: '물이 얼음이 되는 온도는 몇 도일까요?', choices: ['0도', '10도', '50도', '100도'], answer: 0, at: 0.2, pickAt: 2.2,
+        gauge: { from: 30, to: 42 },
+        caps: [[0.3, 2.5, '랜턴을 켜려면 <b>선생님이 넣은 문제</b>를 맞혀야 해요'], [2.55, 5.2, '맞히면 <b>랜턴이 켜지고</b> 새벽빛이 차올라요']] });
+      const co = mk('div', 'callout jua', el, '선생님이 넣은 그 문제!', { left: '1180px', top: '40px', '--tx': '90px' });
+      const s0 = r.seek; r.seek = lt => { s0(lt); pop(co, lt, 0.9, { dy: 40, r0: 6, r: 2, out: 2.3 }); };
+      r.events = [...r.events, [0.9, 'pop2']];
+      return r;
+    } },
+  // 10. 진행 중: 참가자 상태판 · 모두 위치 표시
+  { name: '진행 중: 상태판 · 위치 표시', bars: 2.5, trans: 'slide', thumbs: [2.0, 4.6],
+    build: el => Q.tshot(el, { img: 't_live.png', enter: 'rise',
+      head: { t: [['게임', {}], ['진행 중에는', { c: 'var(--mint)' }]], style: 'mask' },
+      path: [[0, 1, 0.5, 0.5], [1.1, ...C_SIDE], [3.0, ...C_MENU]],
+      notes: [[0.5, '<b>참가자 상태판</b>', '누가 랜턴을 몇 개 켰는지 (2/5)'], [3.0, '<b>모두 위치 표시</b>', '처음엔 숨김이라 TV에 띄워도 OK']],
+      rings: [ringOf([18, 600, 330, 882], C_SIDE, 1.7, 2.9, 8), ringOf([1478, 130, 1580, 170], C_MENU, 3.75)],
+      callouts: [callOf('랜턴 몇 개 켰는지 한눈에', [180, 600], C_SIDE, 1.8, 2.9, 80), callOf('선생님 메뉴 → 모두 위치 표시', [1500, 128], C_MENU, 3.8, null, 540)],
+      caps: [[0.3, 2.9, '<b>참가자 상태판</b>에서 누가 랜턴을 몇 개 켰는지 보여요'], [3.0, 5.2, '<b>선생님 메뉴 → 모두 위치 표시</b>로 아이들 위치를 봐요']] }) },
+  // 11. 끝나면 퀴즈 리포트
+  { name: '끝나면 퀴즈 리포트', bars: 3, trans: 'flip', thumbs: [2.1, 4.0, 5.9],
+    build: el => Q.tshot(el, { img: 't_report.png', enter: 'left',
+      head: { t: [['끝나면', { s: 58 }], ['퀴즈 리포트', { c: 'var(--lantern)', s: 74 }]], style: 'glow' },
+      path: [[0, 1, 0.5, 0.5], [1.0, ...C_HEAD], [2.8, ...C_ROWS]],
+      notes: [[0.5, '<b>첫 시도 정답</b> 몇 %', '반 전체가 한 줄로'], [2.8, '<b>많이 틀린 문제</b>가 위로', '문제마다 맞힘 · 오답 수'], [4.4, '<b>다시 짚기</b>', '그 문제만 함께 풀어 보면 끝']],
+      rings: [ringOf([372, 80, 940, 108], C_HEAD, 1.6, 2.75, 6), ringOf([377, 205, 1222, 312], C_ROWS, 3.4, null, 6)],
+      callouts: [callOf('첫 시도 정답률', [900, 80], C_HEAD, 1.7, 2.75, 60), callOf('많이 틀린 문제가 맨 위에', [600, 205], C_ROWS, 3.5, null, 60)],
+      caps: [[0.2, 2.3, '끝나면 <b>퀴즈 리포트</b>로 문제별 결과를 봐요'], [2.35, 4.3, '<b>많이 틀린 문제</b>가 맨 위에 모여요'], [4.35, 6.35, '그 문제만 <em>다시 짚어 주면</em> 단원 정리 끝!']] }) },
+  // 12. 3단계 정리
+  { name: '3단계 정리', bars: 2.5, bg: 'night', trans: 'lantern', tx: 300, ty: 420, thumbs: [2.8, 4.8],
+    build: el => Q.steps(el, { title: [['딱', { s: 70 }], ['3단계로', { s: 104, c: 'var(--lantern)' }], ['시작해요', { s: 70 }]], titleStyle: 'pop', segDur: 0.7, at: 0.35,
+      steps: [['📝', '문제 넣기', '엑셀 양식에 적어<br>한 번에 올리기'], ['🗺️', '고르기', '모드 · 맵 · 시간<br>눌러서 선택'], ['🔢', '방 열기', '번호 · QR을 띄우면<br>학생이 들어와요']],
+      caps: [[2.6, 5.25, '<b>문제만 넣으면 준비 끝</b> — 나머지는 고르기만 하면 돼요']] }) },
+  // 13. 엔드카드 (정지)
+  { name: '엔드카드', bars: 2, section: 'outro', still: true, moon: true, trans: 'fog', thumbs: [2.5],
+    build: (el, c) => Q.end(el, { dur: c.dur, sub: '퀴즈와 게임으로, 단원 정리를 아주 쉽게', cta: '문제만 넣으면 준비 끝!',
+      urls: [['선생님', TEACHER_URL, 'var(--lantern)'], ['학생', STUDENT_URL, 'var(--mint)']] }) },
+];
+
+makeVideo({ bpm: 112, mood: 'teacher', scenes: SCENES });
+</script>
+</body>
+</html>

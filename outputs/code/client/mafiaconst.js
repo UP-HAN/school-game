@@ -82,7 +82,7 @@ const ITEM_DEFAULTS = {
   flashlight: { name: '손전등', ms: 10000, vision: 1.5, color: '#fff3a0' },
   chance: { name: '찬스 카드', ms: 0, color: '#ff9ec4' },
   bugle: { name: '기상 나팔', ms: 0, reach: 250, color: '#ffd84d' },
-  windcape: { name: '바람 망토', ms: 6000, speed: 1.3, color: '#5cc8f2' },
+  invis: { name: '투명 망토', ms: 4000, alpha: 0.45, color: '#5cc8f2' },
   fogcape: { name: '안개 망토', ms: 8000, alpha: 0.3, color: '#9b6bf2' },
   pillow: { name: '긴 베개', ms: 15000, reach: 115, color: '#ff9ec4' },
   kickboard: { name: '킥보드', ms: 8000, speed: 1.6, color: '#ff7a59' }, // 놀이공원 맵 상자에서만 (맵 items.extra)

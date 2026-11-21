@@ -364,7 +364,7 @@
 | 손전등 | 10초 동안 시야 × 1.5 + 아직 안 켠 랜턴 쪽 화살표 | O | | O |
 | 찬스 카드 | 다음에 여는 퀴즈에서 바로 도움 (선다: 틀린 보기 2개 지움 / 주관식: 글자 수 + 첫 글자) | O | O | O |
 | 기상 나팔 | 둘레 250 안의 꿈에 빠진 친구 모두 바로 깨우기 | O | | |
-| 바람 망토 | 6초 동안 속도 × 1.3 | | O | |
+| 투명 망토 | 4초 동안 잠귀신 화면에서 안 보임 (나·친구 화면에는 반투명 45%). 닿아서 재우면 잡히는 것은 그대로. 잠귀신의 재우기 버튼에도 안 뜸 | O | | |
 | 안개 망토 | 8초 동안 학생 화면에서 반투명(30%) + 이름표 숨김 | | O | |
 | 긴 베개 | 15초 안의 다음 꿈 걸기 거리 75 → 115 | | O | |
 - 꿈도둑 모드에서는 **꿈도둑도 학생과 같은 목록**에서 받는다 (가정: 다른 아이템이 나오면 정체가 드러남). 꿈도둑가 꿈막이 우산을 써도 아무 일 없이 사라진다.
@@ -508,7 +508,7 @@
 | `LOOT` | `dropsAt` | 0.15·0.35·0.55·0.75 | |
 | | `countByPlayers` | 5명 이하 1 · 8명 이하 2 · 그 위 3 | |
 | | `lifeMs` · `openHoldMs` · `openReach` | 90000 · 1500 · 90 | |
-| `ITEMS` | 운동화 `6000ms ×1.4` · 우산 `20000ms` · 손전등 `10000ms ×1.5` · 나팔 `250` · 바람 망토 `6000ms ×1.3` · 안개 망토 `8000ms 0.3` · 긴 베개 `15000ms +40` | | 7-4절 |
+| `ITEMS` | 운동화 `6000ms ×1.4` · 우산 `20000ms` · 손전등 `10000ms ×1.5` · 나팔 `250` · 투명 망토 `4000ms 0.45` · 안개 망토 `8000ms 0.3` · 긴 베개 `15000ms +40` | | 7-4절 |
 | `ENERGY` | `start` · `max` · `lantern` · `notebook` | 잠귀신 3·5·2·1 / 꿈도둑 1·2·1·1 | 8-1절 |
 | | `chaserLanternCooldownMs` | 30000 | |
 | `STREAK` | `roomHintAt` · `exactHintAt` · `repeatEvery` | 3 · 5 · 5 | 8-3절 |
@@ -610,7 +610,7 @@
 - 모드 id `'sleep-tag'`·`'mafia'` (옛 id 는 설정에서 무시). `MODES[]` = `{ id, name, chaser, student }` — 이름은 3-0절. `modeOf(id)` 도우미.
 - 상수 묶음 `CHASE`·`MAFIA`·`FOG`·`LOOT`·`ITEMS`·`ITEM_POOLS`·`ENERGY`·`STREAK` (`shared/config.js`). 옛 별칭 `TAG`·`IMPOSTOR` 는 지웠다. 단계 값은 `stageValue(key, stage, base)` (0단계는 `CHASE`·`MAFIA` 값).
 - `ENERGY` 는 모드별: `ENERGY['sleep-tag'] = {start 3, max 5, lantern 2, notebook 1}`, `ENERGY.mafia = {1, 2, 1, 1}`, `ENERGY.chaserLanternCooldownMs`.
-- 아이템 id: `shoes`(반짝 운동화) · `umbrella`(꿈막이 우산) · `flashlight`(손전등) · `chance`(찬스 카드) · `bugle`(기상 나팔) · `windcape`(바람 망토) · `fogcape`(안개 망토) · `pillow`(긴 베개). 누가 받나는 `ITEM_POOLS[모드][역할]`.
+- 아이템 id: `shoes`(반짝 운동화) · `umbrella`(꿈막이 우산) · `flashlight`(손전등) · `chance`(찬스 카드) · `bugle`(기상 나팔) · `invis`(투명 망토) · `fogcape`(안개 망토) · `pillow`(긴 베개). 누가 받나는 `ITEM_POOLS[모드][역할]`.
 - 맵: `meetingButton` → `bell` (`[1400, 640]`, 무대 앞). `fog.centers[{ pos, bonus[2] }]` 3곳, 개구멍 `exitName`. `validateMap` 이 who 의 모드 id·안개 후보·임시 랜턴 자리를 검사한다. 공용 도우미 `roomAt`·`distToRect`·`lootFurniture` (`shared/mapgrid.js`).
 
 **room (모두에게)**

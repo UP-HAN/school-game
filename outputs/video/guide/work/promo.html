@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>한밤의 랜턴 대작전 — 홍보 영상</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=block" rel="stylesheet">
+<link rel="stylesheet" href="video.css">
+</head>
+<body>
+<div id="stage"></div>
+<script src="lib.js"></script>
+<script src="ext_student.js"></script>
+<script src="ext_promo.js"></script>
+<script src="ext_items.js"></script>
+<script>
+// 홍보용 (약 118초, promo 128 BPM). 한마디: "단원 정리가 한밤의 술래잡기가 된다."
+// 볼 사람: 이 게임을 처음 보는 선생님과 아이들. 내레이션 없음 — 화면 글자 + 자막.
+const ILL = '@art/illust/';
+const LAN = 'var(--lantern)', MINT = 'var(--mint)';
+// 실제 화면 고리 위치 (ext_student.js 의 devPt: 기기 화면 안 비율 → 무대 좌표)
+const LAP = { device: 'laptop' }, WAKE = { device: 'laptop', enter: 'right' };
+const ring = ([x, y], w, h, at, out, br) => ({ x: x - w / 2, y: y - h / 2, w, h, at, out, br });
+const B1 = [1.45, 0.75, 0.72], B3 = [1.35, 0.5, 0.5];
+const pWake = devPt(WAKE, 0.9375, 0.872), pBell = devPt(LAP, 0.945, 0.905, ...B1), pAbst = devPt(LAP, 0.5, 0.786, ...B3);
+const pThief = devPt(LAP, 0.527, 0.49, 1.5, 0.52, 0.5), pHalo = devPt(LAP, 0.5, 0.415, 1.4, 0.5, 0.45);
+const MSTEP = ['숨어 있어요', '꿈에 빠뜨려요', '종 울리기', '말로 이야기', '지목 투표', '추방·공개', '누가 이길까'];
+// 게임 속 부르는 이름(맛 + 캐릭터) 방식. 실제 학생 이름은 쓰지 않는다.
+const PEOPLE = [['🐱', '멜론 고양이', '#8fd46b'], ['🐰', '딸기 토끼', '#ffb3d1'], ['🦖', '포도 공룡', '#c79bff'], ['👾', '민트 외눈이', '#6aa8ff'], ['🐥', '레몬 삐약', '#ffd45c'], ['🍮', '푸딩 곰', '#d9925a'], ['🧒', '하늘 학생', '#7fe0c4']];
+
+const SCENES = [
+  // 1. 어둠 속 랜턴 하나 → 제목
+  { name: '오프닝 · 랜턴 점등', bars: 3, bg: 'deep', thumbs: [1.4, 4.6],
+    build: el => Q.lanternReveal(el, { img: ILL + 'landing.png', lx: 960, ly: 250, at: 0.7, r: 460, openAt: 3.0, from: 'top', size: 170,
+      title: [['한밤의', { s: 110 }], ['랜턴', { s: 180, c: LAN }], ['대작전', { s: 140 }]],
+      sub: '퀴즈를 맞혀 랜턴을 켜는 밤의 술래잡기' }) },
+  // 2. 한 줄 약속
+  { name: '한 줄 · 단원 정리가 술래잡기로', bars: 2, bg: 'violet', moon: true, trans: 'punch', thumbs: [0.9, 3.3],
+    build: el => Q.title(el, { lines: [
+        { t: '지루했던 단원 정리 시간이', style: 'type', y: 250, size: 70, font: 'body', weight: 800, color: '#e8e0ff', at: 0.1, cps: 22 },
+        { t: [['한밤의', { s: 112 }], ['술래잡기가', { s: 168, c: LAN }], ['된다!', { s: 128, c: MINT }]], style: 'pop', y: 380, at: 0.85 },
+      ], chips: [{ t: '❓ 퀴즈 맞히기', x: 625, y: 700, at: 1.6 }, { t: '🏃 술래잡기', x: 1000, y: 700, at: 1.75 }] }) },
+  // 3. 실제 플레이 (연속 장면)
+  { name: '실제 플레이 · 랜턴 찾아 걷기', bars: 2, trans: 'lantern', tx: 960, ty: 560, thumbs: [1.2, 3.4],
+    build: el => Q.flipbook(el, { name: 'walk_lantern', frames: 43, loop: false, badge: '실제 게임 화면',
+      path: [[0, 1.12, 0.5, 0.52], [3.4, 1.4, 0.5, 0.5]],
+      caps: [[0.4, 3.6, '랜턴 빛에 의지해 어두운 밤의 맵을 돌아다니다가…']] }) },
+  // 4. 퀴즈 (같은 화면 위로 이어서)
+  { name: '퀴즈 · 맞히면 랜턴 점등', bars: 2, thumbs: [1.3, 3.0],
+    build: el => Q.quizPop(el, { bg: '@seq/walk_lantern/0043.png', q: '물이 얼음이 되는 온도는 몇 도일까요?', choices: ['0도', '10도', '50도', '100도'], answer: 0,
+      at: 0.1, pickAt: 1.6, gauge: false, y: 110,
+      caps: [[0.3, 3.6, '꺼진 랜턴 앞에서 <b>퀴즈를 맞히면</b> 불이 켜져요!']] }) },
+  // 5. 새벽빛 100% → 아침
+  { name: '새벽빛 100% → 아침', bars: 2, bg: 'dawn', trans: 'push', thumbs: [1.2, 3.4],
+    build: el => Q.dawnWin(el, { type: 'dawn', from: 65, to: 100, at: 0.25, dur: 1.3, win: ILL + 'win.png', winAt: 2.0, winText: '아침이 왔다!', winSub: '학생 팀 승리!',
+      caps: [[0.2, 2.2, '랜턴을 켤수록 <b>새벽빛</b>이 차올라요']] }) },
+  // 6. 그 재미 그대로 (다른 게임 이름은 글자로만)
+  { name: '그 재미 그대로', bars: 3, bg: 'violet', trans: 'slide', section: 'build', thumbs: [1.0, 5.2],
+    build: el => Q.likeCard(el, { title: [['좋아하던 게임의', {}], ['그 재미', { c: LAN }], ['그대로!', {}]], titleMark: [1], at: 0.4, step: 1.2,
+      pairs: [
+        ['숨은 범인 찾기', '꿈도둑을 찾아라', '어몽어스에서 즐기던', '한밤의 랜턴 대작전에서는'],
+        ['좁아지는 구역', '잠 안개', '배틀그라운드에서 즐기던', '한밤의 랜턴 대작전에서는'],
+        ['상자 속 아이템', '보급 상자', '배틀그라운드에서 즐기던', '한밤의 랜턴 대작전에서는'],
+      ],
+      caps: [[3.45, 5.5, '그 재미 그대로, 이번엔 <b>퀴즈로 복습</b>해요']] }) },
+  // ───────── 두 모드 규칙 (음악 build 구간: 차분하게, 자막 한 줄 3초 이상) ─────────
+  // 7. 두 모드 비교 — 한쪽씩 확대하며 실제 화면 (천천히)
+  { name: '두 모드 비교', bars: 6.5, trans: 'door', thumbs: [3.4, 6.0, 9.6],
+    build: el => Q.promoSplit(el, { focusL: 4.0, focusR: 7.6, focusC: 11.2, itemsAt: 1.0, itemStep: 0.45,
+      left: { icon: '👻', title: '잠귀신 술래잡기', line: '술래가 누군지 모두 알아요', color: LAN,
+        items: ['도망치며 퀴즈로 랜턴 켜기', '잡히면 친구가 깨워 줘요', '좁혀 오는 잠 안개'],
+        tagline: '도망치고 구해 주는 술래잡기',
+        screen: { img: 's_chaser.png', path: [[0, 1, 0.5, 0.5], [1.4, 1.5, 0.56, 0.42]], rings: [{ x: 1370, y: 330, w: 200, h: 200, at: 1.5, br: 100 }] } },
+      right: { icon: '🕵️', title: '꿈도둑을 찾아라', line: '술래가 누군지 아무도 몰라요', color: MINT,
+        items: ['학생인 척 숨은 꿈도둑', '모닥불 회의에서 투표', '꿈도둑을 모두 찾으면 승리'],
+        tagline: '의심하고 추리하는 범인 찾기',
+        screen: { img: 'm_role_thief.png', img2: 'm_vote.png', swap: 1.6, path: [[0, 1.45, 0.5, 0.48], [1.5, 1.45, 0.5, 0.48]], path2: [[0, 1.05, 0.5, 0.5]] } },
+      caps: [[0.4, 3.9, '모드는 두 가지! 술래가 <b>보이는</b> 술래잡기 vs 술래가 <em>숨은</em> 범인 찾기'],
+        [4.1, 7.5, '<b>잠귀신 술래잡기</b> — 술래가 누군지 다 보여요'],
+        [7.7, 11.1, '<em>꿈도둑을 찾아라</em> — 학생인 척 숨은 꿈도둑을 찾아요']] }) },
+  // 8. 잠귀신 ① 닿으면 꿈에 빠짐 (연속 장면, 노트북 틀)
+  { name: '잠귀신 ① 닿으면 꿈속으로', bars: 2, trans: 'flip', thumbs: [1.2, 3.3],
+    build: el => Q.flipbook(el, { device: 'laptop', name: 'tag', frames: 48, start: 8, speed: 0.95, loop: false, badge: '잠귀신 술래잡기 ①',
+      path: [[0, 1.2, 0.55, 0.45], [2.0, 1.55, 0.6, 0.4]],
+      callouts: [{ t: '앗, 잡혔다!', x: 1330, y: 70, at: 2.3, tx: 60 }],
+      caps: [[0.3, 3.6, '잠귀신에게 닿으면 그 자리에서 <b>꿈에 빠져요</b>']] }) },
+  // 9. 잠귀신 ② 친구가 꾹 눌러 깨움 (연속 장면)
+  { name: '잠귀신 ② 친구가 깨워 줘요', bars: 2, thumbs: [1.0, 3.3],
+    build: el => Q.multi(el, { ...WAKE, badge: '잠귀신 술래잡기 ②',
+      shots: [{ seq: { name: 'wake', frames: 46, speed: 1.0, loop: false }, at: 0 }],
+      rings: [ring(pWake, 190, 190, 0.5, null, 95)],
+      notes: [{ t: '친구 곁에서 꾹~!', x: pWake[0] - 400, y: pWake[1] - 250, at: 0.6, tx: 330 }],
+      caps: [[0.3, 3.6, '친구가 옆에서 <b>꾹~</b> 눌러 <em>깨워 주면</em> 다시 달려요']] }) },
+  // 10. 잠귀신 ③ 잠귀신도 퀴즈를 맞혀 꿈 구슬을 모아야 재울 수 있다
+  { name: '잠귀신 ③ 꿈 구슬', bars: 2.5, trans: 'push', thumbs: [1.4, 3.9],
+    build: el => Q.with(el, {
+      base: el => Q.quizPop(el, { bg: '@seq/item_invis_chaser/0001.png', head: '👻 잠귀신도 퀴즈!', q: '1분은 몇 초일까요?', choices: ['60초', '30초', '100초', '120초'], answer: 0,
+        at: 0.2, pickAt: 1.9, gauge: false, y: 110, stamp: '정답!', badge: '잠귀신 술래잡기 ③' }),
+      chips: [{ t: '🔮 꿈 구슬이 생겼어요!', x: 720, y: 760, at: 2.7 }],
+      caps: [[0.3, 4.5, '잠귀신도 <b>퀴즈를 맞혀</b> 꿈 구슬을 모아야 재울 수 있어요']] }) },
+  // 11. 잠 안개 (실제 화면 위로 안개가 좁혀 옴)
+  { name: '잠 안개가 좁혀 와요', bars: 2, trans: 'fog', thumbs: [1.0, 3.3],
+    build: el => Q.fogBook(el, { seq: { name: 'fog', frames: 48, pingpong: true },
+      cx: 960, cy: 560, title: '잠 안개가 좁혀 와요!', titleMark: [1],
+      stages: [{ at: 0, r: 800, label: '1단계' }, { at: 1.2, r: 540, label: '2단계' }, { at: 2.4, r: 340, label: '3단계' }],
+      caps: [[0.3, 3.6, '안개 밖은 느리고 어두워요. <b>빛 구역</b> 안으로!']] }) },
+
+  // ───────── 꿈도둑을 찾아라: ①~⑦ 단계로 ─────────
+  // 12. ① 우리 중에 꿈도둑이 숨어 있다
+  { name: '꿈도둑 ① 숨어 있어요', bars: 2.5, bg: 'violet', trans: 'lantern', tx: 960, ty: 120, thumbs: [1.2, 3.9],
+    build: el => Q.stepped(el, { steps: [[0, 1]], labels: MSTEP, title: { t: [['우리 중에', {}], ['꿈도둑이', { c: MINT }], ['숨어 있어요!', {}]], style: 'pop', y: 140, size: 72, out: 1.85 },
+      caps: [[0.3, 4.5, '누가 꿈도둑인지 <b>아무도 몰라요</b> — 꿈도둑도 퀴즈를 풀어요']] },
+      el => Q.roleCards(el, { cards: PEOPLE.slice(0, 5).map(([e, n]) => [e, n]), at: 0.4,
+        reveal: { index: 2, icon: '🦹', name: '꿈도둑', desc: '학생인 척 퀴즈도 풀어요', at: 2.0, label: '꿈도둑끼리만 알아요!' } })) },
+  // 13. ② 꿈도둑이 몰래 꿈에 빠뜨린다 → 머리 위 고리
+  { name: '꿈도둑 ② 몰래 꿈에 빠뜨려요', bars: 2.5, trans: 'slide', thumbs: [1.2, 3.9],
+    build: el => Q.stepped(el, { steps: [[0, 2]], labels: MSTEP, caps: [[0.3, 4.5, '꿈에 빠지면 <b>머리 위에 고리</b>! 말은 못 해도 랜턴은 켤 수 있어요']] },
+      el => Q.device(el, { device: 'laptop', img: 'm_freeze.png', img2: 'm_dream.png', swap: 2.2, enter: 'rise',
+        path: [[0, 1.5, 0.52, 0.5]], path2: [[0, 1.4, 0.5, 0.45]],
+        rings: [ring(pThief, 330, 230, 0.4, 2.1, 60), ring(pHalo, 170, 170, 2.6, null, 85)],
+        callouts: [{ t: '꿈도둑이 몰래 콕!', x: pThief[0] - 120, y: pThief[1] - 260, at: 0.5, out: 2.1, tx: 140 }, { t: '머리 위에 고리!', x: pHalo[0] + 60, y: pHalo[1] - 210, at: 2.7, tx: 40 }] })) },
+  // 14. ③ 발견하면 종 → ④ 모닥불 앞에서 말로 이야기
+  { name: '꿈도둑 ③ 종 → ④ 말로 이야기', bars: 3.5, trans: 'door', thumbs: [1.6, 5.6],
+    build: el => Q.stepped(el, { steps: [[0, 3], [3.3, 4]], labels: MSTEP,
+      caps: [[0.2, 3.25, '꿈에 빠진 친구를 보면 <b>호루라기</b>나 <b>회의 종</b>!'], [3.3, 6.45, '모닥불 앞에 모여 <em>말로 이야기</em>해요']] },
+      el => Q.multi(el, { ...LAP,
+        shots: [{ src: 'm_bell.png', at: 0, path: [[0, ...B1]] }, { src: '@shots/extra/m_meeting_intro.png', at: 3.3, path: [[3.3, 1.3, 0.5, 0.5]] }, { src: 'm_meeting.png', at: 4.7, path: [[4.7, 1.45, 0.5, 0.5]] }],
+        rings: [ring(pBell, 190, 190, 0.5, 3.2, 95)],
+        notes: [{ t: '회의 종 울리기!', x: pBell[0] - 420, y: pBell[1] - 220, at: 0.6, out: 3.2, tx: 300 }, { t: '어디서 뭘 봤는지 말해요', x: 1180, y: 120, at: 4.9, tx: 60 }] })) },
+  // 15. ⑤ 지목 투표 (모르면 기권)
+  { name: '꿈도둑 ⑤ 지목 투표', bars: 2.5, trans: 'push', thumbs: [1.2, 3.9],
+    build: el => Q.stepped(el, { steps: [[0, 5]], labels: MSTEP, caps: [[0.3, 4.5, '꿈도둑 같은 친구를 <b>지목</b>! 모르겠으면 <em>기권</em>해도 돼요']] },
+      el => Q.device(el, { device: 'laptop', img: 'm_vote.png', enter: 'drop', path: [[0, 1.0, 0.5, 0.5], [1.6, ...B3]],
+        rings: [ring(pAbst, 480, 110, 2.3, null, 30)],
+        callouts: [{ t: '꿈도둑 같은 친구를 콕!', x: 1220, y: 110, at: 0.6, out: 2.1, tx: 60 }, { t: '모르면 기권!', x: pAbst[0] + 260, y: pAbst[1] - 150, at: 2.4, tx: 40 }] })) },
+  // 16. ⑥ 표를 가장 많이 받으면 추방 (그래픽)
+  { name: '꿈도둑 ⑥ 추방', bars: 2.5, bg: 'ember', trans: 'flip', thumbs: [1.4, 3.9],
+    build: el => Q.stepped(el, { steps: [[0, 6]], labels: MSTEP, caps: [[0.3, 4.5, '표를 가장 많이 받은 친구는 <b>추방</b>돼요']] },
+      el => Q.meeting(el, { people: PEOPLE, target: 3, bellAt: 0.2, voteAt: 0.9, title: '투표 결과!', result: '표를 가장 많이 받으면 추방!' })) },
+  // 17. ⑥ 꿈도둑이었는지 공개 (실제 화면)
+  { name: '꿈도둑 ⑥ 정체 공개', bars: 2, trans: 'slide', thumbs: [0.9, 3.1],
+    build: el => Q.stepped(el, { steps: [[0, 6]], labels: MSTEP, caps: [[0.2, 3.6, '추방되면 <em>꿈도둑이었는지</em> 바로 알려 줘요']] },
+      el => Q.multi(el, { ...LAP,
+        shots: [{ src: '@shots/extra/m_result_fly.png', at: 0, path: [[0, 1.25, 0.5, 0.45]] }, { src: 'm_result.png', at: 1.5, path: [[1.5, 1.7, 0.5, 0.2]] }],
+        notes: [{ t: '꿈도둑이었어요!', x: 1180, y: 110, at: 1.9, tx: 60 }] })) },
+  // 18. ⑦ 누가 이길까
+  { name: '꿈도둑 ⑦ 누가 이길까', bars: 2.5, bg: 'violet', moon: true, trans: 'door', thumbs: [1.6, 4.0],
+    build: el => Q.stepped(el, { steps: [[0, 7]], labels: MSTEP, caps: [[0.4, 4.5, '꿈도둑을 <b>모두 찾으면</b> 학생 팀 승리!']] },
+      el => Q.tiles(el, { title: '누가 이길까?', at: 0.5, step: 0.35, y: 330,
+        tiles: [['🌅', '학생 팀 승리', '꿈도둑을 모두 찾거나<br>새벽빛 100%'], ['🦹', '꿈도둑 승리', '학생이 꿈도둑만큼<br>줄거나 시간 끝']] })) },
+
+  // ───────── 드롭: 아이템 몽타주 (빠르게) ─────────
+  { name: '★ 아이템 몽타주 (실제 화면 12컷)', bars: 9, section: 'drop', trans: 'punch', thumbs: [0.9, 9.0, 15.0],
+    build: (el, c) => Q.itemMontage(el, { beat: c.beat, cuts: ITEM_CUTS({ crateFx: '꾹~ 누르면 열려요' }), groups: ITEM_GROUPS,
+      caps: [[0.1, 2.2, '<b>보급 상자</b>를 열면 아이템이 나와요']] }) },
+  // 18. 맵 5곳
+  { name: '맵 5곳', bars: 2, trans: 'push', thumbs: [1.0, 3.6],
+    build: el => { const s = MG.mk('div', 'layer', el, null, { transform: 'scale(.86)', transformOrigin: '50% 45%' });
+      return Q.maps(s, { title: [['어디서', {}], ['놀까?', {}], ['맵', {}], ['5곳!', {}]], titleMark: [3], focusAt: 1.1, focusStep: 0.62,
+        maps: [['map_monster-gym.png', '몬스터 체육관'], ['map_moon-library.png', '달빛 대도서관'], ['map_night-school.png', '한밤의 학교'], ['map_star-academy.png', '한밤의 별빛 학원'], ['map_night-park.png', '한밤의 놀이공원']],
+        caps: [[0.4, 4.4, '학교, 도서관, 체육관, 학원, 놀이공원까지!']] }); } },
+  // 19. 선생님에게 좋은 점
+  { name: '선생님에게 좋은 점', bars: 2.5, bg: 'night', moon: true, trans: 'punch', thumbs: [1.4, 4.0],
+    build: el => Q.tiles(el, { title: [['선생님은', {}], ['딱', { c: LAN }], ['세', { c: LAN }], ['가지만!', {}]], titleStyle: 'wobble', at: 0.45, step: 0.18,
+      tiles: [['📊', '엑셀로 한 번에', '문제를 양식에 담아<br>한꺼번에 올려요'], ['🔗', '주소로 바로', '설치하지 않고<br>크롬북·태블릿도 OK'], ['📝', '끝나면 리포트', '문제별 정답률을<br>한눈에 봐요']],
+      caps: [[1.2, 4.4, '학생은 <b>방 번호 4자리</b>나 <em>QR코드</em>로 바로 들어와요']] }) },
+  // 20. 엔드카드
+  { name: '엔드카드', bars: 2.5, section: 'outro', still: true, moon: true, trans: 'lantern', tx: 960, ty: 120, thumbs: [1.5, 4.2],
+    build: (el, c) => Q.end(el, { dur: c.dur, sub: '단원 정리가 한밤의 술래잡기가 된다', cta: '오늘 밤, 랜턴을 켜고 출발!',
+      urls: [['학생', 'lab.ches.es.kr/lantern', MINT], ['선생님', 'lab.ches.es.kr/lantern/teacher', LAN]] }) },
+];
+
+makeVideo({ bpm: 128, mood: 'promo', scenes: SCENES });
+</script>
+</body>
+</html>

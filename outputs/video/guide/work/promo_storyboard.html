@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>홍보 영상 장면표</title>
+<style>
+  body { margin: 0; padding: 28px; background: #12102a; color: #eee; font: 16px/1.55 'Malgun Gothic', sans-serif; }
+  h1 { margin: 0 0 6px; color: #ffc247; }
+  h2 { color: #ffc247; margin: 28px 0 8px; }
+  .sum { background: #1f1b45; border: 2px solid #4b2f8f; border-radius: 12px; padding: 14px 18px; margin: 10px 0 22px; }
+  .sum b { color: #ffc247; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #3a3470; padding: 8px 10px; vertical-align: top; }
+  th { background: #2b2163; color: #ffc247; position: sticky; top: 0; }
+  tr:nth-child(even) td { background: #18153a; }
+  td img { width: 300px; display: block; border-radius: 6px; margin-bottom: 4px; }
+  .no { font-size: 22px; font-weight: 800; color: #ffc247; text-align: center; }
+  .rule td { border-color: #7fe0c4; }
+  .drop td { border-color: #ff9a3c; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 8px; background: #ff9a3c; color: #2a2140; font-weight: 800; font-size: 13px; }
+  .tag.m { background: #7fe0c4; }
+  small { color: #b9b2dd; }
+  ol { margin: 4px 0 0 18px; padding: 0; }
+  .tr { display: flex; flex-wrap: wrap; gap: 10px; }
+  .tr figure { margin: 0; } .tr img { width: 300px; border-radius: 6px; display: block; } .tr figcaption { font-size: 13px; color: #b9b2dd; }
+</style>
+</head>
+<body>
+<h1>홍보 영상 장면표 — "단원 정리가 한밤의 술래잡기가 된다"</h1>
+<div class="sum">
+  <b>총 길이 118.1초</b> (22장면, 음악 128 BPM, 1마디 = 1.875초) ·
+  <b>장면 길이</b> 가장 짧은 3.75초 ~ 가장 긴 16.9초(아이템 몽타주 — 안에서 12번 컷) ·
+  음악: 0~20초 잔잔 → <b>20.6초부터 드럼(차분한 구간)</b>: 두 모드 규칙 설명은 모두 이 구간 → <b>88.1초 가장 신나는 구간(드롭)</b>: 아이템 몽타주 → 113.4초 마무리 화음<br>
+  <b>이번에 바꾼 것:</b> ① 두 모드 규칙을 천천히(자막 한 줄 3초 이상), 꿈도둑을 찾아라는 화면 왼쪽 위 <b>①~⑦ 진행 표시</b>로 단계별 설명 ② 킥보드 전용 장면 2개와 이름표 비 장면을 빼고 <b>실제 화면 아이템 몽타주</b>로 ③ 게임에 새로 들어온 <b>투명 망토</b>(학생 아이템)를 넣고, 빠진 아이템은 뺌<br>
+  목소리 없이 <b>화면 글자 + 아래 자막</b>으로 설명합니다.<br>
+  <small>파일: 구성 work/promo.html · 전용 부품 work/ext_promo.js · 공용 부품 work/ext_items.js(몽타주·단계 표시), work/ext_student.js(노트북 화면 여러 장·안개) · 한눈에 보기 work/sheet_promo.jpg</small>
+</div>
+<table>
+<tr><th>#</th><th>장면 / 시간</th><th>미리보기</th><th>화면 글자 · 자막</th><th>쓰는 그림</th><th>움직임 (이 장면의 볼거리)</th><th>들어오는 전환</th></tr>
+
+<tr><td class="no">1</td><td>오프닝 · 랜턴 점등<br><small>0.0–5.6초</small></td><td><img src="promo_thumbs/01_a.jpg"><img src="promo_thumbs/01_b.jpg"></td>
+<td>"한밤의 <b>랜턴</b> 대작전" · "퀴즈를 맞혀 랜턴을 켜는 밤의 술래잡기"</td><td>landing 일러스트</td><td>깜깜한 화면에 랜턴이 내려와 켜짐 → 빛 원이 번지며 제목이 한 글자씩 불 켜짐 → 그림 전체 공개</td><td>(시작)</td></tr>
+<tr><td class="no">2</td><td>한 줄 약속<br><small>5.6–9.4초</small></td><td><img src="promo_thumbs/02_a.jpg"><img src="promo_thumbs/02_b.jpg"></td>
+<td>"지루했던 단원 정리 시간이" → "한밤의 <b>술래잡기가</b> 된다!" · 칩: 퀴즈 맞히기 · 술래잡기</td><td>없음</td><td>타자 → 크기가 다른 세 단어가 튀어나옴</td><td>줌 펀치</td></tr>
+<tr><td class="no">3</td><td>실제 플레이 · 걷기<br><small>9.4–13.1초</small></td><td><img src="promo_thumbs/03_a.jpg"><img src="promo_thumbs/03_b.jpg"></td>
+<td>자막: 랜턴 빛에 의지해 어두운 밤의 맵을 돌아다니다가…</td><td>연속 장면 walk_lantern</td><td>실제 게임이 움직임, 카메라가 천천히 다가감</td><td>랜턴 빛 원</td></tr>
+<tr><td class="no">4</td><td>퀴즈 · 맞히면 점등<br><small>13.1–16.9초</small></td><td><img src="promo_thumbs/04_a.jpg"><img src="promo_thumbs/04_b.jpg"></td>
+<td>"물이 얼음이 되는 온도는 몇 도일까요?" · 정답! · 자막: 꺼진 랜턴 앞에서 퀴즈를 맞히면 불이 켜져요!</td><td>3번 마지막 장면 위</td><td>퀴즈 창 → 손가락 → 정답 도장 → 랜턴 점등</td><td>컷(이어짐)</td></tr>
+<tr><td class="no">5</td><td>새벽빛 100% → 아침<br><small>16.9–20.6초</small></td><td><img src="promo_thumbs/05_a.jpg"><img src="promo_thumbs/05_b.jpg"></td>
+<td>새벽빛 65→100% · "아침이 왔다!" · "학생 팀 승리!"</td><td>win 일러스트</td><td>막대가 차오르고 해 뜨듯 아침 그림이 열림</td><td>위로 밀기</td></tr>
+<tr><td class="no">6</td><td>그 재미 그대로<br><small>20.6–26.3초</small></td><td><img src="promo_thumbs/06_a.jpg"><img src="promo_thumbs/06_b.jpg"></td>
+<td>어몽어스에서 즐기던 숨은 범인 찾기 → 꿈도둑을 찾아라 · 배틀그라운드에서 즐기던 좁아지는 구역 → 잠 안개 · 상자 속 아이템 → 보급 상자 (게임 이름은 글자로만)</td><td>없음</td><td>화살표가 그려지고 금빛 카드가 차례로 켜짐</td><td>미끄럼틀 곡선</td></tr>
+
+<tr class="rule"><td class="no">7</td><td><span class="tag m">규칙</span><br>두 모드 비교<br><small>26.3–38.4초 (12.2초)</small></td><td><img src="promo_thumbs/07_a.jpg"><img src="promo_thumbs/07_b.jpg"><img src="promo_thumbs/07_c.jpg"></td>
+<td>👻 잠귀신 술래잡기 "술래가 누군지 모두 알아요" / 🕵️ 꿈도둑을 찾아라 "술래가 누군지 아무도 몰라요"<br>자막(각 3.4초 이상): 모드는 두 가지! … → 잠귀신 술래잡기 — 술래가 누군지 다 보여요 → 꿈도둑을 찾아라 — 학생인 척 숨은 꿈도둑을 찾아요</td>
+<td>s_chaser / m_role_thief → m_vote</td><td>항목이 0.45초 간격으로 천천히 → 4초에 왼쪽 확대(실제 화면) → 7.6초 오른쪽 확대 → 11.2초 다시 반반</td><td>문</td></tr>
+<tr class="rule"><td class="no">8</td><td>잠귀신 ① 닿으면 꿈속<br><small>38.4–42.2초</small></td><td><img src="promo_thumbs/08_a.jpg"><img src="promo_thumbs/08_b.jpg"></td>
+<td>"앗, 잡혔다!" · 자막: 잠귀신에게 닿으면 그 자리에서 꿈에 빠져요</td><td>연속 장면 tag (노트북)</td><td>잠귀신이 다가와 닿는 순간까지 천천히 확대</td><td>카드 뒤집기</td></tr>
+<tr class="rule"><td class="no">9</td><td>잠귀신 ② 깨워 주기<br><small>42.2–45.9초</small></td><td><img src="promo_thumbs/09_a.jpg"><img src="promo_thumbs/09_b.jpg"></td>
+<td>"친구 곁에서 꾹~!" · 자막: 친구가 옆에서 꾹~ 눌러 깨워 주면 다시 달려요</td><td>연속 장면 wake (노트북)</td><td>깨우기 버튼에 고리, 게임 속 '일어나!'</td><td>컷(이어짐)</td></tr>
+<tr class="rule"><td class="no">10</td><td>잠귀신 ③ 꿈 구슬<br><small>45.9–50.6초</small></td><td><img src="promo_thumbs/10_a.jpg"><img src="promo_thumbs/10_b.jpg"></td>
+<td>"👻 잠귀신도 퀴즈!" · "🔮 꿈 구슬이 생겼어요!" · 자막: 잠귀신도 퀴즈를 맞혀 꿈 구슬을 모아야 재울 수 있어요</td><td>잠귀신 화면(item_invis_chaser 첫 장) 위 퀴즈</td><td>퀴즈 창 → 정답 → 꿈 구슬 칩</td><td>위로 밀기</td></tr>
+<tr class="rule"><td class="no">11</td><td>잠 안개<br><small>50.6–54.4초</small></td><td><img src="promo_thumbs/11_a.jpg"><img src="promo_thumbs/11_b.jpg"></td>
+<td>"잠 안개가 좁혀 와요!" · 안개 1→2→3단계 · 자막: 안개 밖은 느리고 어두워요. 빛 구역 안으로!</td><td>연속 장면 fog + 코드 안개</td><td>실제 게임 위로 안개가 3번 좁혀 옴, 다음 빛 구역 노란 점선이 먼저 보임</td><td>안개 쓸기</td></tr>
+
+<tr class="rule"><td class="no">12</td><td><span class="tag m">①</span> 꿈도둑이 숨어 있어요<br><small>54.4–59.1초</small></td><td><img src="promo_thumbs/12_a.jpg"><img src="promo_thumbs/12_b.jpg"></td>
+<td>왼쪽 위 진행 표시 ①~⑦ · "우리 중에 꿈도둑이 숨어 있어요!" · 꿈도둑 "학생인 척 퀴즈도 풀어요" · "꿈도둑끼리만 알아요!"<br>자막: 누가 꿈도둑인지 아무도 몰라요 — 꿈도둑도 퀴즈를 풀어요</td><td>코드 그래픽 카드</td><td>카드가 부채꼴로 펼쳐짐 → 한 장이 뒤집혀 꿈도둑 공개(제목은 그 전에 사라짐)</td><td>랜턴 빛 원</td></tr>
+<tr class="rule"><td class="no">13</td><td><span class="tag m">②</span> 몰래 꿈에 빠뜨려요<br><small>59.1–63.8초</small></td><td><img src="promo_thumbs/13_a.jpg"><img src="promo_thumbs/13_b.jpg"></td>
+<td>"꿈도둑이 몰래 콕!" → "머리 위에 고리!"<br>자막: 꿈에 빠지면 머리 위에 고리! 말은 못 해도 랜턴은 켤 수 있어요</td><td>m_freeze → m_dream</td><td>꿈도둑과 친구에 고리 → 화면이 바뀌어 머리 위 고리에 고리 표시</td><td>미끄럼틀 곡선</td></tr>
+<tr class="rule"><td class="no">14</td><td><span class="tag m">③④</span> 종 → 말로 이야기<br><small>63.8–70.3초</small></td><td><img src="promo_thumbs/14_a.jpg"><img src="promo_thumbs/14_b.jpg"></td>
+<td>"회의 종 울리기!" → "어디서 뭘 봤는지 말해요"<br>자막: 꿈에 빠진 친구를 보면 호루라기나 회의 종! (3.0초) → 모닥불 앞에 모여 말로 이야기해요 (3.2초)</td><td>m_bell → m_meeting_intro → m_meeting</td><td>종 울리기 버튼에 고리 → 모닥불 회의 화면 → 토론 화면 (진행 표시가 ③→④로)</td><td>문</td></tr>
+<tr class="rule"><td class="no">15</td><td><span class="tag m">⑤</span> 지목 투표<br><small>70.3–75.0초</small></td><td><img src="promo_thumbs/15_a.jpg"><img src="promo_thumbs/15_b.jpg"></td>
+<td>"꿈도둑 같은 친구를 콕!" → "모르면 기권!"<br>자막: 꿈도둑 같은 친구를 지목! 모르겠으면 기권해도 돼요</td><td>m_vote</td><td>투표 화면 → 기권 버튼으로 확대 + 고리</td><td>위로 밀기</td></tr>
+<tr class="rule"><td class="no">16</td><td><span class="tag m">⑥</span> 추방<br><small>75.0–79.7초</small></td><td><img src="promo_thumbs/16_a.jpg"><img src="promo_thumbs/16_b.jpg"></td>
+<td>"투표 결과!" → "표를 가장 많이 받으면 추방!"<br>자막: 표를 가장 많이 받은 친구는 추방돼요</td><td>코드 그래픽(모닥불, 맛+캐릭터 이름)</td><td>표가 포물선으로 한 명에게 모임 → 숫자 6 → 결과 띠</td><td>카드 뒤집기</td></tr>
+<tr class="rule"><td class="no">17</td><td><span class="tag m">⑥</span> 정체 공개<br><small>79.7–83.4초</small></td><td><img src="promo_thumbs/17_a.jpg"><img src="promo_thumbs/17_b.jpg"></td>
+<td>"꿈도둑이었어요!" · 자막: 추방되면 꿈도둑이었는지 바로 알려 줘요</td><td>m_result_fly → m_result</td><td>추방되는 카드 → 결과 문장으로 확대</td><td>미끄럼틀 곡선</td></tr>
+<tr class="rule"><td class="no">18</td><td><span class="tag m">⑦</span> 누가 이길까<br><small>83.4–88.1초</small></td><td><img src="promo_thumbs/18_a.jpg"><img src="promo_thumbs/18_b.jpg"></td>
+<td>🌅 학생 팀 승리: 꿈도둑을 모두 찾거나 새벽빛 100% / 🦹 꿈도둑 승리: 학생이 꿈도둑만큼 줄거나 시간 끝<br>자막: 꿈도둑을 모두 찾으면 학생 팀 승리!</td><td>없음</td><td>카드 두 장이 줄에 매달려 떨어짐</td><td>문</td></tr>
+
+<tr class="drop"><td class="no">19</td><td><span class="tag">드롭</span><br>아이템 몽타주<br><small>88.1–105.0초 (16.9초)</small></td><td><img src="promo_thumbs/19_a.jpg"><img src="promo_thumbs/19_b.jpg"><img src="promo_thumbs/19_c.jpg"></td>
+<td>위 가운데 칩: <b>🎒 학생 아이템 1/7…7/7</b> → <b>👻 잠귀신 아이템 1/2…2/2</b>. 컷마다 이름표:
+<ol><li>보급 상자 — 꾹~ 누르면 열려요 (고리: 상자·버튼 → '가방에 쏙!') · 1.9초</li><li>반짝 운동화 — 6초 동안 쌩! · 1.4초</li><li>꿈막이 우산 — 꿈 걸기를 한 번 막아 줘요 (게임 속 '펑!') · 1.4초</li><li>손전등 — 10초 동안 더 넓게 보여요 · 1.4초</li><li>찬스 카드 — 틀린 보기 2개가 사라져요 · 잠귀신도 받아요 · 1.4초</li><li>기상 나팔 — 둘레 친구를 한꺼번에 깨워요 · 잠귀신 술래잡기 · 1.4초</li><li>투명 망토 — 4초 동안 잠귀신 눈에 안 보여요 · 잠귀신 술래잡기 ('내 화면') · 1.4초</li><li>잠귀신 화면에서는? — 방금 그 친구가 사라졌어요! ('어디 갔지?') · 1.4초</li><li>킥보드 — 8초 동안 쌩쌩! · 놀이공원에서만 · 1.4초</li><li>(글자 카드) 잠귀신도 아이템을 써요! · 1.4초</li><li>안개 망토 — 8초 동안 흐릿하게 숨어요 ('흐릿~') · 0.9초</li><li>긴 베개 — 멀리서도 꿈에 빠뜨려요 (잠귀신 고리 → 'Zzz…') · 1.4초</li></ol>자막(첫 2.1초): 보급 상자를 열면 아이템이 나와요</td>
+<td>실제 게임 연속 장면 11개: crate_open, item_shoes, item_umbrella, item_flashlight, item_chance, item_bugle, item_invis, item_invis_chaser, item_kickboard, item_fogcape, item_pillow</td>
+<td>박자(2~4박)마다 하드 컷 + 번쩍. 컷마다 들어오는 방식(확대·좌우 휙·위에서 떨어짐·기울기·당기기)과 이름표 등장(쾅·옆에서·위에서·통통)이 다름. 킥보드는 9개 중 하나로만</td><td>줌 펀치</td></tr>
+
+<tr><td class="no">20</td><td>맵 5곳<br><small>105.0–108.8초</small></td><td><img src="promo_thumbs/20_a.jpg"><img src="promo_thumbs/20_b.jpg"></td>
+<td>"어디서 놀까? 맵 5곳!" · 몬스터 체육관 · 달빛 대도서관 · 한밤의 학교 · 한밤의 별빛 학원 · 한밤의 놀이공원</td><td>map_* 5장</td><td>카드가 부채꼴로 펼쳐지고 한 장씩 들림</td><td>위로 밀기</td></tr>
+<tr><td class="no">21</td><td>선생님에게 좋은 점<br><small>108.8–113.4초</small></td><td><img src="promo_thumbs/21_a.jpg"><img src="promo_thumbs/21_b.jpg"></td>
+<td>엑셀로 한 번에 · 주소로 바로 · 끝나면 리포트 · 자막: 학생은 방 번호 4자리나 QR코드로 바로 들어와요</td><td>없음</td><td>줄에 매달린 카드 세 장</td><td>줌 펀치</td></tr>
+<tr><td class="no">22</td><td>엔드카드<br><small>113.4–118.1초</small></td><td><img src="promo_thumbs/22_a.jpg"><img src="promo_thumbs/22_b.jpg"></td>
+<td>"한밤의 랜턴 대작전" · 학생 lab.ches.es.kr/lantern · 선생님 lab.ches.es.kr/lantern/teacher · "오늘 밤, 랜턴을 켜고 출발!"</td><td>없음</td><td>랜턴 다섯 개가 켜지고 약 3초 정지</td><td>랜턴 빛 원</td></tr>
+</table>
+<h2>전환 중간 모습</h2>
+<div class="tr">
+<figure><img src="promo_thumbs/t_26.45.jpg"><figcaption>26.45초 → 두 모드 비교 (문)</figcaption></figure>
+<figure><img src="promo_thumbs/t_38.60.jpg"><figcaption>38.60초 → 잠귀신 ① (카드 뒤집기)</figcaption></figure>
+<figure><img src="promo_thumbs/t_54.60.jpg"><figcaption>54.60초 → 꿈도둑 ① (랜턴)</figcaption></figure>
+<figure><img src="promo_thumbs/t_63.95.jpg"><figcaption>63.95초 → 꿈도둑 ③④ (문)</figcaption></figure>
+<figure><img src="promo_thumbs/t_88.40.jpg"><figcaption>88.40초 → 아이템 몽타주 (줌 펀치)</figcaption></figure>
+<figure><img src="promo_thumbs/t_105.20.jpg"><figcaption>105.20초 → 맵 5곳 (위로 밀기)</figcaption></figure>
+</div>
+<p><small>전환: 줌 펀치 3 · 랜턴 3 · 위로 밀기 4 · 미끄럼틀 3 · 문 3 · 안개 1 · 카드 뒤집기 2 · 컷 2(이어지는 장면). 글자 등장 7종 모두 사용.</small></p>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>맵 전체 그림</title>
+<style>
+  html, body { margin: 0; background: #1b1530; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<script type="module">
+// 캡처 전용 페이지 (maps.mjs 가 게임 서버 주소 아래 /__cap/map.html 로 띄운다).
+// 게임 화면 코드(maprender.js)로 맵을 그린 뒤 가로 w px 로 줄인다. 검사 칠은 하지 않는다.
+const q = new URLSearchParams(location.search);
+const mapId = q.get('map') || 'night-park';
+const outW = Number(q.get('w')) || 1920;
+const G = await import('/shared/mapgrid.js');
+const R = await import('/maprender.js');
+const map = await (await fetch(`/maps/${mapId}.json`)).json();
+const g = G.buildGrid(map);
+const full = R.renderMap(map, g, { mode: 'sleep-tag' });
+// (꺼진 랜턴은 renderMap 이 이미 그린다)
+const cv = document.getElementById('cv');
+const c = cv.getContext('2d');
+if (map.floors && map.floors.length && q.get('strip') !== '1') {
+  // 여러 층 맵: 선생님 맵 고르기와 같은 "층 한눈에 보기" 그림 (가로로 길게 이어진 층을 위아래로 모은다)
+  cv.width = outW;
+  cv.height = Math.round(outW * 0.625);
+  c.drawImage(R.renderOverview(map, full, cv.width, cv.height), 0, 0);
+} else {
+  const k = outW / map.size[0];
+  cv.width = outW;
+  cv.height = Math.round(map.size[1] * k);
+  c.imageSmoothingQuality = 'high';
+  c.drawImage(full, 0, 0, cv.width, cv.height);
+}
+window.__w = cv.width;
+window.__h = cv.height;
+window.__done = true;
+</script>
+</body>
+</html>

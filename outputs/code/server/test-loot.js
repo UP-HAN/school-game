@@ -202,7 +202,7 @@ async function runL2() {
     const tagS3 = await teacher.event('tag', 2000).catch(() => null);
     check('20. 긴 베개를 쓰면 꿈 걸기 거리가 115 로 늘어난다', missed && !!tagS3 && tagS3.id === S3.id);
     // 잠귀신은 기상 나팔·운동화를 받을 수 없다 (목록)
-    check('7-4. 아이템 목록: 학생 5종 · 잠귀신 4종 (찬스 카드는 둘 다)', ITEM_POOLS['sleep-tag'].student.join() === 'shoes,umbrella,flashlight,chance,bugle' && ITEM_POOLS['sleep-tag'].chaser.join() === 'chance,windcape,fogcape,pillow');
+    check('7-4. 아이템 목록: 학생 6종 · 잠귀신 3종 (찬스 카드는 둘 다, 투명 망토는 학생만·꿈도둑 모드에는 없음)', ITEM_POOLS['sleep-tag'].student.join() === 'shoes,umbrella,flashlight,chance,bugle,invis' && ITEM_POOLS['sleep-tag'].chaser.join() === 'chance,fogcape,pillow' && !ITEM_POOLS.mafia.student.includes('invis') && !ITEM_POOLS.mafia.chaser.includes('invis'));
     // 19. 사라짐
     const gone = await teacher.event('crateGone', Math.max(1000, dropAt + 8800 - Date.now()));
     await sleep(150);

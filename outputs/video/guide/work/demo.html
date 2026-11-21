@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>한밤의 랜턴 대작전 — 부품 시연</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=block" rel="stylesheet">
+<link rel="stylesheet" href="video.css">
+</head>
+<body>
+<div id="stage"></div>
+<script src="lib.js"></script>
+<script>
+// 부품 시연용 구성.
+//   demo.html            → 모든 부품을 한 번씩 (약 104초, 썸네일·점검용)
+//   demo.html?cut=reel   → 29초 묶음 (mp4 렌더 확인용)
+//   ?mood=teacher&bpm=112 처럼 음악 분위기·빠르기를 바꿔 볼 수 있다
+// ※ 문구·주소는 시연용 예시다. 실제 영상 문구는 다음 단계에서 정한다.
+const q = new URLSearchParams(location.search);
+const ILL = '@art/illust/', MAP = '@art/maps/', RES = '@art/responsive/';
+const ITEMS = [['👟', '반짝 운동화'], ['☂️', '꿈막이 우산'], ['🔦', '손전등'], ['🃏', '찬스 카드'], ['📯', '기상 나팔'], ['🧣', '바람 망토'], ['🌫️', '안개 망토'], ['🛏️', '긴 베개'], ['🛴', '킥보드']];
+const PEOPLE = [['🐱', '나비', '#c79bff'], ['🦖', '공룡', '#8fd46b'], ['🐰', '토끼', '#ffb3d1'], ['👾', '외눈이', '#6aa8ff'], ['🐥', '삐약', '#ffd45c'], ['🍮', '푸딩', '#d9925a'], ['🧒', '하늘', '#7fe0c4']];
+const MODES = {
+  left: { icon: '👻', title: '잠귀신 술래잡기', line: '잠귀신을 피해 새벽까지!', items: ['퀴즈를 맞혀 랜턴 켜기', '좁아지는 잠 안개', '아이템으로 위기 탈출', '새벽빛 100%면 승리'] },
+  right: { icon: '🕵️', title: '꿈도둑을 찾아라', line: '우리 중 숨은 꿈도둑은?', items: ['몰래 움직이는 꿈도둑', '모닥불 회의와 투표', '퀴즈로 단서 모으기', '꿈도둑을 찾으면 승리'] },
+};
+
+const FULL = [
+  { name: '로고', bars: 3, bg: 'deep', stars: true, build: el => Q.logo(el, { bg: ILL + 'landing.png', tag: '교실이 잠든 밤의 퀴즈 모험', sub: '랜턴을 들고, 함께 새벽을 불러요!' }) },
+  { name: 'lanternReveal', bars: 2.5, bg: 'deep', trans: 'lantern', tx: 960, ty: 300, build: el => Q.lanternReveal(el, { img: ILL + 'loading.png', lx: 960, ly: 300, at: 0.7, title: '랜턴을 켜면', sub: '숨어 있던 길이 보여요', openAt: 3.4 }) },
+  { name: '글자 등장 6종', bars: 3, bg: 'violet', moon: true, trans: 'punch', build: el => Q.title(el, { lines: [
+      { t: [['튀어나오고', { s: 92 }], ['통통!', { s: 128, c: 'var(--lantern)' }]], style: 'pop', y: 90, at: 0.15 },
+      { t: '타자로 또박또박 쓰고', style: 'type', y: 250, size: 70, font: 'body', weight: 800, at: 0.6 },
+      { t: [['아래에서', {}], ['쏙', { s: 112, c: 'var(--mint)' }], ['올라오고', {}]], style: 'mask', y: 370, size: 80, at: 1.7 },
+      { t: '흔들흔들 정착!', style: 'wobble', y: 510, size: 100, at: 2.2 },
+      { t: [['형광펜으로', {}], ['콕', { s: 96 }], ['짚고', {}]], style: 'marker', y: 660, size: 74, at: 2.9, mark: [1], font: 'body', weight: 900 },
+      { t: '랜턴처럼 반짝 켜져요', style: 'glow', y: 790, size: 84, at: 3.6 },
+    ] }) },
+  { name: 'modeSplit', bars: 4, section: 'build', trans: 'slide', build: el => Q.modeSplit(el, { ...MODES, focus: [{ at: 4.5, side: 'left' }, { at: 5.6, side: 'right' }, { at: 6.7, side: null }],
+      caps: [[1.0, 4.4, '모드는 두 가지 — <b>잠귀신 술래잡기</b>와 <em>꿈도둑을 찾아라</em>']] }) },
+  { name: 'likeCard', bars: 3, trans: 'flip', build: el => Q.likeCard(el, { title: [['이런', {}], ['재미', {}], ['그대로!', {}]], titleMark: [1], step: 1.3,
+      pairs: [['숨은 범인 찾기', '꿈도둑을 찾아라'], ['좁아지는 구역', '잠 안개'], ['아이템 줍기', '반짝 운동화 · 꿈막이 우산']] }) },
+  { name: 'fogShrink', bars: 3, trans: 'fog', build: el => Q.fogShrink(el, { img: MAP + 'night-school.png', cx: 1020, cy: 560, title: '잠 안개가 좁혀 와요', titleMark: [1],
+      stages: [{ at: 0, r: 820, label: '1단계' }, { at: 1.8, r: 520, label: '2단계' }, { at: 3.6, r: 290, label: '3단계' }],
+      caps: [[0.4, 5.4, '노란 점선 안이 <b>다음 빛 구역</b> — 안개 밖에 있으면 잠들어요']] }) },
+  { name: 'quizPop', bars: 3.5, trans: 'door', build: el => Q.quizPop(el, { bg: MAP + 'night-park.png', q: '달이 지구를 한 바퀴 도는 데 약 며칠?', choices: ['약 7일', '약 15일', '약 30일', '약 365일'], answer: 2, at: 0.2, pickAt: 2.6, gauge: { from: 40, to: 65 } }) },
+  { name: 'gauge', bars: 2.5, bg: 'dawn', trans: 'push', build: el => Q.gauge(el, { type: 'both', from: 0, to: 100, at: 0.4, dur: 2.0, clock: { from: 300, to: 0, at: 0.4, dur: 2.4 } }) },
+  { name: 'steps', bars: 3, trans: 'lantern', tx: 300, ty: 400, build: el => Q.steps(el, { title: [['딱', {}], ['3단계로', { c: 'var(--lantern)' }], ['시작해요', {}]], segDur: 0.9,
+      steps: [['🧑‍🏫', '방 만들기', '선생님이 문제를 고르고<br>방을 열어요'], ['📱', '들어오기', '학생은 주소와<br>방 번호로 입장'], ['🏮', '출발!', '랜턴을 들고<br>밤의 학교로']] }) },
+  { name: 'roleCards', bars: 3.5, section: 'drop', trans: 'flip', build: el => Q.roleCards(el, { title: '이 중에 꿈도둑이 있다!', cards: PEOPLE.slice(0, 5).map(([e, n]) => [e, n]),
+      reveal: { index: 2, icon: '🦹', name: '꿈도둑', desc: '몰래 꿈을 훔쳐요', at: 2.6 } }) },
+  { name: 'itemRain', bars: 2.5, trans: 'punch', build: el => Q.itemRain(el, { title: [['아이템이', { s: 64 }], ['와르르!', { s: 104, c: 'var(--lantern)' }]], items: ITEMS }) },
+  { name: 'spinCrash', bars: 2.5, bg: 'ember', trans: 'slide', build: el => Q.spinCrash(el, { text: '킥보드', icon: '🛴', hitAt: 0.9, spin: 2, sub: '부딪히면 2초 동안 빙글빙글!', subAt: 3.0 }) },
+  { name: 'meeting', bars: 3.5, bg: 'ember', trans: 'fog', build: el => Q.meeting(el, { people: PEOPLE, target: 3, bellAt: 0.5, voteAt: 1.6, title: '모닥불 회의!' }) },
+  { name: 'flipbook', bars: 2.5, trans: 'door', build: el => Q.flipbook(el, { device: 'laptop', dir: '@demo/seq/night-park', frames: 48, ext: 'jpg', fps: 12, badge: '실제 게임 화면',
+      path: [[0, 1, 0.5, 0.5], [2.6, 1.35, 0.5, 0.45]], callouts: [{ t: '랜턴 빛 안만 보여요', x: 1180, y: 150, at: 1.2, tx: 80 }] }) },
+  { name: 'dual (그림 없음 → 자리표시)', bars: 2.5, trans: 'push', build: el => Q.dual(el, { pc: RES + 'teacher-lobby-desktop.jpg', mob: 'no_such_capture.png', badge: '컴퓨터 · 휴대폰',
+      callouts: [{ t: '휴대폰도 OK', x: 1380, y: 30, at: 1.0, tx: 120 }], caps: [[0.5, 4.5, '캡처가 아직 없으면 <b>회색 자리표시</b>가 대신 들어가요']] }) },
+  { name: 'maps', bars: 3.5, trans: 'slide', build: el => Q.maps(el, { title: '맵은 4곳', focusAt: 1.5, focusStep: 1.1,
+      maps: [[MAP + 'night-school.png', '한밤의 학교'], [MAP + 'moon-library.png', '달빛 대도서관'], [MAP + 'star-academy-overview.png', '별빛 학원'], [MAP + 'night-park.png', '한밤의 놀이공원']] }) },
+  { name: 'tiles', bars: 2.5, trans: 'flip', build: el => Q.tiles(el, { title: '선생님이 좋은 점', tiles: [['📝', '문제 그대로', '갖고 있는 문제를<br>붙여 넣기만'], ['⏱️', '한 판 10분', '수업 시작·끝<br>자투리 시간에'], ['📊', '결과 보고서', '누가 무엇을<br>틀렸는지 한눈에']] }) },
+  { name: 'address', bars: 2.5, trans: 'punch', build: el => Q.address(el, { device: 'phone', img: RES + 'home-phone-375x812.jpg', badge: '접속 주소 (예시)',
+      rows: [['선생님', 'lantern.example.kr/t', 'var(--lantern)'], ['학생', 'lantern.example.kr', 'var(--mint)']] }) },
+  { name: '엔드카드', bars: 2.5, section: 'outro', still: true, moon: true, trans: 'lantern', build: (el, c) => Q.end(el, { dur: c.dur, sub: '오늘 밤, 교실에서 만나요', urls: [['학생', 'lantern.example.kr', 'var(--mint)']], cta: '랜턴을 켜고 출발!' }) },
+];
+
+const REEL = [
+  { name: '로고', bars: 2, bg: 'deep', build: el => Q.logo(el, { bg: ILL + 'landing.png', litAt: 0.7, tag: '교실이 잠든 밤의 퀴즈 모험', sub: '함께 새벽을 불러요!' }) },
+  { name: '두 모드', bars: 3, section: 'build', trans: 'lantern', tx: 960, ty: 120, build: el => Q.modeSplit(el, { ...MODES, itemsAt: 0.9, itemStep: 0.28, focus: [{ at: 3.8, side: 'left' }, { at: 4.8, side: null }] }) },
+  { name: '잠 안개', bars: 2, trans: 'fog', build: el => Q.fogShrink(el, { img: MAP + 'night-school.png', cx: 1020, cy: 560, title: '잠 안개가 좁혀 와요', titleMark: [1],
+      stages: [{ at: 0, r: 820, label: '1단계' }, { at: 1.3, r: 480, label: '2단계' }, { at: 2.6, r: 280, label: '3단계' }] }) },
+  { name: '퀴즈', bars: 2.5, section: 'drop', trans: 'door', build: el => Q.quizPop(el, { bg: MAP + 'night-park.png', q: '달이 지구를 한 바퀴 도는 데 약 며칠?', choices: ['약 7일', '약 15일', '약 30일', '약 365일'], answer: 2, at: 0.15, pickAt: 2.0, gauge: { from: 40, to: 65 },
+      caps: [[2.4, 4.6, '맞히면 <b>랜턴 점등</b>, 새벽빛이 차올라요']] }) },
+  { name: '킥보드', bars: 2, bg: 'ember', trans: 'slide', build: el => Q.spinCrash(el, { hitAt: 0.7, spin: 1.6, sub: '부딪히면 빙글빙글!', subAt: 2.4 }) },
+  { name: '회의', bars: 2, bg: 'ember', trans: 'punch', build: el => Q.meeting(el, { people: PEOPLE.slice(0, 6), target: 2, bellAt: 0.3, voteAt: 0.9 }) },
+  { name: '엔드카드', bars: 2, section: 'outro', still: true, moon: true, trans: 'flip', build: (el, c) => Q.end(el, { dur: c.dur, sub: '오늘 밤, 교실에서 만나요', cta: '랜턴을 켜고 출발!' }) },
+];
+
+const MOODBPM = { promo: 128, teacher: 112, student: 136 };
+const mood = q.get('mood') || 'promo';
+makeVideo({ bpm: +(q.get('bpm') || MOODBPM[mood]), mood, scenes: q.get('cut') === 'reel' ? REEL : FULL });
+</script>
+</body>
+</html>

@@ -6,7 +6,7 @@
   "description": "한밤의 랜턴 대작전 — 학습용 잠귀신 술래잡기·꿈도둑을 찾아라 게임",
   "scripts": {
     "start": "node --env-file-if-exists=.env server/index.js",
-    "test": "node server/test-lobby.js && node server/test-mafia.js && node server/test-fog.js && node server/test-loot.js && node server/test-streak.js && node server/test-basepath.js && node server/test-proxy.js && node server/test-rooms.js && node server/test-map-academy.js && node server/test-park-rules.js && node server/test-qr.js && node tools/run-if-exists.mjs server/test-map-library.js server/test-map-school.js server/test-map-park.js"
+    "test": "node server/test-lobby.js && node server/test-mafia.js && node server/test-fog.js && node server/test-loot.js && node server/test-streak.js && node server/test-basepath.js && node server/test-proxy.js && node server/test-rooms.js && node server/test-map-academy.js && node server/test-park-rules.js && node server/test-qr.js && node server/test-guide.js && node tools/run-if-exists.mjs server/test-map-library.js server/test-map-school.js server/test-map-park.js"
   },
   "dependencies": {
     "ws": "^8.18.0"

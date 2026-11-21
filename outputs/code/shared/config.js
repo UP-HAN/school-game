@@ -77,7 +77,7 @@ export const GAME = {
 
 // 잠귀신(술래) 속도 — 선생님이 대기방에서 고른다 (settings.chaserSpeed). 잠귀신 술래잡기의 잠귀신에게만 붙는다.
 // 꿈도둑을 찾아라에서는 무시한다 (꿈도둑이 빠르면 정체가 드러나므로).
-// 곱하는 규칙: 실제 속도 = GAME.speed × 이 배율 × 마지막 밤(FOG.lastNightChaserSpeed) × 아이템(바람 망토 등) × 안개 속(FOG.slow) × 느린 바닥.
+// 곱하는 규칙: 실제 속도 = GAME.speed × 이 배율 × 마지막 밤(FOG.lastNightChaserSpeed) × 아이템(운동화·킥보드) × 안개 속(FOG.slow) × 느린 바닥.
 // 서버 위치 검사 상한 = GAME.speed × 1.25 × (아이템 중 큰 것 × 마지막 밤 × 이 배율) × 지난 시간 + 24px. 느려지는 것(안개·바닥)은 빼고 넉넉히 받아 준다.
 // 'very' 끝까지 곱해도 1.4 × 1.1 × 1.3 ≈ 2배 (약 540px/초). 화면은 8px씩 나눠 벽을 검사하므로 벽을 뚫지 않는다.
 export const CHASER_SPEED = { same: 1, fast: 1.15, very: 1.4 };
@@ -180,14 +180,14 @@ export const ITEMS = {
   flashlight: { name: '손전등', ms: 10000, vision: 1.5 },
   chance: { name: '찬스 카드' },
   bugle: { name: '기상 나팔', reach: 250 },
-  windcape: { name: '바람 망토', ms: 6000, speed: 1.3 },
+  invis: { name: '투명 망토', ms: 4000, alpha: 0.45 }, // 학생용: 잠귀신 화면에서 안 보인다 (닿으면 잡히는 것은 그대로). 잠귀신 술래잡기에서만
   fogcape: { name: '안개 망토', ms: 8000, alpha: 0.3 },
   pillow: { name: '긴 베개', ms: 15000, reach: 115 },
   kickboard: { name: '킥보드', ms: 8000, speed: 1.6, spinMs: 2000, spinSafeMs: 1000 }, // 기본 목록(ITEM_POOLS)에는 없다. 맵 items.extra 로만 나온다 (놀이공원)
 };
 // 누가 어떤 아이템을 받을 수 있나. 꿈도둑을 찾아라는 꿈도둑도 학생과 같은 목록 (정체가 드러나지 않게).
 export const ITEM_POOLS = {
-  'sleep-tag': { student: ['shoes', 'umbrella', 'flashlight', 'chance', 'bugle'], chaser: ['chance', 'windcape', 'fogcape', 'pillow'] },
+  'sleep-tag': { student: ['shoes', 'umbrella', 'flashlight', 'chance', 'bugle', 'invis'], chaser: ['chance', 'fogcape', 'pillow'] },
   mafia: { student: ['shoes', 'umbrella', 'flashlight', 'chance'], chaser: ['shoes', 'umbrella', 'flashlight', 'chance'] },
 };
 // 맵 전용 아이템 (06 명세 12-7절): 맵 JSON 의 items = { extra: ['kickboard'], extraWeight: 3 } 이면

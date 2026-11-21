@@ -110,6 +110,7 @@ const MIME = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.mp4': 'video/mp4',
 };
 // 주소 앞부분 → 실제 폴더. 여기 없는 폴더(server, node_modules, .env 등)는 절대 내려 주지 않는다.
 const MOUNTS = [
@@ -154,6 +155,7 @@ function serveStatic(req, res) {
     res.writeHead(404).end('Not found');
     return;
   }
+  if (type === MIME['.mp4']) return serveVideo(req, res, file, type);
   fs.readFile(file, (err, data) => {
     if (err) {
       res.writeHead(404).end('Not found');
@@ -161,6 +163,47 @@ function serveStatic(req, res) {
     }
     res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });
     res.end(req.method === 'HEAD' ? undefined : data);
+  });
+}
+
+// 안내 영상(.mp4): 통째로 읽지 않고 조금씩 흘려보낸다. 'Range'(일부만 달라는 요청)를 받아야
+// 아이패드·사파리에서 재생되고, 영상 중간으로 건너뛸 수 있다.
+function serveVideo(req, res, file, type) {
+  fs.stat(file, (err, st) => {
+    if (err || !st.isFile()) {
+      res.writeHead(404).end('Not found');
+      return;
+    }
+    const size = st.size;
+    const head = { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Cache-Control': 'public, max-age=3600' };
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    let start = 0;
+    let end = size - 1;
+    let code = 200;
+    if (m && (m[1] || m[2])) {
+      if (m[1]) {
+        start = Number(m[1]);
+        if (m[2]) end = Math.min(Number(m[2]), size - 1);
+      } else {
+        start = Math.max(0, size - Number(m[2])); // 'bytes=-500' = 끝에서 500바이트
+      }
+      if (start > end || start >= size) {
+        res.writeHead(416, { 'Content-Range': `bytes */${size}` }).end();
+        return;
+      }
+      code = 206;
+      head['Content-Range'] = `bytes ${start}-${end}/${size}`;
+    }
+    head['Content-Length'] = end - start + 1;
+    res.writeHead(code, head);
+    if (req.method === 'HEAD') {
+      res.end();
+      return;
+    }
+    const stream = fs.createReadStream(file, { start, end });
+    stream.on('error', () => res.destroy());
+    res.on('close', () => stream.destroy());
+    stream.pipe(res);
   });
 }
 
@@ -276,6 +319,7 @@ function roomView(room, viewer = null) {
                   frozen: p.frozen,
                   protMs: Math.max(0, p.protUntil - now),
                   ...(fxOn(p, 'fogcape', now) ? { cloak: true } : null),
+                  ...(fxOn(p, 'invis', now) ? { hide: true } : null), // 투명 망토: 잠귀신 화면에서는 그리지 않는다
                 }
               : null),
           },
@@ -452,7 +496,6 @@ const isInFog = (room, p) => {
 function speedBoost(room, p, now) {
   let m = 1;
   if (fxOn(p, 'shoes', now)) m = Math.max(m, ITEMS.shoes.speed);
-  if (fxOn(p, 'windcape', now)) m = Math.max(m, ITEMS.windcape.speed);
   if (fxOn(p, 'kickboard', now)) m = Math.max(m, ITEMS.kickboard.speed);
   if (!isMafiaGame(room) && p.role === 'chaser' && fogStage(room) >= 3) m *= FOG.lastNightChaserSpeed;
   m *= chaserSpeedOf(room.settings, p.role); // 선생님이 고른 잠귀신 속도 (꿈도둑을 찾아라는 1)
@@ -1386,7 +1429,9 @@ const handlers = {
     } else if (ITEMS[kind] && ITEMS[kind].ms) {
       p.fx[kind] = now + ITEMS[kind].ms;
     }
-    sendEvent(room, { kind: 'item', id: p.id, item: kind }, seesPlayer(room, p));
+    // 투명 망토를 쓴 것은 잠귀신에게 알리지 않는다 (알림 글씨가 뜨면 자리가 드러난다)
+    const seen = kind === 'invis' ? (q) => q.role !== 'chaser' : seesPlayer(room, p);
+    sendEvent(room, { kind: 'item', id: p.id, item: kind }, seen);
     sendMe(room, p);
     broadcast(room);
   },
@@ -1563,7 +1608,7 @@ const handlers = {
     if (s.room.meeting && isMafiaGame(s.room)) return send(ws, { t: 'fix', x: p.x, y: p.y }); // 회의 중에는 아무도 못 움직인다
     if (p.current && p.current.source === 'notebook') return send(ws, { t: 'fix', x: p.x, y: p.y }); // 수첩을 여는 동안은 못 움직인다
     const dt = Math.min(1, (now - p.movedAt) / 1000);
-    // 빨라지는 효과(운동화·바람 망토·마지막 밤 잠귀신·잠귀신 속도 설정)만 곱한다. 안개 속에서 느려진 사람은 원래 받아 준다.
+    // 빨라지는 효과(운동화·킥보드·마지막 밤 잠귀신·잠귀신 속도 설정)만 곱한다. 안개 속에서 느려진 사람은 원래 받아 준다.
     const reach = GAME.speed * 1.25 * speedBoost(s.room, p, now) * dt + 24;
     const grid = maps.get(s.room.settings.map).grid;
     const r = GAME.radius - 4;
@@ -1978,7 +2023,7 @@ function worldTick(room, now, dt) {
       if (u && u <= now) {
         p.fx[k] = 0;
         dirty.add(p);
-        if (k === 'fogcape') changed = true;
+        if (k === 'fogcape' || k === 'invis') changed = true;
       }
     }
     if (p.hint && p.hint.until <= now) {

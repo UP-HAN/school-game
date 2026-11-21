@@ -137,6 +137,7 @@ export async function startGame(opts) {
       q.role = p.role;
       q.frozen = !!p.frozen;
       q.cloak = !!p.cloak;
+      q.hide = !!p.hide; // 투명 망토를 쓴 학생
       q.protUntil = now + (p.protMs || 0);
       const wasGhost = q.ghost;
       q.ghost = !!p.ghost;
@@ -499,7 +500,7 @@ export async function startGame(opts) {
         !canTag
           ? []
           : [...players.values()]
-              .filter((q) => q !== me && q.role === 'student' && !q.frozen && !q.ride && q.protUntil <= now)
+              .filter((q) => q !== me && q.role === 'student' && !q.frozen && !q.ride && !q.hide && q.protUntil <= now) // 투명 망토를 쓴 학생은 버튼에 안 뜬다 (눌러 보면 잡힌다)
               .map((q) => ({ type: 'tag', id: 'tag', label: '꿈에 빠뜨리기', dist: near(q.x, q.y) }))
               .filter((c) => c.dist <= reach);
       order = [targets, loots, lanterns, devices, () => [tagFallback()]];
@@ -656,7 +657,6 @@ export async function startGame(opts) {
     const ghost = mafia && (myGhost || me.ghost);
     if (!ghost && inFogAt(me.x, me.y, now)) k *= FOG.slow;
     if (fxOn('shoes', now)) k *= ITEMS.shoes.speed || 1.4;
-    if (fxOn('windcape', now)) k *= ITEMS.windcape.speed || 1.3;
     if (fxOn('kickboard', now)) k *= ITEMS.kickboard.speed || 1.6;
     if (!mafia && myRole === 'chaser' && fogStage() >= 3) k *= FOG.lastNightChaserSpeed || 1;
     if (!mafia && myRole === 'chaser') k *= info.speedK > 0 ? info.speedK : 1; // 선생님이 고른 잠귀신 속도 (서버가 'me' 로 보낸다)
@@ -1110,6 +1110,7 @@ export async function startGame(opts) {
       if (me && q !== me && !seen(q.x, q.y)) continue;
       const s = size * (q.rideScale ?? 1);
       if (s < 4) continue;
+      if (q.hide && q !== me && iAmChaser && !mafia) continue; // 투명 망토: 잠귀신에게는 보이지 않는다
       drawEffects(q, s, now, t);
       if (mafia) {
         drawMafiaPlayer(q, s, big, now, t, { iAmGhost, iAmChaser });
@@ -1127,7 +1128,7 @@ export async function startGame(opts) {
         ctx.ellipse(q.x, q.y - 6, 66 * big * pulse, 34 * big * pulse, 0, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.globalAlpha = (q.connected ? 1 : 0.4) * (cloaked ? ITEMS.fogcape.alpha || 0.3 : q.cloak ? 0.6 : 1);
+      ctx.globalAlpha = (q.connected ? 1 : 0.4) * (cloaked ? ITEMS.fogcape.alpha || 0.3 : q.cloak ? 0.6 : q.hide ? (ITEMS.invis && ITEMS.invis.alpha) || 0.45 : 1);
       const wake = waking && waking.id === q.id ? Math.min(1, (now - waking.at) / waking.ms) : 0;
       const spun = spinBegin(q, q.y, s, now);
       drawCharacter(ctx, { kind: q.character, color: q.color, x: q.x, y: q.y, size: s, t, seed: q.seed, moving: !!q.m && !q.frozen, facing: q.f, frozen: q.frozen, wake });
@@ -1397,13 +1398,13 @@ export async function startGame(opts) {
     ctx.stroke();
     ctx.setLineDash([]);
   }
-  // 아이템 효과 (운동화·바람 망토·킥보드 꼬리, 킥보드 발판, 우산 방울, 손전등 빛줄기)
+  // 아이템 효과 (운동화·킥보드 꼬리, 킥보드 발판, 우산 방울, 손전등 빛줄기)
   function drawEffects(q, s, now, t) {
     const fx = q === me ? myFx : q.fx || {};
     const on = (k) => (fx[k] || 0) > now;
     if (on('kickboard') && !q.ride) drawKickboard(q, s, t);
-    if (on('shoes') || on('windcape') || on('kickboard')) {
-      const col = on('kickboard') ? '255,122,89' : on('shoes') ? '255,181,71' : '92,200,242';
+    if (on('shoes') || on('kickboard')) {
+      const col = on('kickboard') ? '255,122,89' : '255,181,71';
       for (let i = 1; i <= 4; i++) {
         ctx.fillStyle = `rgba(${col},${0.45 - i * 0.09})`;
         ctx.beginPath();

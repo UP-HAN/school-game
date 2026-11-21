@@ -150,6 +150,23 @@ async function runR1() {
     A.send({ t: 'crash' });
     const again = await teacher.next((m) => m.t === 'event' && m.kind === 'spin', 600).catch(() => null);
     check('킥보드 충돌: 도는 중에는 다시 돌지 않는다', !again);
+    // 투명 망토: 4초 동안 방 정보에 hide 표시가 붙는다 (잠귀신 화면은 이 표시를 보고 그리지 않는다). 끝나면 사라진다
+    A.send({ t: 'testGive', item: 'invis' });
+    await A.next((m) => m.t === 'me' && m.item === 'invis');
+    teacher.clear();
+    for (const c of P) c.clear();
+    A.send({ t: 'useItem' });
+    const meInv = await A.next((m) => m.t === 'me' && !m.item && m.effects && m.effects.invis > 0);
+    const hid = await teacher.next((m) => m.t === 'room' && m.players.some((p) => p.id === A.id && p.hide), 2000).catch(() => null);
+    check('투명 망토: 쓰면 4초 효과, 방 정보에 hide 표시', meInv.effects.invis > 3000 && meInv.effects.invis <= 4000 && !!hid && hid.players.filter((p) => p.hide).length === 1);
+    await sleep(300);
+    const got = (c) => c.inbox.some((m) => m.t === 'event' && m.kind === 'item' && m.item === 'invis');
+    const roleNow = (c) => hid.players.find((p) => p.id === c.id).role;
+    const chasers = P.filter((c) => roleNow(c) === 'chaser');
+    const mates = P.filter((c) => roleNow(c) === 'student' && c !== A);
+    check('투명 망토: 쓴 알림은 학생에게만 가고 잠귀신에게는 가지 않는다 (자리가 드러나지 않게)', chasers.length >= 1 && chasers.every((c) => !got(c)) && mates.length >= 1 && mates.every(got), JSON.stringify({ ch: chasers.map(got), st: mates.map(got) }));
+    const shown = await teacher.next((m) => m.t === 'room' && m.players.every((p) => !p.hide), 6000).catch(() => null);
+    check('투명 망토: 4초 뒤 hide 표시가 사라진다', !!shown && shown._at - hid._at > 3000 && shown._at - hid._at < 5500, shown ? String(shown._at - hid._at) : 'none');
     await endGame(teacher, P);
   } finally {
     await srv.stop();
