@@ -1,6 +1,9 @@
 // 맵 데이터를 만화풍 그림 한 장으로 미리 그려 둔다 (게임 중에는 이 그림을 그대로 붙인다).
 import { VOID, WALL, SIGN, signRect, deviceMarks } from './shared/mapgrid.js';
 import { FONT } from './mafiaconst.js';
+import makeLibrary from './furn-library.js';
+import makeSchool from './furn-school.js';
+import makeAcademy from './furn-academy.js';
 
 const INK = '#2a2140';
 const WALL_FILL = '#8a78d8';
@@ -472,6 +475,14 @@ const FURNITURE = {
     for (let i = 0; i * 30 < h - 10; i++) rr(c, x + 8, y + 8 + i * 30, w - 16, 14, 6, cols[i % 4], 2);
   },
 };
+
+// 맵 전용 가구·바닥 (furn-*.js). 이미 있는 이름은 덮어쓰지 않는다.
+const KIT = { rr, circle, shadow, lines, checker, label, clipRect, INK };
+for (const make of [makeLibrary, makeSchool, makeAcademy]) {
+  const extra = make(KIT);
+  for (const [k, fn] of Object.entries(extra.FURN || {})) if (!FURNITURE[k]) FURNITURE[k] = fn;
+  for (const [k, fn] of Object.entries(extra.FLOORS || {})) if (!FLOORS[k]) FLOORS[k] = fn;
+}
 
 // ───────────── 살짝 무서운 장식 (지나다닐 때 걸리지 않는 그림) ─────────────
 // 방 구석의 거미줄

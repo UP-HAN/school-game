@@ -51,7 +51,12 @@ export function chaserCount(settings, playerCount) {
   return Math.max(1, Math.min(want, maxChasers(settings.mode, playerCount)));
 }
 
-export const MAPS = [{ id: 'monster-gym', name: '몬스터 체육관' }];
+export const MAPS = [
+  { id: 'monster-gym', name: '몬스터 체육관', desc: '방 8개 · 미끄럼틀과 개구멍 (학생만 탈 수 있어요)' },
+  { id: 'moon-library', name: '달빛 대도서관', desc: '책장 미로 · 책 반납 미끄럼틀과 비밀 통로 (숨기 좋은 맵)' },
+  { id: 'night-school', name: '한밤의 학교', desc: '운동장과 교실 · 아주 큰 맵 (8명 이상 추천)' },
+  { id: 'star-academy', name: '한밤의 별빛 학원', desc: '3층 건물 · 계단·엘리베이터·미끄럼틀로 층 이동' },
+];
 
 export const LIMITS = {
   maxPlayers: 10,

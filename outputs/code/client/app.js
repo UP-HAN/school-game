@@ -775,13 +775,15 @@ async function runLoading(ms) {
   if (game) game.setPaused(true);
   renderAction();
   let mapName = (MAPS.find((m) => m.id === room.settings.map) || {}).name || '';
+  let mapTips = [];
   try {
     const data = await (await fetch(pageUrl(`./maps/${room.settings.map}.json`))).json();
     if (data && data.name) mapName = data.name;
+    if (data && Array.isArray(data.tips)) mapTips = data.tips;
   } catch {
     /* 이름은 MAPS 목록 것으로 */
   }
-  await showLoading({ mode: modeOf(), modeName: T().mode, mapName, chaserSpeed: room.settings.chaserSpeed, ms });
+  await showLoading({ mode: modeOf(), modeName: T().mode, mapName, mapTips, chaserSpeed: room.settings.chaserSpeed, ms });
   loading = false;
   if (game) game.setPaused(!!(mission && mission.isOpen()));
   if (pendingIntro && room && room.phase === 'game' && !room.over) showIntro(...pendingIntro);

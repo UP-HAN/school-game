@@ -41,9 +41,6 @@ const MODE_INFO = {
   'sleep-tag': { line: '잠귀신을 피해 퀴즈를 맞히고 랜턴을 켜요. 꿈에 빠진 친구는 옆에서 깨워 줘요.', kind: 6, color: 7 },
   mafia: { line: '친구들 사이에 숨은 꿈도둑을 모닥불 회의와 지목으로 찾아내요.', kind: 7, color: 4 },
 };
-const MAP_INFO = {
-  'monster-gym': '방 8개 · 미끄럼틀과 개구멍 (학생만 탈 수 있어요)',
-};
 
 // 예시 문제 (여러 과목이 섞인 연습용)
 const EXAMPLES = [
@@ -340,7 +337,7 @@ export function initTeacherSetup(opts) {
     const box = document.createElement('span');
     box.className = 'ts-thumb';
     box.textContent = '그림 준비 중…';
-    $('ts-maps').append(card('map', m.id, m.name, MAP_INFO[m.id] || '', box));
+    $('ts-maps').append(card('map', m.id, m.name, m.desc || '', box));
     drawThumb(m.id, box);
   }
   // 맵 미리보기: 맵 데이터에 그림 주소(thumb)가 있으면 그 그림, 없으면 게임 지도를 작게 그린다

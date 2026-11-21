@@ -56,13 +56,13 @@ for (const n of ['loading', 'win', 'lose']) {
 
 let loadingRun = 0;
 /** 시작 로딩 화면. 끝나면 resolve. { mode, modeName, mapName, ms } */
-export function showLoading({ mode, modeName, mapName, chaserSpeed, ms = 3500 }) {
+export function showLoading({ mode, modeName, mapName, mapTips, chaserSpeed, ms = 3500 }) {
   const run = ++loadingRun;
   const el = $('g-loading');
   const cv = $('g-loading-canvas');
   $('g-loading-mode').textContent = modeName || '';
   $('g-loading-map').textContent = mapName || '';
-  const tips = tipsFor(mode, chaserSpeed);
+  const tips = tipsFor(mode, chaserSpeed, mapTips);
   let tipIndex = 0;
   $('g-loading-tip').textContent = tips[0] || '';
   el.hidden = false;

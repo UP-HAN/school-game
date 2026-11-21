@@ -33,7 +33,8 @@ const MAFIA = [
 const CHASER_SPEED_TIP = { fast: '이번 판은 잠귀신이 조금 빨라요!', very: '이번 판은 잠귀신이 매우 빨라요! 조심해요!' };
 
 // chaserSpeed: room.settings.chaserSpeed ('same'|'fast'|'very'). 잠귀신 술래잡기에서 빠르게 골랐으면 첫 TIP 으로 보여 준다.
-export function tipsFor(mode, chaserSpeed) {
+// mapTips: 맵 데이터(maps/*.json)의 tips 글귀. 맵 설명이 먼저 보이도록 앞쪽에 넣는다.
+export function tipsFor(mode, chaserSpeed, mapTips = []) {
   const list = [...(mode === 'mafia' ? MAFIA : SLEEP), ...COMMON];
   // 무작위 순서
   for (let i = list.length - 1; i > 0; i--) {
@@ -41,5 +42,6 @@ export function tipsFor(mode, chaserSpeed) {
     [list[i], list[j]] = [list[j], list[i]];
   }
   if (mode !== 'mafia' && CHASER_SPEED_TIP[chaserSpeed]) list.unshift(CHASER_SPEED_TIP[chaserSpeed]);
+  if (Array.isArray(mapTips) && mapTips.length) list.unshift(...mapTips.filter((x) => typeof x === "string").slice(0, 3));
   return list;
 }
