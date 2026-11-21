@@ -798,6 +798,15 @@ body[data-role="teacher"] .home-card > #create-form { grid-column: auto; grid-ro
 .ts-tools .btn.small { min-height: 44px; }
 .ts-tools .grow { flex: 1; }
 .ts-saved { width: auto; max-width: 100%; margin: 0; min-height: 44px; font-size: 1rem; border-width: 3px; }
+/* 문제 은행 창 */
+.bk-list { display: grid; gap: 10px; margin-top: 12px; min-height: 120px; align-content: start; }
+.bk-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; background: #fff; border: 3px solid var(--ink); border-radius: 14px; }
+.bk-info { flex: 1 1 240px; min-width: 0; display: grid; gap: 4px; }
+.bk-info b { overflow-wrap: anywhere; }
+.bk-tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 0; }
+.bk-tags span { padding: 1px 10px; border-radius: 999px; background: #d9f7ec; border: 2px solid var(--ink); font-size: .85rem; font-weight: 700; }
+.bk-row .btn.small { min-height: 44px; text-decoration: none; }
+.bk-empty { padding: 24px 0; text-align: center; }
 .ts-title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: .95rem; white-space: nowrap; }
 .ts-title input { margin: 0; min-height: 44px; font-size: 1rem; border-width: 3px; width: 220px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

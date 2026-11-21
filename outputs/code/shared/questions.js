@@ -112,3 +112,13 @@ export function buildPrompt({ count = 30, grade = '초등학생' } = {}) {
 
 파일 이름은 "과목_단원_주제.xlsx"로 해 주세요.`;
 }
+
+/** 문제 은행 목록(client/bank/index.json) 내용을 믿을 수 있는 목록으로 다듬는다 (파일 이름이 이상한 줄은 뺀다) */
+export function cleanBankIndex(raw) {
+  const list = raw && Array.isArray(raw.sets) ? raw.sets : [];
+  const text = (v) => (typeof v === 'string' || typeof v === 'number' ? String(v).trim() : '');
+  return list
+    .map((s) => ({ grade: text(s && s.grade), subject: text(s && s.subject), unit: text(s && s.unit), title: text(s && s.title), file: text(s && s.file) }))
+    .filter((s) => /\.xlsx$/i.test(s.file) && !/[\\/]/.test(s.file) && !s.file.startsWith('.'))
+    .map((s) => ({ ...s, title: s.title || s.file.replace(/\.xlsx$/i, '') }));
+}

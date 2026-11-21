@@ -1,5 +1,5 @@
 // 선생님 페이지 첫 화면: 방을 만들기 전에 한 화면에서 준비한다.
-//   ① 문제 넣기(직접 입력 표 · 엑셀 올리기 · 빈 양식 · AI 요청문 · 예시 · 보관한 세트)
+//   ① 문제 넣기(직접 입력 표 · 문제 은행 · 엑셀 올리기 · 빈 양식 · AI 요청문 · 예시 · 보관한 세트)
 //   ② 놀이 방법 ③ 맵 ④ 자세히 설정 → [방 만들기]
 // 방 만들기를 누르면 create 를 보내고, 서버가 'created' 로 답하면 고른 설정(settings)과 문제(questions)를
 // 기존 메시지 그대로 곧바로 보낸다. 고른 설정은 localStorage(sg-tsetup), 문제는 qset.js 의 초안(sg-qdraft)에 남는다.
@@ -12,6 +12,7 @@ import {
   loadDraft, saveDraft, blankRow, toRow, rowFilled, checkRows, loadSaved, saveSet,
   downloadTemplate, downloadRows, readQuestionFile, DRAFT_EVENT,
 } from './qset.js';
+import { initBank } from './bank.js';
 
 const $ = (id) => document.getElementById(id);
 const SETUP_KEY = 'sg-tsetup';
@@ -232,6 +233,8 @@ export function initTeacherSetup(opts) {
     opts.toast(`${replace ? '' : '이어 붙여서 '}문제가 ${good}개 들어 있어요.`);
   }
 
+  const bank = initBank({ toast: opts.toast, onPick: putItems });
+  $('ts-bank').addEventListener('click', () => bank.open());
   $('ts-upload').addEventListener('click', () => $('ts-file').click());
   $('ts-file').addEventListener('change', async (e) => {
     const file = e.target.files[0];

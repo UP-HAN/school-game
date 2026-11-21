@@ -343,6 +343,21 @@
     </footer>
   </dialog>
 
+  <!-- 선생님: 문제 은행 (목록은 client/bank/index.json, 동작은 client/bank.js) -->
+  <dialog id="dlg-bank" class="dlg wide">
+    <h2>📚 문제 은행</h2>
+    <p class="hint">세트를 골라 <b>[담기]</b>를 누르면 문제 표에 들어가요. 담은 뒤에 필요 없는 문제는 지우고, 고쳐 써도 돼요.</p>
+    <div class="row bk-filter">
+      <label>학년 <select id="bk-grade"></select></label>
+      <label>과목 <select id="bk-subject"></select></label>
+    </div>
+    <div id="bk-list" class="bk-list"></div>
+    <footer class="dlg-foot">
+      <p id="bk-count" class="sub"></p>
+      <button id="bk-close" class="btn primary" type="button">닫기</button>
+    </footer>
+  </dialog>
+
   <!-- 선생님: AI 요청문 -->
   <dialog id="dlg-prompt" class="dlg">
     <h2>AI 요청문</h2>
