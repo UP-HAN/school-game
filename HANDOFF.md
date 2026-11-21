@@ -136,3 +136,11 @@
 - **일러스트(Codex 제작)**: 원본 PNG 는 용량이 커서 git 에 안 올림(이 PC 의 `outputs/art/illust/`), 프롬프트 `*.prompt.txt` 는 올림, 쓰는 파일은 `outputs/code/client/art/bg-{landing,loading,win,lose}.jpg`(JPG 압축, 각 약 300KB). 첫 화면=body 배경, 로딩=`.loading`, 끝 화면=`.ending`(승리 win / 패배 lose / 무승부 landing) — 모두 `client/style.css`. 끝 화면 캔버스는 꽃가루만 그린다.
 - **자동 시험**: `npm test` 8개 묶음 전부 통과(88·87·51·20·34·52·12·30).
 - **아직 안 한 것**: 이 변경 서버 반영(push 후 `DEPLOY.md` 7절), 실제 태블릿·휴대폰 확인, 접속자 수·사용법 영상(나중에), 안 쓰는 `client/impconst.js` 삭제 여부 확인.
+
+## 5-5. 새 맵 3개 (2026-11-21)
+- **맵 4개**: 몬스터 체육관 / 달빛 대도서관(`moon-library`, 3000×2000, 방 9개, 랜턴 8) / 한밤의 학교(`night-school`, 3600×2400, 운동장·교실, 랜턴 10, 8명 이상 추천) / 한밤의 별빛 학원(`star-academy`, 3층). 컨셉 `outputs/07-maps-concept.md`, 그림 `outputs/art/maps/`.
+- **맵 추가 방법**: `shared/config.js` `MAPS` 에 한 줄 + `maps/<id>.json` + 새 가구는 `client/furn-<맵>.js`(이름이 다른 맵과 겹치지 않게 앞글자: `lib`·`sch`·`ac`). 로딩 TIP 은 맵 JSON `tips`. 검사는 `node tools/map-check.mjs --map <id> --png <경로>`.
+- **3층 학원 구조**: 층 = 한 맵 좌표 위의 세 구역(1520px 간격). 맵 JSON `floors`, 층 이동은 `teleport` 장치(계단 8·엘리베이터 문 6·미끄럼틀 3층→1층·개구멍). 잠 안개는 `fog.mode:'floors'` — 3층 → 2층 순서로 어두워지고 마지막엔 1층만 안전. 자세한 형식은 `outputs/06-spec-revamp.md` 12-6절.
+- **자동 시험**: `npm test` 11묶음 전부 통과(기존 8 + 학원 37·도서관 38·학교 25).
+- **브라우저 확인(컴퓨터 크기)**: 선생님 맵 고르기에 4개 카드, 학원 맵 실제 판에서 지도(M) 층 3칸·엘리베이터 이동·층 이름 큰 글씨 확인. 도서관·학교는 맵 그림과 봇 판(자동 시험)으로만 확인.
+- **아직 안 한 것**: 사람이 하는 실제 판으로 난이도 조절(도서관 미로가 쉬운 편, 학원 계단 대기 1초 등), 휴대폰·태블릿에서 큰 맵(학교 860만·학원 1100만 화소) 속도 확인, 서버 반영(push + `DEPLOY.md` 7절).
