@@ -127,3 +127,12 @@
 - 서버 구성: 전용 사용자 `lantern`, 폴더 `/opt/lantern`(git clone), Node 22(nvm, lantern 전용), systemd 서비스 `lantern`, 내부 포트 127.0.0.1:3600 (3100 은 다른 프로그램이 사용 중), 설정 `/opt/lantern/outputs/code/.env`(root 소유 600, 선생님 비밀번호는 선생님이 직접 입력).
 - nginx: `/etc/nginx/snippets/lantern.conf` 를 `sites-available/lab.ches.es.kr` 의 443 블록에서 `include` (백업 `lab.ches.es.kr.bak-lantern-*`). 되돌리기·업데이트 방법은 `outputs/code/deploy/DEPLOY.md` 7·8절.
 - 확인: 브라우저에서 학생 페이지·선생님 페이지 열림, 웹소켓 연결 열림. 실제 한 판(여러 기기)과 휴대폰 LTE 접속은 아직 확인 못 함.
+
+## 5-4. 개편·일러스트 현황 (2026-11-21)
+- **이름·용어**: 한밤의 랜턴 대작전 / 잠귀신 술래잡기(`sleep-tag`) / 꿈도둑을 찾아라(`mafia`) / 학생·잠귀신·꿈도둑 / 꿈에 빠짐·깨우기. 설계서 `outputs/06-spec-revamp.md` (※ 키 표 §11-2/11-3, B22 는 옛날 내용 — 아래 조작 기준이 최신).
+- **조작(최신)**: 이동 WASD·방향키 / 행동 Space·Enter / 꿈도둑 방해 1·2·3(바로 누름) / 가방 B / 수첩 N / 지도 M / 닫기 Esc. 큰 버튼 밑에 키 이름 표시(터치 기기에서는 숨김). 정의는 `client/keys.js`.
+- **선생님 페이지**: 비밀번호 없음. 방 수 제한·자동 정리(`MAX_ROOMS` 등)로 대신함. 순서 = 문제 → 모드 → 맵 → 설정 → "방 만들기". 서버 `.env` 의 `TEACHER_PASSWORD=` 는 비워 둔다(배포 갱신 때 `DEPLOY.md` 7절).
+- **잠귀신 속도**: 설정에서 "같음 / 조금 빠름(1.15배) / 매우 빠름(1.4배)" 선택. 안개 밖 졸음은 10초(`FOG.drowsyMs`).
+- **일러스트(Codex 제작)**: 원본 PNG 는 용량이 커서 git 에 안 올림(이 PC 의 `outputs/art/illust/`), 프롬프트 `*.prompt.txt` 는 올림, 쓰는 파일은 `outputs/code/client/art/bg-{landing,loading,win,lose}.jpg`(JPG 압축, 각 약 300KB). 첫 화면=body 배경, 로딩=`.loading`, 끝 화면=`.ending`(승리 win / 패배 lose / 무승부 landing) — 모두 `client/style.css`. 끝 화면 캔버스는 꽃가루만 그린다.
+- **자동 시험**: `npm test` 8개 묶음 전부 통과(88·87·51·20·34·52·12·30).
+- **아직 안 한 것**: 이 변경 서버 반영(push 후 `DEPLOY.md` 7절), 실제 태블릿·휴대폰 확인, 접속자 수·사용법 영상(나중에), 안 쓰는 `client/impconst.js` 삭제 여부 확인.

@@ -759,6 +759,11 @@ function showIntro(role, info) {
       role === 'chaser'
         ? '학생을 꿈에 빠뜨려 아침이 오지 못하게 막아요.\n꿈 구슬이 있어야 해요 — 랜턴 퀴즈를 맞히면 생겨요.\n개구멍·미끄럼틀은 못 타요.'
         : '꺼진 랜턴을 찾아 퀴즈를 맞히고 불을 켜요.\n꿈에 빠진 친구는 옆에서 꾹 눌러 깨워 줘요.\n개구멍은 잠귀신이 못 따라와요.';
+    const sp = room && room.settings && room.settings.chaserSpeed;
+    if (sp === 'fast' || sp === 'very') {
+      const how = sp === 'very' ? '매우 ' : '조금 ';
+      $('g-intro-text').textContent += role === 'chaser' ? `\n(이번 판은 잠귀신이 ${how}빨라요!)` : `\n⚠ 잠귀신이 ${how}빨라요!`;
+    }
   }
   el.classList.toggle('chaser', role === 'chaser');
   el.hidden = false;
@@ -776,7 +781,7 @@ async function runLoading(ms) {
   } catch {
     /* 이름은 MAPS 목록 것으로 */
   }
-  await showLoading({ mode: modeOf(), modeName: T().mode, mapName, ms });
+  await showLoading({ mode: modeOf(), modeName: T().mode, mapName, chaserSpeed: room.settings.chaserSpeed, ms });
   loading = false;
   if (game) game.setPaused(!!(mission && mission.isOpen()));
   if (pendingIntro && room && room.phase === 'game' && !room.over) showIntro(...pendingIntro);

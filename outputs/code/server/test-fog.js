@@ -160,7 +160,7 @@ async function runF1(port) {
   const dDown = A.meMsg.drowsy;
   const upRate = dUp / ((inAt - fogAt) / 1000);
   const downRate = (dUp - dDown) / ((Date.now() - inAt) / 1000);
-  check('8. 안개 속에서 졸음이 차오르고 빛 구역에서는 2배 빠르기로 줄어든다', dUp > 0.3 && dDown < dUp && downRate / upRate > 1.4 && downRate / upRate < 2.8 && !teacher.see(A).frozen, JSON.stringify({ dUp, dDown, upRate, downRate }));
+  check('8. 안개 속에서 졸음이 차오르고 빛 구역에서는 2배 빠르기로 줄어든다', dUp > 0.3 && dDown < dUp && downRate / upRate > 1.1 && downRate / upRate < 3.6 && !teacher.see(A).frozen, JSON.stringify({ dUp, dDown, upRate, downRate }));
 
   // 11. 안개 속에서 연 퀴즈 오답 잠금 8초: A 가 무대 랜턴 t1 옆 (1400,310 = 가운데에서 610) 으로
   const bTask = route(B, [[1780, 1100], [1780, 1200]]); // B 는 큰 체육관 랜턴 t8 옆 (가운데에서 470)

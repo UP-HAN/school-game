@@ -49,20 +49,24 @@ function ground(c, w, h, color) {
   c.fill();
 }
 
+// 로딩·끝 화면 배경 그림을 미리 받아 둔다 (처음 띄울 때 깜빡임 방지)
+for (const n of ['loading', 'win', 'lose']) {
+  try { new Image().src = 'art/bg-' + n + '.jpg'; } catch { /* 무시 */ }
+}
+
 let loadingRun = 0;
 /** 시작 로딩 화면. 끝나면 resolve. { mode, modeName, mapName, ms } */
-export function showLoading({ mode, modeName, mapName, ms = 3500 }) {
+export function showLoading({ mode, modeName, mapName, chaserSpeed, ms = 3500 }) {
   const run = ++loadingRun;
   const el = $('g-loading');
   const cv = $('g-loading-canvas');
   $('g-loading-mode').textContent = modeName || '';
   $('g-loading-map').textContent = mapName || '';
-  const tips = tipsFor(mode);
+  const tips = tipsFor(mode, chaserSpeed);
   let tipIndex = 0;
   $('g-loading-tip').textContent = tips[0] || '';
   el.hidden = false;
   const start = performance.now();
-  const crew = CHARACTERS.map((ch, i) => ({ kind: ch.id, color: COLORS[(i * 3 + 2) % COLORS.length].hex, seed: i * 0.7 }));
   return new Promise((resolve) => {
     let lastTip = start;
     function frame(now) {
@@ -74,21 +78,7 @@ export function showLoading({ mode, modeName, mapName, ms = 3500 }) {
         tipIndex = (tipIndex + 1) % tips.length;
         $('g-loading-tip').textContent = tips[tipIndex];
       }
-      const { c, w, h } = fitCanvas(cv);
-      const t = reduced() ? 0 : now / 1000;
-      sky(c, w, h, '#1f2a52', '#3b3f7a');
-      starsBg(c, w, h, t);
-      drawMoon(c, w * 0.85, h * 0.14, Math.min(w, h) * 0.06, 0.4);
-      ground(c, w, h, '#2b2a5c');
-      // 랜턴을 든 친구들이 줄지어 걸어간다
-      const size = Math.max(70, Math.min(120, h * 0.14));
-      const span = w + size * 3;
-      crew.forEach((p, i) => {
-        const x = ((t * 60 + (i / crew.length) * span) % span) - size;
-        const y = h * 0.93;
-        drawCharacter(c, { kind: p.kind, color: p.color, x, y, size, t, seed: p.seed, moving: true });
-        drawLantern(c, x + size * 0.32, y - size * 0.32, true, size / 150);
-      });
+      if (!reduced()) fitCanvas(cv); // 배경 그림은 CSS(art/bg-loading.jpg). 캔버스는 쓰지 않음
       if (k < 1) requestAnimationFrame(frame);
       else {
         el.hidden = true;
@@ -132,59 +122,7 @@ export function showEnding({ result, title, sub, chars = [], horns = false, ms =
       const e = now - start;
       const { c, w, h } = fitCanvas(cv);
       const t = reduced() ? 0 : now / 1000;
-      if (bright) {
-        sky(c, w, h, '#ffb98a', '#fff1c9'); // 새벽빛
-        const sun = c.createRadialGradient(w / 2, h * 0.78, 10, w / 2, h * 0.78, h * 0.6);
-        sun.addColorStop(0, 'rgba(255,246,229,1)');
-        sun.addColorStop(1, 'rgba(255,246,229,0)');
-        c.fillStyle = sun;
-        c.fillRect(0, 0, w, h);
-        ground(c, w, h, '#ffd29a');
-      } else {
-        sky(c, w, h, '#14182f', '#2e2a55');
-        starsBg(c, w, h, t, 0.6);
-        c.fillStyle = 'rgba(155,107,242,0.18)'; // 안개
-        for (let i = 0; i < 6; i++) {
-          c.beginPath();
-          c.ellipse(((i * 0.23 + t * 0.02) % 1.2) * w, h * (0.6 + (i % 3) * 0.08), w * 0.25, h * 0.06, 0, 0, Math.PI * 2);
-          c.fill();
-        }
-        ground(c, w, h, '#1d1b3d');
-      }
-      const list = chars.length ? chars : [{ kind: 'kid', color: '#ffb547' }];
-      // 가로로 눕힌 휴대폰처럼 낮은 화면에서는 캐릭터가 글자를 가리지 않게 높이에 맞춰 줄인다
-      const size = Math.max(Math.min(70, h * 0.2), Math.min(140, h * 0.26, (w * 0.8) / Math.max(4, list.length)));
-      const gap = Math.min(size * 1.1, (w * 0.86) / list.length);
-      list.forEach((p, i) => {
-        const x = w / 2 + (i - (list.length - 1) / 2) * gap;
-        const jump = bright && result === 'win' ? Math.abs(Math.sin(t * 6 + i * 0.7)) * size * 0.22 : 0;
-        const y = h * 0.86 - jump;
-        if (!bright) {
-          // 풀 죽은 모습: 고개를 숙이고 살짝 기운다
-          c.save();
-          c.translate(x, y);
-          c.rotate(Math.sin(i) * 0.08 + 0.12);
-          c.globalAlpha = 0.85;
-          drawCharacter(c, { kind: p.kind, color: p.color, x: 0, y: 0, size: size * 0.92, t: 0, seed: i, moving: false });
-          c.restore();
-          c.globalAlpha = 1;
-        } else drawCharacter(c, { kind: p.kind, color: p.color, x, y, size, t, seed: i, moving: result === 'win' });
-        if (horns) {
-          const top = y - size * (p.kind === 'slime' ? 0.72 : 1) - 2;
-          c.fillStyle = '#9b6bf2';
-          c.strokeStyle = '#2a2140';
-          c.lineWidth = 3;
-          for (const s of [-1, 1]) {
-            c.beginPath();
-            c.moveTo(x + s * 10, top);
-            c.lineTo(x + s * 24, top);
-            c.lineTo(x + s * 20, top - 22);
-            c.closePath();
-            c.fill();
-            c.stroke();
-          }
-        }
-      });
+      c.clearRect(0, 0, w, h); // 배경 그림은 CSS(art/bg-*.jpg), 여기서는 꽃가루만 그린다
       // 꽃가루
       for (const f of confetti) {
         const y = ((e / 1000) * f.d * 0.35 + f.x * 0.7) % 1.1;
