@@ -6,7 +6,7 @@
 import { CHARACTERS, MODES, MAPS, MINUTES } from './shared/config.js';
 import { MAF, MEETING_CHOICES } from './mafiaconst.js';
 import { buildGrid } from './shared/mapgrid.js';
-import { renderMap } from './maprender.js';
+import { renderMap, renderOverview } from './maprender.js';
 import { HEADER } from './shared/questions.js';
 import {
   loadDraft, saveDraft, blankRow, toRow, rowFilled, checkRows, loadSaved, saveSet,
@@ -352,6 +352,11 @@ export function initTeacherSetup(opts) {
         return;
       }
       const big = renderMap(data, buildGrid(data), { mode: setup.mode });
+      if (data.floors && data.floors.length) {
+        // 여러 층 맵: 층 사이 밤하늘을 빼고 층마다 한 칸씩 모아 그린다 (미리보기 칸 비율 2800:1900)
+        box.replaceChildren(renderOverview(data, big, 560, 380));
+        return;
+      }
       const cv = document.createElement('canvas');
       const w = 480;
       cv.width = w;

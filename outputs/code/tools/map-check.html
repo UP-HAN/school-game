@@ -24,9 +24,20 @@ const map = await (await fetch(base ? `${base}${mapId}.json` : `/maps/${mapId}.j
 const g = G.buildGrid(map);
 const r = GAME.radius;
 const cv = document.getElementById('cv');
+const c = cv.getContext('2d');
+// ?view=overview: 선생님 맵 고르기 미리보기·여러 층 한눈에 보기 그림만 찍는다 (?w=·&h= 크기)
+if (q.get('view') === 'overview' && R.renderOverview) {
+  const w = Number(q.get('w')) || 1600;
+  const h = Number(q.get('h')) || 1000;
+  cv.width = w;
+  cv.height = h;
+  c.drawImage(R.renderOverview(map, R.renderMap(map, g, { mode: q.get('mode') || 'mafia' }), w, h), 0, 0);
+  document.title = 'done';
+  window.__done = true;
+  throw new Error('overview only'); // 아래 점검 그림은 그리지 않는다
+}
 cv.width = map.size[0];
 cv.height = map.size[1];
-const c = cv.getContext('2d');
 c.drawImage(R.renderMap(map, g, { mode: 'mafia' }), 0, 0);
 
 // 1. 발 중심이 설 수 없는 바닥 (벽·건물 밖은 원래 막힌 곳이라 칠하지 않는다)
@@ -42,31 +53,11 @@ for (let y = 0; y < map.size[1]; y += S) {
   }
 }
 
-// 2. 시작 위치에서 걸어서 갈 수 있는 곳 (10px 격자 BFS). 설 수는 있는데 못 가는 곳은 보라색
-const step = 10;
-const W = Math.ceil(map.size[0] / step);
-const H = Math.ceil(map.size[1] / step);
-const ok = new Uint8Array(W * H);
-const seen = new Uint8Array(W * H);
-for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) ok[j * W + i] = G.canStand(g, i * step, j * step, r) ? 1 : 0;
-const [sx, sy] = map.spawn.pos;
-const s0 = Math.round(sy / step) * W + Math.round(sx / step);
-const st = ok[s0] ? [s0] : [];
-if (st.length) seen[s0] = 1;
-while (st.length) {
-  const k = st.pop();
-  const i = k % W;
-  const j = (k - i) / W;
-  for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-    const ni = i + di;
-    const nj = j + dj;
-    if (ni < 0 || nj < 0 || ni >= W || nj >= H) continue;
-    const n = nj * W + ni;
-    if (ok[n] && !seen[n]) (seen[n] = 1, st.push(n));
-  }
-}
+// 2. 시작 위치에서 걸어서 갈 수 있는 곳 (10px 격자, mapgrid.js 의 walkMap — 장치(계단 등)로 이어진 곳도 갈 수 있는 곳).
+//    설 수는 있는데 못 가는 곳은 보라색
+const { step, W, ok, seen } = G.walkMap(map, g, r);
 c.fillStyle = 'rgba(160,40,255,.65)';
-for (let k = 0; k < W * H; k++) if (ok[k] && !seen[k]) c.fillRect((k % W) * step - 4, Math.floor(k / W) * step - 4, 8, 8);
+for (let k = 0; k < ok.length; k++) if (ok[k] && !seen[k]) c.fillRect((k % W) * step - 4, Math.floor(k / W) * step - 4, 8, 8);
 
 // 3. 가구 그림 칸(파란 점선)과 실제로 막힌 칸(빨간 실선)
 c.lineWidth = 2;
@@ -101,9 +92,10 @@ const lines = [
 ];
 c.font = '700 26px "Malgun Gothic", sans-serif';
 c.fillStyle = 'rgba(0,0,0,.72)';
-c.fillRect(10, 1760, 900, 130);
+const ly = map.size[1] - 140; // 범례는 맵 왼쪽 아래
+c.fillRect(10, ly, 900, 130);
 c.fillStyle = '#fff';
-lines.forEach((t, i) => c.fillText(t, 24, 1790 + i * 30));
+lines.forEach((t, i) => c.fillText(t, 24, ly + 30 + i * 30));
 document.title = 'done';
 window.__done = true;
 </script>

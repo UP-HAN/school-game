@@ -3,6 +3,7 @@
 //   node tools/map-check.mjs --png 파일.png      → 점검 그림도 찍는다 (설치된 크롬/엣지를 화면 없이 띄워서)
 //   --before 폴더                                 → 그 폴더의 mapgrid.js·config.js·maprender.js·<맵>.json 사본으로 점검 (고치기 전 비교용)
 //   --map monster-gym                             → 맵 id (기본 monster-gym)
+//   --overview                                    → (--png 와 같이) 점검 그림 대신 층 한눈에 보기 미리보기 그림 (1600×1000)
 import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
@@ -77,7 +78,10 @@ async function shoot() {
     });
   });
   await new Promise((ok) => srv.listen(0, '127.0.0.1', ok));
-  const url = `http://127.0.0.1:${srv.address().port}/tools/map-check.html?map=${mapId}${beforeDir ? '&src=before' : ''}`;
+  // --overview: 점검 그림 대신 여러 층 한눈에 보기(선생님 맵 고르기 미리보기와 같은 그림)를 1600×1000 으로 찍는다
+  const overview = args.includes('--overview');
+  const [shotW, shotH] = overview ? [1600, 1000] : map.size;
+  const url = `http://127.0.0.1:${srv.address().port}/tools/map-check.html?map=${mapId}${beforeDir ? '&src=before' : ''}${overview ? `&view=overview&w=${shotW}&h=${shotH}` : ''}`;
   const browsers = [
     'C:/Program Files/Google/Chrome/Application/chrome.exe',
     'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
@@ -95,7 +99,7 @@ async function shoot() {
   fs.mkdirSync(path.dirname(pngOut), { recursive: true });
   const profile = fs.mkdtempSync(path.join((await import('node:os')).tmpdir(), 'mapcheck-'));
   await new Promise((ok) => {
-    const p = spawn(exe, ['--headless=new', '--disable-gpu', '--hide-scrollbars', `--user-data-dir=${profile}`, `--window-size=${map.size[0]},${map.size[1]}`, '--virtual-time-budget=8000', `--screenshot=${pngOut}`, url], { stdio: 'ignore' });
+    const p = spawn(exe, ['--headless=new', '--disable-gpu', '--hide-scrollbars', `--user-data-dir=${profile}`, `--window-size=${shotW},${shotH}`, '--virtual-time-budget=8000', `--screenshot=${pngOut}`, url], { stdio: 'ignore' });
     p.on('exit', ok);
   });
   srv.close();

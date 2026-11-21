@@ -1,7 +1,7 @@
 // 게임 화면: 맵 위에서 돌아다니기, 잠귀신·꿈에 빠진 친구 표시, 시야, 잠 안개, 보급 상자, 미끄럼틀·개구멍 연출.
 // 꿈도둑을 찾아라 모드(mode 'mafia')에서는 꿈에 빠진 학생·꿈에 빠진 자리·동료 뿔·변신·안개 뿌리기·문 막기도 그린다.
 import { COLORS, GAME } from './shared/config.js';
-import { buildGrid, canStand, zoneAt } from './shared/mapgrid.js';
+import { buildGrid, canStand, zoneAt, floorAt, floorPanels, floorShort, DEVICE_STYLES } from './shared/mapgrid.js';
 import { renderMap, drawLantern } from './maprender.js';
 import { drawCharacter } from './characters.js';
 import { KEYS } from './keys.js';
@@ -107,10 +107,14 @@ export async function startGame(opts) {
   let myFx = {}; // 내 아이템 효과 → 끝나는 때
   let hint = null; // { room, x, y, exact, until }
   const lanternReady = {}; // 잠귀신: 랜턴별 다시 켤 수 있는 때
-  const devReady = {}; // 장치별 다시 탈 수 있는 때
+  const devReady = {}; // 장치별 다시 탈 수 있는 때 (cooldown.group 이 같은 장치들은 같은 칸)
+  const devKey = (d) => (d.cooldown && d.cooldown.group) || d.id;
+  // 계단·엘리베이터는 도착한 곳에 짝 장치가 있어서 "출구" 안내를 하지 않는다
+  const pairDevice = (d) => d.style === 'stairs-up' || d.style === 'stairs-down' || d.style === 'elevator';
   let notebookOn = true;
   let visK = 1; // 안개 시야 배율 (부드럽게 바뀜)
   let waking = null; // 내가 깨우는 중인 친구 { id, at, ms }
+  let myFloor = null; // 여러 층 맵: 지금 내가 있는 층 (바뀌면 opts.onFloor)
 
   function setPlayers(list, isOver) {
     over = !!isOver;
@@ -226,6 +230,19 @@ export async function startGame(opts) {
   // ───── 잠 안개 (room.fog) ─────
   function setFog(f) {
     const now = performance.now();
+    if (f && f.mode === 'floors') {
+      // 층 단위 안개: safe = 지금 안전한 층 id (null 이면 모두 안전), nextSafe = 다음 단계에 안전한 층
+      fog = {
+        mode: 'floors',
+        stage: f.stage || 0,
+        safe: Array.isArray(f.safe) ? f.safe : null,
+        nextSafe: Array.isArray(f.nextSafe) ? f.nextSafe : null,
+        shrinkMs: 0,
+        at: now,
+        nextAt: typeof f.nextMsLeft === 'number' ? now + f.nextMsLeft : null,
+      };
+      return;
+    }
     if (!f || !(f.stage >= 1) || typeof f.r !== 'number') {
       fog = f && typeof f.nextMsLeft === 'number' ? { stage: 0, nextAt: now + f.nextMsLeft, nextR: f.nextR, cx: f.cx, cy: f.cy } : null;
       return;
@@ -249,6 +266,10 @@ export async function startGame(opts) {
   }
   function inFogAt(x, y, now) {
     if (!fog || !(fog.stage >= 1)) return false;
+    if (fog.mode === 'floors') {
+      const fl = floorAt(map, x, y);
+      return !!fl && !!fog.safe && !fog.safe.includes(fl.id);
+    }
     return Math.hypot(x - fog.cx, y - fog.cy) > fogR(now);
   }
   function fogInfo() {
@@ -312,8 +333,13 @@ export async function startGame(opts) {
         path: slide ? [ev.from, device.from, ...(device.path || []), device.to] : [ev.from, device ? device.from : ev.from, ev.to],
         to: ev.to,
       };
-      if (q === me && device) devReady[device.id] = now + (ev.ms || 1500) + ((device.cooldown && device.cooldown.seconds) || 10) * 1000;
-      popups.push({ text: slide ? '슈웅~' : '쏙!', x: ev.from[0], y: ev.from[1] - 90, at: now, color: '#ff7a59' });
+      if (q === me && device) {
+        const cd = device.cooldown;
+        devReady[devKey(device)] = now + (ev.ms || 1500) + (cd && typeof cd.seconds === 'number' ? cd.seconds : 10) * 1000;
+      }
+      const RIDE_TEXT = { 'stairs-up': '총총!', 'stairs-down': '총총!', elevator: '띵동!', tube: '슈웅~' };
+      const text = (device && RIDE_TEXT[device.style]) || (slide ? '슈웅~' : '쏙!');
+      popups.push({ text, x: ev.from[0], y: ev.from[1] - 90, at: now, color: '#ff7a59' });
     }
   }
 
@@ -395,24 +421,27 @@ export async function startGame(opts) {
       const out = [];
       for (const d of map.devices || []) {
         const dd = near(d.from[0], d.from[1]);
-        const name = d.type === 'slide' ? '미끄럼틀' : d.name || '개구멍';
+        // 맵 데이터의 action(버튼 글씨)·sub(작은 글씨)·denyHint(못 탈 때 안내)가 있으면 그 글씨를 쓴다
+        const name = d.type === 'slide' ? '미끄럼틀' : DEVICE_STYLES[d.style] && d.style !== 'tube' ? (d.style === 'elevator' ? '엘리베이터' : '계단') : d.name || '개구멍';
         if (dd <= CH.deviceReach) {
           const who = (d.who && d.who[mode]) || (mafia ? ['student', 'chaser'] : ['student']);
           if (!who.includes(chaser ? 'chaser' : 'student')) {
-            out.push({ type: 'device', id: d.id, label: `${mafia ? '꿈도둑' : '잠귀신'}은 못 타요`, disabled: true, hint: '개구멍·미끄럼틀은 학생만 탈 수 있어요', dist: dd });
+            out.push({ type: 'device', id: d.id, label: `${mafia ? '꿈도둑' : '잠귀신'}은 못 타요`, disabled: true, hint: d.denyHint || '개구멍·미끄럼틀은 학생만 탈 수 있어요', dist: dd });
           } else {
             const n = (d.exits || []).length;
-            out.push({ type: 'device', id: d.id, label: d.type === 'slide' ? '미끄럼틀 타기' : `${name} 들어가기`, sub: d.type === 'teleport' && n > 1 ? `출구 ${n}곳 중 하나` : '', readyAt: devReady[d.id] || 0, short: name, dist: dd });
+            const label = d.action || (d.type === 'slide' ? '미끄럼틀 타기' : `${name} 들어가기`);
+            const sub = d.sub != null ? d.sub : d.type === 'teleport' && n > 1 ? `출구 ${n}곳 중 하나` : '';
+            out.push({ type: 'device', id: d.id, label, sub, readyAt: devReady[devKey(d)] || 0, short: name, dist: dd });
           }
           continue;
         }
         // 출구·도착 쪽: 버튼 없이 안내만
         const ends = d.type === 'slide' ? [d.to] : d.exits || [];
-        if (ends.some((e) => near(e[0], e[1]) <= 95)) {
+        if (!pairDevice(d) && ends.some((e) => near(e[0], e[1]) <= 95)) {
           const from = roomAt(map, d.from[0], d.from[1]);
           const where = from ? from.name : '다른 곳';
           exitHint =
-            d.type === 'slide'
+            d.type === 'slide' || d.style === 'tube'
               ? `미끄럼틀 도착 지점이에요. 타는 곳은 ${where}에 있어요`
               : `여기는 ${name} 출구예요. 들어가는 곳은 ${where}에 있어요`;
         }
@@ -732,6 +761,7 @@ export async function startGame(opts) {
   // 빛 구역 밖을 보랏빛 안개로 덮는다 (월드 좌표)
   function drawFogZone(c, now, t, W, H, lw = 1) {
     if (!fog) return;
+    if (fog.mode === 'floors') return drawFloorFog(c, now, t, lw);
     if (fog.stage >= 1) {
       const r = fogR(now);
       c.save();
@@ -777,6 +807,43 @@ export async function startGame(opts) {
       c.arc(fog.cx, fog.cy, fog.nextR, 0, Math.PI * 2);
       c.stroke();
       c.restore();
+    }
+  }
+  // 층 단위 안개: 어두워진 층은 보랏빛 안개로 덮고, 곧 어두워질 층은 흰 점선 테두리 + "곧 안개" (월드 좌표)
+  function drawFloorFog(c, now, t, lw) {
+    const all = (map.floors || []).map((f) => f.id);
+    const safeNow = fog.stage >= 1 && fog.safe ? fog.safe : all;
+    const left = fog.nextAt != null ? fog.nextAt - now : Infinity;
+    const warn = fog.nextSafe && left <= (FOG.warnMs || 20000) + 500;
+    for (const f of map.floors || []) {
+      const [x, y, w, h] = f.rect;
+      if (!safeNow.includes(f.id)) {
+        c.save();
+        c.fillStyle = 'rgba(120,86,190,0.5)';
+        c.fillRect(x, y, w, h);
+        for (let i = 0; i < 26; i++) {
+          const bx = x + (((i * 0.383 + t * 0.012) % 1) + 1) % 1 * w;
+          const by = y + ((Math.sin(i * 2.1) + 1) / 2) * h;
+          const br = 70 + Math.sin(t * 1.3 + i) * 18;
+          c.fillStyle = 'rgba(190,170,240,0.2)';
+          c.beginPath();
+          c.arc(bx, by, br, 0, Math.PI * 2);
+          c.fill();
+        }
+        c.strokeStyle = 'rgba(230,220,255,0.75)';
+        c.lineWidth = 8 * lw;
+        c.setLineDash([22 * lw, 12 * lw]);
+        c.lineDashOffset = -t * 30;
+        c.strokeRect(x, y, w, h);
+        c.restore();
+      } else if (warn && !fog.nextSafe.includes(f.id)) {
+        c.save();
+        c.strokeStyle = `rgba(255,255,255,${0.6 + Math.sin(t * 6) * 0.3})`;
+        c.lineWidth = 10 * lw;
+        c.setLineDash([26 * lw, 16 * lw]);
+        c.strokeRect(x + 10, y + 10, w - 20, h - 20);
+        c.restore();
+      }
     }
   }
   // 화면 가장자리 화살표 (sx, sy: 내 화면 자리, tx, ty: 목표 화면 자리)
@@ -881,14 +948,51 @@ export async function startGame(opts) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#26214a'; // 맵 바깥의 밤
     ctx.fillRect(0, 0, vw, vh);
-    ctx.translate(vw / 2, vh / 2);
-    ctx.scale(scale, scale);
-    ctx.translate(-camX, -camY);
+    const allLanterns = [...(map.terminals || []), ...bonus];
+    // 맵 위 그림 (맵·랜턴·상자·캐릭터·안개·글자 효과). 여러 층 맵의 선생님 화면은 층마다 한 칸씩 나눠 여러 번 그린다
+    if (!me && map.floors && map.floors.length) {
+      const top = 34;
+      for (const p of floorPanels(map, vw, vh, { gap: 16, pad: 10, top })) {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.font = font(22);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = INK;
+        ctx.strokeText(p.floor.name, p.x + p.w / 2, p.y - top / 2);
+        ctx.fillStyle = '#c8f56a';
+        ctx.fillText(p.floor.name, p.x + p.w / 2, p.y - top / 2);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(p.x, p.y, p.w, p.h);
+        ctx.clip();
+        ctx.translate(p.x, p.y);
+        ctx.scale(p.k, p.k);
+        ctx.translate(-p.src[0], -p.src[1]);
+        drawWorld(p.k);
+        ctx.restore();
+      }
+    } else {
+      ctx.translate(vw / 2, vh / 2);
+      ctx.scale(scale, scale);
+      ctx.translate(-camX, -camY);
+      drawWorld(scale);
+    }
+    // 내 층이 바뀌면 알린다 (층 이름 글씨)
+    if (me && map.floors && !me.ride) {
+      const fl = floorAt(map, me.x, me.y);
+      if (fl && fl !== myFloor) {
+        if (myFloor && opts.onFloor) opts.onFloor(fl);
+        myFloor = fl;
+      }
+    }
+
+  function drawWorld(viewScale) {
     ctx.drawImage(image, 0, 0);
 
     // 개구멍 속에서 깜빡이는 눈 (입구에만)
     for (const d of map.devices || []) {
-      if (d.type !== 'teleport') continue;
+      if (d.type !== 'teleport' || DEVICE_STYLES[d.style]) continue; // 개구멍(모양 없는 순간이동)만
       const h = d.from;
       const phase = (t * 0.7) % 6;
       if (phase <= 2.6) {
@@ -921,7 +1025,6 @@ export async function startGame(opts) {
     }
 
     // 퀴즈 랜턴: 내가 켠 랜턴은 노란 불빛, 아직 안 켠 랜턴만 은은히 깜빡인다
-    const allLanterns = [...(map.terminals || []), ...bonus];
     const showLanternState = !!me;
     for (const tm of allLanterns) {
       const [tx, ty] = tm.pos;
@@ -1058,6 +1161,7 @@ export async function startGame(opts) {
       ctx.fillText(p.text, p.x, p.y - k * 50);
       ctx.globalAlpha = 1;
     }
+  } // drawWorld 끝
 
     // 시야 제한: 가장자리에 안개 덩어리가 일렁이는 테두리
     if (me) {
@@ -1115,7 +1219,7 @@ export async function startGame(opts) {
           ctx.fill();
         }
       }
-      if (mafia && iAmGhost) {
+      if (mafia && ghostMe) {
         ctx.fillStyle = 'rgba(200,190,255,0.14)'; // 꿈속 화면: 옅은 보랏빛
         ctx.fillRect(0, 0, vw, vh);
       }
@@ -1180,7 +1284,10 @@ export async function startGame(opts) {
         }
         if (best && bd > 120) {
           const [lx, ly] = toScreen(best.pos[0], best.pos[1]);
-          edgeArrow(mx, my, lx, ly, vw, vh, '#ffb547', '랜턴');
+          // 여러 층 맵: 다른 층 랜턴이면 어느 층인지 적는다 (화살표는 계단 쪽이 아니라 그 층 방향)
+          const lf = floorAt(map, best.pos[0], best.pos[1]);
+          const other = lf && lf !== floorAt(map, me.x, me.y);
+          edgeArrow(mx, my, lx, ly, vw, vh, '#ffb547', other ? `랜턴 (${floorShort(lf)})` : '랜턴');
         }
       }
     }
@@ -1385,11 +1492,37 @@ export async function startGame(opts) {
     if (cv.width !== Math.round(w * dpr)) (cv.width = Math.round(w * dpr)), (cv.height = Math.round(h * dpr));
     const c = cv.getContext('2d');
     const [W, H] = map.size;
-    const k = Math.min(w / W, h / H);
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.clearRect(0, 0, w, h);
-    c.translate((w - W * k) / 2, (h - H * k) / 2);
-    c.scale(k, k);
+    // 여러 층 맵은 층마다 한 칸 (층 이름 + 내 층은 노란 테두리). 한 층 맵은 맵 전체 한 칸
+    const multi = !!(map.floors && map.floors.length);
+    const top = multi ? 26 : 0;
+    const myFl = me ? floorAt(map, me.x, me.y) : null;
+    for (const p of floorPanels(map, w, h, { gap: 14, pad: multi ? 4 : 0, top })) {
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (p.floor) {
+        const here = p.floor === myFl;
+        c.font = font(18);
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillStyle = INK;
+        c.fillText(here ? `${p.floor.name} (나)` : p.floor.name, p.x + p.w / 2, p.y - top / 2);
+        c.lineWidth = here ? 5 : 2;
+        c.strokeStyle = here ? '#ffb547' : INK;
+        c.strokeRect(p.x - 2, p.y - 2, p.w + 4, p.h + 4);
+      }
+      c.save();
+      c.beginPath();
+      c.rect(p.x, p.y, p.w, p.h);
+      c.clip();
+      c.translate(p.x, p.y);
+      c.scale(p.k, p.k);
+      c.translate(-p.src[0], -p.src[1]);
+      drawMinimapWorld(c, t, now, W, H);
+      c.restore();
+    }
+  }
+  function drawMinimapWorld(c, t, now, W, H) {
     c.drawImage(mapEntry.image, 0, 0);
     for (const tm of [...(map.terminals || []), ...bonus]) {
       const done = mine.done.has(tm.id);
@@ -1414,7 +1547,7 @@ export async function startGame(opts) {
       c.arc(d.from[0], d.from[1], 44, 0, Math.PI * 2);
       c.fill();
       c.stroke();
-      const ends = d.type === 'slide' ? [d.to] : d.exits || [];
+      const ends = pairDevice(d) ? [] : d.type === 'slide' ? [d.to] : d.exits || []; // 계단·엘리베이터는 도착점을 따로 표시하지 않는다
       for (const e of ends) {
         c.fillStyle = 'rgba(255,255,255,.85)';
         c.strokeStyle = col;
@@ -1458,11 +1591,12 @@ export async function startGame(opts) {
       c.stroke();
     }
     if (me) {
+      const big = map.floors && map.floors.length ? 1.5 : 1; // 여러 층 맵은 "나" 표시를 더 크게
       c.fillStyle = me.color;
       c.strokeStyle = '#fff';
-      c.lineWidth = 10;
+      c.lineWidth = 10 * big;
       c.beginPath();
-      c.arc(me.x, me.y - 20, 40 + Math.sin(t * 6) * 8, 0, Math.PI * 2);
+      c.arc(me.x, me.y - 20, (40 + Math.sin(t * 6) * 8) * big, 0, Math.PI * 2);
       c.fill();
       c.stroke();
     }

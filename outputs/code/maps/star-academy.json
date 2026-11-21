@@ -1,187 +1,372 @@
 {
- "_note": "rect = [x, y, 너비, 높이]. 모든 값은 20의 배수. 가구(furniture)는 rect 가 그림 칸이고, 실제로 막히는 곳은 그림의 아랫부분(발이 닿는 곳)만이다 (shared/mapgrid.js footRect, 필요하면 foot: [x,y,w,h] 로 직접 지정). 장치(devices)의 marks 는 팻말·글씨 자리 [dx,dy] (shared/mapgrid.js deviceMarks). 방(rooms)은 바깥 한 칸(20px)이 벽이고, 문(doors)은 벽이나 빈 땅을 뚫어 길을 만든다. 복도(corridors)는 벽이 없다.",
+ "_note": "rect = [x, y, 너비, 높이]. 모든 값은 20의 배수. 3층 건물: 층(floors)마다 한 좌표 위에 1500px 넘게 떨어뜨려 놓았다 (층 사이에는 땅이 없다). 층 이동은 장치(계단·엘리베이터·미끄럼틀·개구멍, 모두 teleport). style = 장치 모양, action/sub = 행동 버튼 글씨, cooldown.group = 같이 세는 대기 시간. 잠 안개는 층 단위 (fog.mode floors, safe = 단계별 안전한 층).",
  "id": "star-academy",
  "name": "한밤의 별빛 학원",
  "size": [
-  2800,
-  1900
+  8280,
+  1340
  ],
  "grid": 20,
+ "floors": [
+  {
+   "id": 1,
+   "name": "1층 로비·휴게층",
+   "short": "1층",
+   "rect": [
+    100,
+    160,
+    1680,
+    1080
+   ]
+  },
+  {
+   "id": 2,
+   "name": "2층 교실층",
+   "short": "2층",
+   "rect": [
+    3300,
+    160,
+    1680,
+    1080
+   ]
+  },
+  {
+   "id": 3,
+   "name": "3층 특별층·옥상",
+   "short": "3층",
+   "rect": [
+    6500,
+    160,
+    1680,
+    1080
+   ]
+  }
+ ],
+ "tips": [
+  "계단은 누구나 탈 수 있어요. 엘리베이터·미끄럼틀·개구멍은 학생 전용! (꿈도둑 모드는 모두)",
+  "잠 안개는 3층부터 내려와요. 마지막 밤에는 1층만 안전해요!",
+  "3층 옥상 미끄럼틀을 타면 1층 로비로 한 번에 슝!"
+ ],
  "rooms": [
   {
-   "id": "court",
-   "name": "큰 체육관",
+   "id": "f1-office",
+   "name": "1층 원장실",
    "rect": [
-    900,
-    520,
-    1000,
-    800
-   ],
-   "floor": "wood",
-   "decor": "court"
-  },
-  {
-   "id": "stage",
-   "name": "무대",
-   "rect": [
-    1100,
-    240,
-    600,
-    280
-   ],
-   "floor": "stage"
-  },
-  {
-   "id": "storage",
-   "name": "체육 창고",
-   "rect": [
+    380,
     200,
-    240,
-    500,
-    420
-   ],
-   "floor": "concrete"
-  },
-  {
-   "id": "snack",
-   "name": "매점",
-   "rect": [
-    200,
-    740,
-    500,
-    340
-   ],
-   "floor": "tile"
-  },
-  {
-   "id": "locker",
-   "name": "탈의실",
-   "rect": [
-    200,
-    1160,
-    500,
-    460
-   ],
-   "floor": "tile"
-  },
-  {
-   "id": "climb",
-   "name": "몬스터 놀이방",
-   "rect": [
-    2100,
-    240,
-    500,
-    620
-   ],
-   "floor": "mat"
-  },
-  {
-   "id": "equip",
-   "name": "기구실",
-   "rect": [
-    2100,
-    940,
-    500,
-    220
-   ],
-   "floor": "concrete"
-  },
-  {
-   "id": "office",
-   "name": "체육 선생님 방",
-   "rect": [
-    2100,
-    1240,
-    500,
-    380
+    400,
+    400
    ],
    "floor": "wood"
+  },
+  {
+   "id": "f1-lounge",
+   "name": "1층 휴게실",
+   "rect": [
+    1100,
+    200,
+    400,
+    400
+   ],
+   "floor": "acLounge"
+  },
+  {
+   "id": "f1-entry",
+   "name": "1층 신발장",
+   "rect": [
+    380,
+    800,
+    380,
+    400
+   ],
+   "floor": "acEntry"
+  },
+  {
+   "id": "f1-lobby",
+   "name": "1층 접수 로비",
+   "rect": [
+    740,
+    800,
+    440,
+    400
+   ],
+   "floor": "acLobby"
+  },
+  {
+   "id": "f1-counsel",
+   "name": "1층 상담실",
+   "rect": [
+    1160,
+    800,
+    340,
+    400
+   ],
+   "floor": "wood"
+  },
+  {
+   "id": "f2-english",
+   "name": "2층 영어 교실",
+   "rect": [
+    3580,
+    200,
+    400,
+    400
+   ],
+   "floor": "acClass"
+  },
+  {
+   "id": "f2-math",
+   "name": "2층 수학 교실",
+   "rect": [
+    4300,
+    200,
+    400,
+    400
+   ],
+   "floor": "acClass"
+  },
+  {
+   "id": "f2-science",
+   "name": "2층 과학 교실",
+   "rect": [
+    3580,
+    800,
+    520,
+    400
+   ],
+   "floor": "tile"
+  },
+  {
+   "id": "f2-study",
+   "name": "2층 자습실",
+   "rect": [
+    4080,
+    800,
+    620,
+    400
+   ],
+   "floor": "acCarpet"
+  },
+  {
+   "id": "f3-piano",
+   "name": "3층 피아노 교실",
+   "rect": [
+    6780,
+    200,
+    400,
+    400
+   ],
+   "floor": "wood"
+  },
+  {
+   "id": "f3-pc",
+   "name": "3층 컴퓨터실",
+   "rect": [
+    7500,
+    200,
+    400,
+    400
+   ],
+   "floor": "acPcFloor"
+  },
+  {
+   "id": "f3-art",
+   "name": "3층 미술 교실",
+   "rect": [
+    6780,
+    800,
+    480,
+    400
+   ],
+   "floor": "acArt"
+  },
+  {
+   "id": "f3-roof",
+   "name": "3층 옥상 정원",
+   "rect": [
+    7240,
+    800,
+    660,
+    400
+   ],
+   "floor": "acRoof"
   }
  ],
  "corridors": [
   {
-   "id": "west-hall",
+   "id": "hall-1",
    "rect": [
-    700,
-    240,
-    200,
-    1380
-   ]
-  },
-  {
-   "id": "east-hall",
-   "rect": [
-    1900,
-    240,
-    200,
-    1380
-   ]
-  },
-  {
-   "id": "south-hall",
-   "rect": [
-    900,
-    1420,
-    1000,
+    140,
+    600,
+    1600,
     200
+   ]
+  },
+  {
+   "id": "stairs-l-1",
+   "rect": [
+    140,
+    440,
+    240,
+    520
+   ]
+  },
+  {
+   "id": "stairs-r-1",
+   "rect": [
+    1500,
+    440,
+    240,
+    520
+   ]
+  },
+  {
+   "id": "lift-1",
+   "rect": [
+    780,
+    460,
+    320,
+    140
+   ]
+  },
+  {
+   "id": "hall-2",
+   "rect": [
+    3340,
+    600,
+    1600,
+    200
+   ]
+  },
+  {
+   "id": "stairs-l-2",
+   "rect": [
+    3340,
+    440,
+    240,
+    520
+   ]
+  },
+  {
+   "id": "stairs-r-2",
+   "rect": [
+    4700,
+    440,
+    240,
+    520
+   ]
+  },
+  {
+   "id": "lift-2",
+   "rect": [
+    3980,
+    460,
+    320,
+    140
+   ]
+  },
+  {
+   "id": "hall-3",
+   "rect": [
+    6540,
+    600,
+    1600,
+    200
+   ]
+  },
+  {
+   "id": "stairs-l-3",
+   "rect": [
+    6540,
+    440,
+    240,
+    520
+   ]
+  },
+  {
+   "id": "stairs-r-3",
+   "rect": [
+    7900,
+    440,
+    240,
+    520
+   ]
+  },
+  {
+   "id": "lift-3",
+   "rect": [
+    7180,
+    460,
+    320,
+    140
    ]
   }
  ],
  "doors": [
   {
-   "id": "d-stage",
+   "id": "f1-d-office",
    "rect": [
-    1360,
-    500,
+    660,
+    580,
     80,
-    40
+    20
    ],
    "lockable": true
   },
   {
-   "id": "d-court-w",
+   "id": "f1-d-lounge",
+   "rect": [
+    1140,
+    580,
+    80,
+    20
+   ],
+   "lockable": true
+  },
+  {
+   "id": "f1-d-entry",
+   "rect": [
+    520,
+    800,
+    80,
+    20
+   ],
+   "lockable": true
+  },
+  {
+   "id": "f1-d-lobby",
    "rect": [
     900,
-    880,
-    20,
-    80
+    800,
+    120,
+    20
    ],
    "lockable": false
   },
   {
-   "id": "d-court-e",
+   "id": "f1-d-counsel",
    "rect": [
-    1880,
-    880,
-    20,
-    80
-   ],
-   "lockable": false
-  },
-  {
-   "id": "d-court-s",
-   "rect": [
-    1360,
-    1300,
+    1260,
+    800,
     80,
-    120
-   ],
-   "lockable": false
-  },
-  {
-   "id": "d-storage",
-   "rect": [
-    680,
-    420,
-    20,
-    80
+    20
    ],
    "lockable": true
   },
   {
-   "id": "d-snack",
+   "id": "f1-d-entry-lobby",
    "rect": [
-    680,
+    740,
+    960,
+    20,
+    80
+   ],
+   "lockable": false
+  },
+  {
+   "id": "f1-d-lobby-counsel",
+   "rect": [
+    1160,
     880,
     20,
     80
@@ -189,40 +374,110 @@
    "lockable": true
   },
   {
-   "id": "d-locker",
+   "id": "f2-d-english",
    "rect": [
-    680,
-    1360,
+    3860,
+    580,
+    80,
+    20
+   ],
+   "lockable": true
+  },
+  {
+   "id": "f2-d-math",
+   "rect": [
+    4580,
+    580,
+    80,
+    20
+   ],
+   "lockable": true
+  },
+  {
+   "id": "f2-d-science",
+   "rect": [
+    3720,
+    800,
+    80,
+    20
+   ],
+   "lockable": true
+  },
+  {
+   "id": "f2-d-study",
+   "rect": [
+    4300,
+    800,
+    80,
+    20
+   ],
+   "lockable": true
+  },
+  {
+   "id": "f2-d-study2",
+   "rect": [
+    4560,
+    800,
+    80,
+    20
+   ],
+   "lockable": true
+  },
+  {
+   "id": "f2-d-sci-study",
+   "rect": [
+    4080,
+    1080,
     20,
     80
    ],
    "lockable": true
   },
   {
-   "id": "d-climb",
+   "id": "f3-d-piano",
    "rect": [
-    2100,
-    500,
-    20,
-    80
+    7060,
+    580,
+    80,
+    20
    ],
    "lockable": true
   },
   {
-   "id": "d-equip",
+   "id": "f3-d-pc",
    "rect": [
-    2100,
-    1020,
-    20,
-    80
+    7780,
+    580,
+    80,
+    20
    ],
    "lockable": true
   },
   {
-   "id": "d-office",
+   "id": "f3-d-art",
    "rect": [
-    2100,
-    1400,
+    6920,
+    800,
+    80,
+    20
+   ],
+   "lockable": true
+  },
+  {
+   "id": "f3-d-roof",
+   "rect": [
+    7500,
+    800,
+    80,
+    20
+   ],
+   "lockable": true
+  },
+  {
+   "id": "f3-d-art-roof",
+   "rect": [
+    7240,
+    1080,
     20,
     80
    ],
@@ -231,442 +486,22 @@
  ],
  "furniture": [
   {
-   "kind": "piano",
-   "name": "피아노",
-   "rect": [
-    1140,
-    280,
-    120,
-    80
-   ]
-  },
-  {
-   "kind": "vault",
-   "name": "뜀틀",
-   "rect": [
-    320,
-    320,
-    120,
-    60
-   ]
-  },
-  {
-   "kind": "ballcart",
-   "name": "공 바구니",
-   "rect": [
-    580,
-    340,
-    80,
-    80
-   ]
-  },
-  {
-   "kind": "counter",
-   "name": "판매대",
-   "rect": [
-    240,
-    780,
-    280,
-    60
-   ]
-  },
-  {
-   "kind": "lockers",
-   "name": "사물함",
-   "rect": [
-    220,
-    1180,
-    40,
-    240
-   ]
-  },
-  {
-   "kind": "bench",
-   "name": "긴 의자",
-   "rect": [
-    400,
-    1380,
-    160,
-    40
-   ]
-  },
-  {
-   "kind": "junglegym",
-   "name": "정글짐",
-   "rect": [
-    2260,
-    380,
-    160,
-    160
-   ]
-  },
-  {
-   "kind": "matpile",
-   "name": "매트 더미",
-   "rect": [
-    2300,
-    960,
-    120,
-    80
-   ]
-  },
-  {
    "kind": "desk",
-   "name": "책상",
+   "name": "원장님 책상",
    "rect": [
-    2280,
-    1320,
-    160,
-    80
-   ]
-  },
-  {
-   "kind": "cone",
-   "name": "고깔",
-   "rect": [
-    1180,
-    620,
-    40,
-    40
-   ]
-  },
-  {
-   "kind": "cone",
-   "name": "고깔",
-   "rect": [
-    1580,
-    620,
-    40,
-    40
-   ]
-  },
-  {
-   "kind": "cone",
-   "name": "고깔",
-   "rect": [
-    1180,
-    1180,
-    40,
-    40
-   ]
-  },
-  {
-   "kind": "cone",
-   "name": "고깔",
-   "rect": [
-    1580,
-    1180,
-    40,
-    40
-   ]
-  },
-  {
-   "kind": "ballrack",
-   "name": "공 정리대",
-   "rect": [
-    940,
-    560,
-    100,
-    40
-   ]
-  },
-  {
-   "kind": "scoretable",
-   "name": "점수판",
-   "rect": [
-    1760,
-    560,
-    100,
-    40
-   ]
-  },
-  {
-   "kind": "refchair",
-   "name": "심판 의자",
-   "rect": [
-    1500,
-    560,
-    60,
-    60
-   ]
-  },
-  {
-   "kind": "drum",
-   "name": "드럼",
-   "rect": [
-    1580,
-    280,
-    100,
-    80
-   ]
-  },
-  {
-   "kind": "speaker",
-   "name": "스피커",
-   "rect": [
-    1140,
-    420,
-    60,
-    60
-   ]
-  },
-  {
-   "kind": "speaker",
-   "name": "스피커",
-   "rect": [
-    1600,
-    420,
-    60,
-    60
-   ]
-  },
-  {
-   "kind": "mic",
-   "name": "마이크",
-   "rect": [
-    1300,
-    320,
-    40,
-    40
-   ]
-  },
-  {
-   "kind": "shelf",
-   "name": "선반",
-   "rect": [
-    220,
-    260,
-    60,
-    140
-   ]
-  },
-  {
-   "kind": "hurdle",
-   "name": "허들",
-   "rect": [
-    320,
-    500,
-    160,
-    20
-   ]
-  },
-  {
-   "kind": "skeleton",
-   "name": "해골 모형",
-   "rect": [
-    220,
     440,
-    40,
-    60
-   ]
-  },
-  {
-   "kind": "crates",
-   "name": "상자 더미",
-   "rect": [
-    540,
-    560,
-    100,
-    80
-   ]
-  },
-  {
-   "kind": "fridge",
-   "name": "냉장고",
-   "rect": [
-    520,
-    780,
-    60,
-    80
-   ]
-  },
-  {
-   "kind": "vending",
-   "name": "자판기",
-   "rect": [
-    580,
-    780,
-    40,
-    80
-   ]
-  },
-  {
-   "kind": "table",
-   "name": "식탁",
-   "rect": [
-    360,
-    920,
-    100,
-    80
-   ]
-  },
-  {
-   "kind": "table",
-   "name": "식탁",
-   "rect": [
-    520,
-    980,
-    100,
-    60
-   ]
-  },
-  {
-   "kind": "icebox",
-   "name": "아이스크림 통",
-   "rect": [
-    240,
-    880,
-    60,
-    60
-   ]
-  },
-  {
-   "kind": "lockersH",
-   "name": "사물함",
-   "rect": [
-    300,
-    1180,
     280,
-    40
-   ]
-  },
-  {
-   "kind": "bench",
-   "name": "긴 의자",
-   "rect": [
-    400,
-    1280,
     160,
-    40
-   ]
-  },
-  {
-   "kind": "basket",
-   "name": "빨래 바구니",
-   "rect": [
-    220,
-    1460,
-    60,
-    60
-   ]
-  },
-  {
-   "kind": "sink",
-   "name": "세면대",
-   "rect": [
-    460,
-    1560,
-    120,
-    40
-   ]
-  },
-  {
-   "kind": "shower",
-   "name": "샤워 부스",
-   "rect": [
-    580,
-    1500,
-    100,
-    100
-   ]
-  },
-  {
-   "kind": "trampoline",
-   "name": "트램펄린",
-   "rect": [
-    2140,
-    280,
-    100,
     80
-   ]
-  },
-  {
-   "kind": "blocks",
-   "name": "블록 탑",
-   "rect": [
-    2140,
-    400,
-    60,
-    80
-   ]
-  },
-  {
-   "kind": "teddy",
-   "name": "곰 인형",
-   "rect": [
-    2420,
-    560,
-    80,
-    60
-   ]
-  },
-  {
-   "kind": "horse",
-   "name": "흔들 목마",
-   "rect": [
-    2300,
-    700,
-    80,
-    60
-   ]
-  },
-  {
-   "kind": "dumbbell",
-   "name": "아령",
-   "rect": [
-    2180,
-    960,
-    80,
-    40
-   ]
-  },
-  {
-   "kind": "gymball",
-   "name": "짐볼",
-   "rect": [
-    2200,
-    1080,
-    60,
-    60
-   ]
-  },
-  {
-   "kind": "treadmill",
-   "name": "러닝머신",
-   "rect": [
-    2420,
-    1080,
-    120,
-    60
    ]
   },
   {
    "kind": "bookcase",
    "name": "책장",
    "rect": [
-    2140,
-    1260,
+    640,
+    220,
     100,
-    40
-   ]
-  },
-  {
-   "kind": "trophy",
-   "name": "트로피 장식장",
-   "rect": [
-    2380,
-    1260,
-    100,
-    40
-   ]
-  },
-  {
-   "kind": "chair",
-   "name": "의자",
-   "rect": [
-    2340,
-    1420,
-    40,
     40
    ]
   },
@@ -674,99 +509,621 @@
    "kind": "sofa",
    "name": "소파",
    "rect": [
-    2180,
-    1540,
+    580,
+    500,
     160,
     60
    ]
   },
   {
-   "kind": "plant",
-   "name": "화분",
+   "kind": "trophy",
+   "name": "상장 진열장",
    "rect": [
-    2420,
-    1540,
+    400,
+    380,
     40,
-    40
+    120
    ]
   },
   {
    "kind": "plant",
    "name": "화분",
    "rect": [
-    700,
-    260,
+    720,
+    360,
     40,
     40
    ]
   },
   {
-   "kind": "fountain",
-   "name": "음수대",
+   "kind": "vending",
+   "name": "음료 자판기",
    "rect": [
-    860,
-    700,
+    1140,
+    220,
     40,
+    80
+   ]
+  },
+  {
+   "kind": "vending",
+   "name": "과자 자판기",
+   "rect": [
+    1190,
+    220,
+    40,
+    80
+   ]
+  },
+  {
+   "kind": "fridge",
+   "name": "냉장고",
+   "rect": [
+    1240,
+    220,
+    60,
+    80
+   ]
+  },
+  {
+   "kind": "icebox",
+   "name": "아이스크림 통",
+   "rect": [
+    1400,
+    220,
+    60,
     60
+   ]
+  },
+  {
+   "kind": "table",
+   "name": "간식 탁자",
+   "rect": [
+    1200,
+    400,
+    100,
+    80
+   ]
+  },
+  {
+   "kind": "sofa",
+   "name": "소파",
+   "rect": [
+    1320,
+    500,
+    140,
+    60
+   ]
+  },
+  {
+   "kind": "acSnack",
+   "name": "컵라면 선반",
+   "rect": [
+    1320,
+    320,
+    140,
+    40
    ]
   },
   {
    "kind": "shoerack",
    "name": "신발장",
    "rect": [
-    700,
-    1100,
+    400,
+    900,
     40,
     120
    ]
   },
   {
-   "kind": "plant",
-   "name": "화분",
+   "kind": "shoerack",
+   "name": "신발장",
    "rect": [
-    1900,
-    260,
+    400,
+    1040,
     40,
+    120
+   ]
+  },
+  {
+   "kind": "lockersH",
+   "name": "실내화 사물함",
+   "rect": [
+    480,
+    1140,
+    200,
     40
    ]
   },
   {
-   "kind": "trophy",
-   "name": "트로피 진열장",
+   "kind": "acUmbrella",
+   "name": "우산꽂이",
    "rect": [
-    2060,
     680,
+    840,
     40,
-    120
-   ]
-  },
-  {
-   "kind": "vending",
-   "name": "자판기",
-   "rect": [
-    2060,
-    1140,
-    40,
-    80
+    60
    ]
   },
   {
    "kind": "bench",
    "name": "긴 의자",
    "rect": [
-    1100,
-    1580,
-    160,
+    520,
+    980,
+    120,
     40
    ]
   },
   {
-   "kind": "crates",
-   "name": "분실물 상자",
+   "kind": "acFrontDesk",
+   "name": "접수 데스크",
    "rect": [
-    1640,
-    1580,
+    800,
+    1100,
+    260,
+    60
+   ]
+  },
+  {
+   "kind": "plant",
+   "name": "화분",
+   "rect": [
+    1120,
+    840,
+    40,
+    40
+   ]
+  },
+  {
+   "kind": "table",
+   "name": "상담 탁자",
+   "rect": [
+    1260,
+    960,
+    100,
+    80
+   ]
+  },
+  {
+   "kind": "bookcase",
+   "name": "책장",
+   "rect": [
+    1360,
+    820,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "sofa",
+   "name": "소파",
+   "rect": [
+    1220,
+    1120,
+    160,
+    60
+   ]
+  },
+  {
+   "kind": "plant",
+   "name": "화분",
+   "rect": [
+    1440,
+    1140,
+    40,
+    40
+   ]
+  },
+  {
+   "kind": "acBoard",
+   "name": "화이트보드",
+   "rect": [
+    3680,
+    220,
+    200,
+    40
+   ],
+   "text": "ABC"
+  },
+  {
+   "kind": "acDesk",
+   "name": "책상",
+   "rect": [
+    3640,
+    320,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "acDesk",
+   "name": "책상",
+   "rect": [
+    3820,
+    320,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "acDesk",
+   "name": "책상",
+   "rect": [
+    3640,
+    420,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "acDesk",
+   "name": "책상",
+   "rect": [
+    3820,
+    420,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "acBoard",
+   "name": "화이트보드",
+   "rect": [
+    4400,
+    220,
+    200,
+    40
+   ],
+   "text": "1+1=2"
+  },
+  {
+   "kind": "acDesk",
+   "name": "책상",
+   "rect": [
+    4360,
+    320,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "acDesk",
+   "name": "책상",
+   "rect": [
+    4540,
+    320,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "acDesk",
+   "name": "책상",
+   "rect": [
+    4360,
+    420,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "acDesk",
+   "name": "책상",
+   "rect": [
+    4540,
+    420,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "acLab",
+   "name": "실험대",
+   "rect": [
+    3640,
+    900,
+    140,
+    60
+   ]
+  },
+  {
+   "kind": "acLab",
+   "name": "실험대",
+   "rect": [
+    3860,
+    900,
+    140,
+    60
+   ]
+  },
+  {
+   "kind": "acLab",
+   "name": "실험대",
+   "rect": [
+    3640,
+    1040,
+    140,
+    60
+   ]
+  },
+  {
+   "kind": "acLab",
+   "name": "실험대",
+   "rect": [
+    3860,
+    1040,
+    140,
+    60
+   ]
+  },
+  {
+   "kind": "skeleton",
+   "name": "해골 모형",
+   "rect": [
+    4040,
+    840,
+    40,
+    60
+   ]
+  },
+  {
+   "kind": "shelf",
+   "name": "약품 선반",
+   "rect": [
+    3600,
+    820,
+    60,
+    60
+   ]
+  },
+  {
+   "kind": "acDesk",
+   "name": "자습 책상",
+   "rect": [
+    4140,
+    900,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "acDesk",
+   "name": "자습 책상",
+   "rect": [
+    4320,
+    900,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "acDesk",
+   "name": "자습 책상",
+   "rect": [
+    4500,
+    900,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "acDesk",
+   "name": "자습 책상",
+   "rect": [
+    4140,
+    1020,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "acDesk",
+   "name": "자습 책상",
+   "rect": [
+    4320,
+    1020,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "acDesk",
+   "name": "자습 책상",
+   "rect": [
+    4500,
+    1020,
+    100,
+    40
+   ]
+  },
+  {
+   "kind": "plant",
+   "name": "화분",
+   "rect": [
+    4640,
+    840,
+    40,
+    40
+   ]
+  },
+  {
+   "kind": "piano",
+   "name": "피아노",
+   "rect": [
+    6840,
+    220,
+    120,
+    80
+   ]
+  },
+  {
+   "kind": "drum",
+   "name": "드럼",
+   "rect": [
+    7020,
+    230,
+    100,
+    80
+   ]
+  },
+  {
+   "kind": "chair",
+   "name": "의자",
+   "rect": [
+    6840,
+    420,
+    40,
+    40
+   ]
+  },
+  {
+   "kind": "chair",
+   "name": "의자",
+   "rect": [
+    6920,
+    420,
+    40,
+    40
+   ]
+  },
+  {
+   "kind": "chair",
+   "name": "의자",
+   "rect": [
+    7000,
+    420,
+    40,
+    40
+   ]
+  },
+  {
+   "kind": "acStand",
+   "name": "보면대",
+   "rect": [
+    7080,
+    440,
+    40,
+    60
+   ]
+  },
+  {
+   "kind": "acPc",
+   "name": "컴퓨터 책상",
+   "rect": [
+    7540,
+    280,
+    140,
+    50
+   ]
+  },
+  {
+   "kind": "acPc",
+   "name": "컴퓨터 책상",
+   "rect": [
+    7720,
+    280,
+    140,
+    50
+   ]
+  },
+  {
+   "kind": "acPc",
+   "name": "컴퓨터 책상",
+   "rect": [
+    7540,
+    380,
+    140,
+    50
+   ]
+  },
+  {
+   "kind": "acPc",
+   "name": "컴퓨터 책상",
+   "rect": [
+    7720,
+    380,
+    140,
+    50
+   ]
+  },
+  {
+   "kind": "acPaints",
+   "name": "물감 선반",
+   "rect": [
+    6840,
+    820,
+    120,
+    40
+   ]
+  },
+  {
+   "kind": "acEasel",
+   "name": "이젤",
+   "rect": [
+    7160,
+    860,
+    60,
+    80
+   ]
+  },
+  {
+   "kind": "acEasel",
+   "name": "이젤",
+   "rect": [
+    7160,
+    1020,
+    60,
+    80
+   ]
+  },
+  {
+   "kind": "acScope",
+   "name": "별 망원경",
+   "rect": [
+    7780,
+    830,
     80,
+    80
+   ]
+  },
+  {
+   "kind": "acFlowers",
+   "name": "꽃밭",
+   "rect": [
+    7300,
+    1100,
+    140,
+    60
+   ]
+  },
+  {
+   "kind": "acFlowers",
+   "name": "꽃밭",
+   "rect": [
+    7480,
+    1100,
+    140,
+    60
+   ]
+  },
+  {
+   "kind": "bench",
+   "name": "긴 의자",
+   "rect": [
+    7500,
+    920,
+    120,
+    40
+   ]
+  },
+  {
+   "kind": "plant",
+   "name": "화분",
+   "rect": [
+    7280,
+    840,
+    40,
     40
    ]
   }
@@ -775,155 +1132,404 @@
   {
    "id": "t1",
    "pos": [
-    1400,
-    290
+    470,
+    530
    ],
-   "room": "stage"
+   "room": "f1-office"
   },
   {
    "id": "t2",
    "pos": [
-    600,
-    290
+    1160,
+    530
    ],
-   "room": "storage"
+   "room": "f1-lounge"
   },
   {
    "id": "t3",
    "pos": [
-    280,
-    1030
+    660,
+    1070
    ],
-   "room": "snack"
+   "room": "f1-entry"
   },
   {
    "id": "t4",
    "pos": [
-    280,
-    1570
+    3640,
+    530
    ],
-   "room": "locker"
+   "room": "f2-english"
   },
   {
    "id": "t5",
    "pos": [
-    2540,
-    600
+    4380,
+    530
    ],
-   "room": "climb"
+   "room": "f2-math"
   },
   {
    "id": "t6",
    "pos": [
-    2540,
-    1000
+    4030,
+    1130
    ],
-   "room": "equip"
+   "room": "f2-science"
   },
   {
    "id": "t7",
    "pos": [
-    2540,
-    1300
+    7840,
+    530
    ],
-   "room": "office"
+   "room": "f3-pc"
   },
   {
    "id": "t8",
    "pos": [
-    1820,
-    1240
+    7380,
+    900
    ],
-   "room": "court"
+   "room": "f3-roof"
   }
  ],
  "spawn": {
   "pos": [
-   1400,
-   920
+   960,
+   980
   ],
-  "radius": 130
+  "radius": 100
  },
  "bell": {
   "pos": [
-   1400,
-   640
+   1100,
+   1100
   ]
  },
  "fog": {
-  "_note": "잠 안개 빛 구역 후보. 게임 시작 때 하나를 골라 모든 단계가 같은 중심. bonus = 마지막 밤 임시 랜턴 2자리 (반지름 550 안)",
-  "centers": [
-   {
-    "pos": [
-     1400,
-     920
-    ],
-    "bonus": [
-     [
-      1200,
-      800
-     ],
-     [
-      1600,
-      1040
-     ]
-    ]
-   },
-   {
-    "pos": [
-     1400,
-     1500
-    ],
-    "bonus": [
-     [
-      1100,
-      1500
-     ],
-     [
-      1700,
-      1500
-     ]
-    ]
-   },
-   {
-    "pos": [
-     800,
-     920
-    ],
-    "bonus": [
-     [
-      800,
-      600
-     ],
-     [
-      1100,
-      920
-     ]
-    ]
-   }
+  "_note": "층 단위 잠 안개: safe[i] = (i+1)단계 뒤 안전한 층 id. 1단계 3층, 2단계 2층이 어두워지고 마지막 밤(3단계)은 1층만 안전. bonus = 마지막 밤 임시 랜턴 2자리 (1층)",
+  "mode": "floors",
+  "safe": [
+   [
+    1,
+    2
+   ],
+   [
+    1
+   ],
+   [
+    1
+   ]
+  ],
+  "bonus": [
+   [
+    1120,
+    960
+   ],
+   [
+    1420,
+    960
+   ]
   ]
  },
  "devices": [
   {
-   "id": "slide-1",
-   "type": "slide",
-   "name": "몬스터 미끄럼틀",
+   "id": "stairs-l-1up",
+   "type": "teleport",
+   "style": "stairs-up",
+   "name": "▲ 2층 계단",
+   "action": "2층으로 올라가기",
    "from": [
-    2520,
-    440
+    260,
+    540
    ],
-   "to": [
-    800,
-    300
-   ],
-   "path": [
+   "exits": [
     [
-     2520,
-     170
+     3460,
+     760
+    ]
+   ],
+   "duration": 0.6,
+   "when": "press",
+   "who": {
+    "sleep-tag": [
+     "student",
+     "chaser"
     ],
+    "mafia": [
+     "student",
+     "chaser"
+    ]
+   },
+   "cooldown": {
+    "scope": "player",
+    "seconds": 1,
+    "group": "stairs"
+   },
+   "protectAfter": 0.5
+  },
+  {
+   "id": "stairs-l-2up",
+   "type": "teleport",
+   "style": "stairs-up",
+   "name": "▲ 3층 계단",
+   "action": "3층으로 올라가기",
+   "from": [
+    3460,
+    540
+   ],
+   "exits": [
     [
-     800,
-     170
+     6660,
+     760
+    ]
+   ],
+   "duration": 0.6,
+   "when": "press",
+   "who": {
+    "sleep-tag": [
+     "student",
+     "chaser"
+    ],
+    "mafia": [
+     "student",
+     "chaser"
+    ]
+   },
+   "cooldown": {
+    "scope": "player",
+    "seconds": 1,
+    "group": "stairs"
+   },
+   "protectAfter": 0.5
+  },
+  {
+   "id": "stairs-l-2down",
+   "type": "teleport",
+   "style": "stairs-down",
+   "name": "▼ 1층 계단",
+   "action": "1층으로 내려가기",
+   "from": [
+    3460,
+    860
+   ],
+   "exits": [
+    [
+     260,
+     640
+    ]
+   ],
+   "duration": 0.6,
+   "when": "press",
+   "who": {
+    "sleep-tag": [
+     "student",
+     "chaser"
+    ],
+    "mafia": [
+     "student",
+     "chaser"
+    ]
+   },
+   "cooldown": {
+    "scope": "player",
+    "seconds": 1,
+    "group": "stairs"
+   },
+   "protectAfter": 0.5
+  },
+  {
+   "id": "stairs-l-3down",
+   "type": "teleport",
+   "style": "stairs-down",
+   "name": "▼ 2층 계단",
+   "action": "2층으로 내려가기",
+   "from": [
+    6660,
+    860
+   ],
+   "exits": [
+    [
+     3460,
+     640
+    ]
+   ],
+   "duration": 0.6,
+   "when": "press",
+   "who": {
+    "sleep-tag": [
+     "student",
+     "chaser"
+    ],
+    "mafia": [
+     "student",
+     "chaser"
+    ]
+   },
+   "cooldown": {
+    "scope": "player",
+    "seconds": 1,
+    "group": "stairs"
+   },
+   "protectAfter": 0.5
+  },
+  {
+   "id": "stairs-r-1up",
+   "type": "teleport",
+   "style": "stairs-up",
+   "name": "▲ 2층 계단",
+   "action": "2층으로 올라가기",
+   "from": [
+    1620,
+    540
+   ],
+   "exits": [
+    [
+     4820,
+     760
+    ]
+   ],
+   "duration": 0.6,
+   "when": "press",
+   "who": {
+    "sleep-tag": [
+     "student",
+     "chaser"
+    ],
+    "mafia": [
+     "student",
+     "chaser"
+    ]
+   },
+   "cooldown": {
+    "scope": "player",
+    "seconds": 1,
+    "group": "stairs"
+   },
+   "protectAfter": 0.5
+  },
+  {
+   "id": "stairs-r-2up",
+   "type": "teleport",
+   "style": "stairs-up",
+   "name": "▲ 3층 계단",
+   "action": "3층으로 올라가기",
+   "from": [
+    4820,
+    540
+   ],
+   "exits": [
+    [
+     8020,
+     760
+    ]
+   ],
+   "duration": 0.6,
+   "when": "press",
+   "who": {
+    "sleep-tag": [
+     "student",
+     "chaser"
+    ],
+    "mafia": [
+     "student",
+     "chaser"
+    ]
+   },
+   "cooldown": {
+    "scope": "player",
+    "seconds": 1,
+    "group": "stairs"
+   },
+   "protectAfter": 0.5
+  },
+  {
+   "id": "stairs-r-2down",
+   "type": "teleport",
+   "style": "stairs-down",
+   "name": "▼ 1층 계단",
+   "action": "1층으로 내려가기",
+   "from": [
+    4820,
+    860
+   ],
+   "exits": [
+    [
+     1620,
+     640
+    ]
+   ],
+   "duration": 0.6,
+   "when": "press",
+   "who": {
+    "sleep-tag": [
+     "student",
+     "chaser"
+    ],
+    "mafia": [
+     "student",
+     "chaser"
+    ]
+   },
+   "cooldown": {
+    "scope": "player",
+    "seconds": 1,
+    "group": "stairs"
+   },
+   "protectAfter": 0.5
+  },
+  {
+   "id": "stairs-r-3down",
+   "type": "teleport",
+   "style": "stairs-down",
+   "name": "▼ 2층 계단",
+   "action": "2층으로 내려가기",
+   "from": [
+    8020,
+    860
+   ],
+   "exits": [
+    [
+     4820,
+     640
+    ]
+   ],
+   "duration": 0.6,
+   "when": "press",
+   "who": {
+    "sleep-tag": [
+     "student",
+     "chaser"
+    ],
+    "mafia": [
+     "student",
+     "chaser"
+    ]
+   },
+   "cooldown": {
+    "scope": "player",
+    "seconds": 1,
+    "group": "stairs"
+   },
+   "protectAfter": 0.5
+  },
+  {
+   "id": "lift-1to2",
+   "type": "teleport",
+   "style": "elevator",
+   "name": "엘리베이터 2층행",
+   "action": "엘리베이터 타기",
+   "sub": "2층으로",
+   "denyHint": "엘리베이터는 학생만 탈 수 있어요. 계단을 써요!",
+   "from": [
+    860,
+    530
+   ],
+   "exits": [
+    [
+     4140,
+     670
     ]
    ],
    "duration": 1.5,
@@ -939,36 +1545,274 @@
    },
    "cooldown": {
     "scope": "player",
-    "seconds": 10
+    "seconds": 10,
+    "group": "elevator"
    },
    "protectAfter": 1,
    "marks": {
     "sign": [
-     -130,
-     -88
+     80,
+     230
     ]
    }
   },
   {
-   "id": "hole-1",
+   "id": "lift-1to3",
    "type": "teleport",
-   "name": "개구멍",
+   "style": "elevator",
+   "name": "엘리베이터 3층행",
+   "action": "엘리베이터 타기",
+   "sub": "3층으로",
+   "denyHint": "엘리베이터는 학생만 탈 수 있어요. 계단을 써요!",
    "from": [
-    260,
-    600
+    1020,
+    530
    ],
    "exits": [
     [
-     1000,
-     1240
+     7340,
+     670
+    ]
+   ],
+   "duration": 1.5,
+   "when": "press",
+   "who": {
+    "sleep-tag": [
+     "student"
+    ],
+    "mafia": [
+     "student",
+     "chaser"
+    ]
+   },
+   "cooldown": {
+    "scope": "player",
+    "seconds": 10,
+    "group": "elevator"
+   },
+   "protectAfter": 1,
+   "marks": {
+    "sign": false
+   }
+  },
+  {
+   "id": "lift-2to1",
+   "type": "teleport",
+   "style": "elevator",
+   "name": "엘리베이터 1층행",
+   "action": "엘리베이터 타기",
+   "sub": "1층으로",
+   "denyHint": "엘리베이터는 학생만 탈 수 있어요. 계단을 써요!",
+   "from": [
+    4060,
+    530
+   ],
+   "exits": [
+    [
+     940,
+     670
+    ]
+   ],
+   "duration": 1.5,
+   "when": "press",
+   "who": {
+    "sleep-tag": [
+     "student"
+    ],
+    "mafia": [
+     "student",
+     "chaser"
+    ]
+   },
+   "cooldown": {
+    "scope": "player",
+    "seconds": 10,
+    "group": "elevator"
+   },
+   "protectAfter": 1,
+   "marks": {
+    "sign": [
+     80,
+     230
+    ]
+   }
+  },
+  {
+   "id": "lift-2to3",
+   "type": "teleport",
+   "style": "elevator",
+   "name": "엘리베이터 3층행",
+   "action": "엘리베이터 타기",
+   "sub": "3층으로",
+   "denyHint": "엘리베이터는 학생만 탈 수 있어요. 계단을 써요!",
+   "from": [
+    4220,
+    530
+   ],
+   "exits": [
+    [
+     7340,
+     670
+    ]
+   ],
+   "duration": 1.5,
+   "when": "press",
+   "who": {
+    "sleep-tag": [
+     "student"
+    ],
+    "mafia": [
+     "student",
+     "chaser"
+    ]
+   },
+   "cooldown": {
+    "scope": "player",
+    "seconds": 10,
+    "group": "elevator"
+   },
+   "protectAfter": 1,
+   "marks": {
+    "sign": false
+   }
+  },
+  {
+   "id": "lift-3to1",
+   "type": "teleport",
+   "style": "elevator",
+   "name": "엘리베이터 1층행",
+   "action": "엘리베이터 타기",
+   "sub": "1층으로",
+   "denyHint": "엘리베이터는 학생만 탈 수 있어요. 계단을 써요!",
+   "from": [
+    7260,
+    530
+   ],
+   "exits": [
+    [
+     940,
+     670
+    ]
+   ],
+   "duration": 1.5,
+   "when": "press",
+   "who": {
+    "sleep-tag": [
+     "student"
+    ],
+    "mafia": [
+     "student",
+     "chaser"
+    ]
+   },
+   "cooldown": {
+    "scope": "player",
+    "seconds": 10,
+    "group": "elevator"
+   },
+   "protectAfter": 1,
+   "marks": {
+    "sign": [
+     80,
+     230
+    ]
+   }
+  },
+  {
+   "id": "lift-3to2",
+   "type": "teleport",
+   "style": "elevator",
+   "name": "엘리베이터 2층행",
+   "action": "엘리베이터 타기",
+   "sub": "2층으로",
+   "denyHint": "엘리베이터는 학생만 탈 수 있어요. 계단을 써요!",
+   "from": [
+    7420,
+    530
+   ],
+   "exits": [
+    [
+     4140,
+     670
+    ]
+   ],
+   "duration": 1.5,
+   "when": "press",
+   "who": {
+    "sleep-tag": [
+     "student"
+    ],
+    "mafia": [
+     "student",
+     "chaser"
+    ]
+   },
+   "cooldown": {
+    "scope": "player",
+    "seconds": 10,
+    "group": "elevator"
+   },
+   "protectAfter": 1,
+   "marks": {
+    "sign": false
+   }
+  },
+  {
+   "id": "slide-roof",
+   "type": "teleport",
+   "style": "tube",
+   "name": "미끄럼틀",
+   "action": "미끄럼틀 타기",
+   "sub": "1층 로비로 슝!",
+   "exitName": "미끄럼틀 도착",
+   "denyHint": "미끄럼틀은 학생만 탈 수 있어요",
+   "from": [
+    7780,
+    1060
+   ],
+   "exits": [
+    [
+     860,
+     880
+    ]
+   ],
+   "duration": 1.2,
+   "when": "press",
+   "who": {
+    "sleep-tag": [
+     "student"
+    ],
+    "mafia": [
+     "student",
+     "chaser"
+    ]
+   },
+   "cooldown": {
+    "scope": "player",
+    "seconds": 10
+   },
+   "protectAfter": 1
+  },
+  {
+   "id": "hole-study",
+   "type": "teleport",
+   "name": "개구멍",
+   "from": [
+    4240,
+    1120
+   ],
+   "exits": [
+    [
+     560,
+     440
     ],
     [
-     2540,
-     1560
+     4540,
+     700
     ],
     [
-     1500,
-     1540
+     7620,
+     530
     ]
    ],
    "exitPick": "random",
@@ -991,40 +1835,22 @@
    "protectAfter": 1,
    "marks": {
     "sign": [
-     160,
-     30
-    ],
-    "label": [
-     10,
-     -48
-    ],
-    "exitLabels": [
-     [
-      92,
-      30
-     ],
-     [
-      -14,
-      -78
-     ],
-     [
-      0,
-      40
-     ]
+     150,
+     40
     ]
    }
   }
  ],
  "zones": [
   {
-   "id": "mat-zone",
+   "id": "art-mat",
    "type": "slow",
-   "name": "푹신 매트",
+   "name": "미술실 매트",
    "rect": [
-    2140,
-    640,
-    440,
-    180
+    6820,
+    960,
+    220,
+    200
    ],
    "amount": 0.6,
    "who": "all"

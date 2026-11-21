@@ -153,6 +153,58 @@ export function zoneAt(map, x, y) {
   return null;
 }
 
+// ───────────── 층 (여러 층 맵) ─────────────
+// 맵 데이터에 floors: [{ id: 1, name: '1층 로비', short: '1층', rect: [x,y,w,h] }, ...] 가 있으면 여러 층 맵이다.
+// 층은 한 좌표 위에 서로 FLOOR_GAP 이상 떨어져 있어서 카메라·시야·충돌·닿는 거리 규칙이 층을 넘지 않는다.
+// floors 가 없는 맵은 한 층짜리 (floorAt 은 늘 null).
+export const FLOOR_GAP = 1500;
+export function floorAt(map, x, y) {
+  for (const f of map.floors || []) {
+    const [fx, fy, fw, fh] = f.rect;
+    if (x >= fx && x < fx + fw && y >= fy && y < fy + fh) return f;
+  }
+  return null;
+}
+// 층 이름 짧게 ('1층'). short 가 없으면 이름의 첫 낱말
+export const floorShort = (f) => (f ? f.short || String(f.name).split(' ')[0] : '');
+// 여러 층을 한 화면(w×h)에 나란히 그릴 칸 나누기: [{ floor, src:[x,y,w,h](맵 좌표), x, y, w, h(화면 좌표), k(배율) }]
+// 칸 수(가로 몇 칸)는 가장 크게 보이는 것을 고른다. 세로 한 줄이면 높은 층이 위에 온다. floors 가 없으면 맵 전체 한 칸.
+// opts: { gap: 칸 사이, pad: 바깥 여백, top: 칸 위 이름 글씨 자리 }
+export function floorPanels(map, w, h, opts = {}) {
+  const gap = opts.gap ?? 12;
+  const pad = opts.pad ?? 0;
+  const top = opts.top ?? 0;
+  const floors = map.floors && map.floors.length ? map.floors : null;
+  if (!floors) {
+    const [W, H] = map.size;
+    const k = Math.min((w - pad * 2) / W, (h - pad * 2 - top) / H);
+    return [{ floor: null, src: [0, 0, W, H], x: (w - W * k) / 2, y: (h - H * k + top) / 2, w: W * k, h: H * k, k }];
+  }
+  const FW = Math.max(...floors.map((f) => f.rect[2]));
+  const FH = Math.max(...floors.map((f) => f.rect[3]));
+  const n = floors.length;
+  let best = null;
+  for (let cols = 1; cols <= n; cols++) {
+    const rows = Math.ceil(n / cols);
+    const k = Math.min((w - pad * 2 - gap * (cols - 1)) / (cols * FW), (h - pad * 2 - gap * (rows - 1) - top * rows) / (rows * FH));
+    if (k > 0 && (!best || k > best.k + 1e-9)) best = { cols, rows, k };
+  }
+  if (!best) best = { cols: n, rows: 1, k: 0.0001 };
+  const { cols, rows, k } = best;
+  const order = cols === 1 ? [...floors].reverse() : floors;
+  const gw = cols * FW * k + gap * (cols - 1);
+  const gh = rows * (FH * k + top) + gap * (rows - 1);
+  const x0 = (w - gw) / 2;
+  const y0 = (h - gh) / 2;
+  return order.map((f, i) => {
+    const c = i % cols;
+    const r = Math.floor(i / cols);
+    const pw = f.rect[2] * k;
+    const ph = f.rect[3] * k;
+    return { floor: f, src: f.rect, x: x0 + c * (FW * k + gap) + (FW * k - pw) / 2, y: y0 + r * (FH * k + top + gap) + top, w: pw, h: ph, k };
+  });
+}
+
 // 좌표가 들어 있는 방(rooms). 복도면 null
 export function roomAt(map, x, y) {
   for (const r of map.rooms || []) {
@@ -229,17 +281,41 @@ export function walkMap(map, g, radius = 14, step = 10) {
       stack.push(n);
     }
   };
-  while (stack.length) {
-    const k = stack.pop();
-    const i = k % W;
-    const j = (k - i) / W;
-    if (i > 0) push(k - 1);
-    if (i < W - 1) push(k + 1);
-    if (j > 0) push(k - W);
-    if (j < H - 1) push(k + W);
+  const flood = () => {
+    while (stack.length) {
+      const k = stack.pop();
+      const i = k % W;
+      const j = (k - i) / W;
+      if (i > 0) push(k - 1);
+      if (i < W - 1) push(k + 1);
+      if (j > 0) push(k - W);
+      if (j < H - 1) push(k + W);
+    }
+  };
+  flood();
+  // 장치(계단·엘리베이터·개구멍·미끄럼틀)도 길이다: 걸어서 닿는 입구가 있으면 그 출구·도착점에서 다시 칠한다 (여러 층 맵).
+  // 한 층 맵은 출구가 이미 다 칠해져 있어서 결과가 같다.
+  const linked = new Set();
+  for (let more = s0 >= 0; more; ) {
+    more = false;
+    (map.devices || []).forEach((d, di) => {
+      if (linked.has(di) || !Array.isArray(d.from) || !near(d.from[0], d.from[1], Math.max(step, (CHASE.deviceReach || 80) - 10))) return;
+      linked.add(di);
+      const ends = d.type === 'slide' ? [d.to] : d.exits || [];
+      for (const e of ends) {
+        if (!Array.isArray(e)) continue;
+        const i = Math.round(e[0] / step);
+        const j = Math.round(e[1] / step);
+        if (i < 0 || j < 0 || i >= W || j >= H) continue;
+        push(j * W + i);
+      }
+      if (stack.length) more = true;
+      flood();
+    });
   }
+  return { step, W, H, ok, seen, near, started: s0 >= 0 };
   // (x, y) 에서 d 안에 걸어서 갈 수 있는 점이 있는가. rect 를 주면 사각형 둘레까지의 거리로 잰다
-  const near = (x, y, d, rect) => {
+  function near(x, y, d, rect) {
     const [ax, ay, bx, by] = rect ? [rect[0] - d, rect[1] - d, rect[0] + rect[2] + d, rect[1] + rect[3] + d] : [x - d, y - d, x + d, y + d];
     for (let j = Math.max(0, Math.ceil(ay / step)); j <= Math.min(H - 1, Math.floor(by / step)); j++) {
       for (let i = Math.max(0, Math.ceil(ax / step)); i <= Math.min(W - 1, Math.floor(bx / step)); i++) {
@@ -249,8 +325,7 @@ export function walkMap(map, g, radius = 14, step = 10) {
       }
     }
     return false;
-  };
-  return { step, W, H, ok, seen, near, started: s0 >= 0 };
+  }
 }
 
 // ───────────── 가구 둘레 틈 점검 ─────────────
@@ -331,6 +406,16 @@ export function inspectMap(map, g, radius = 14) {
 //   marks.exitLabels 개구멍 출구마다 글씨 가운데 [[dx, dy], ...] (기본 [0, 40])
 //   marks.toLabel    미끄럼틀 도착점 글씨 가운데 (기본 [0, 52])
 export const SIGN = { w: 180, h: 46, foot: 16, post: 18 };
+// 순간이동(teleport) 장치의 모양 (맵 데이터 style). 없으면 개구멍 모양 (예전 그대로).
+//   art: 입구 그림 사각형 [dx, dy, w, h] (입구 기준), label: 이름 글씨 기본 자리, sign: 팻말 기본 자리 (null 이면 팻말 없음),
+//   exitArt: 출구 그림 사각형 (null 이면 출구 그림·글씨 없음 — 계단·엘리베이터는 도착한 곳에 짝 장치가 있다)
+// 맵 데이터 marks.sign 이 false 면 그 장치는 팻말을 그리지 않는다 (같은 팻말을 두 번 세우지 않게).
+export const DEVICE_STYLES = {
+  'stairs-up': { what: '올라가는 계단', art: [-50, -90, 100, 110], label: [0, 44], sign: null, exitArt: null },
+  'stairs-down': { what: '내려가는 계단', art: [-50, -20, 100, 110], label: [0, -44], sign: null, exitArt: null },
+  elevator: { what: '엘리베이터 문', art: [-46, -100, 92, 112], label: [0, 40], sign: [150, 30], exitArt: null },
+  tube: { what: '미끄럼 통로 입구', art: [-40, -40, 80, 80], label: [0, 58], sign: [-140, 34], exitArt: [-40, -40, 80, 80], exitLabel: [0, 60] },
+};
 // 팻말 사각형: 기둥이 박힌 곳 (bx, by), 아래 작은 글씨 foot 가 있으면 그만큼 높다
 export function signRect(bx, by, foot) {
   const h = SIGN.h + (foot ? SIGN.foot : 0);
@@ -355,6 +440,26 @@ export function deviceMarks(d) {
     const [x, y] = at(p, off);
     out.push({ kind: 'label', what, text, size, x, y, rect: textRect(text, x, y, size) });
   };
+  if (d.type === 'teleport' && DEVICE_STYLES[d.style]) {
+    // 모양이 정해진 순간이동 (계단·엘리베이터·미끄럼 통로). 출구가 하나뿐이고 양쪽에 짝 장치가 있으면 출구 그림·글씨는 없다
+    const S = DEVICE_STYLES[d.style];
+    const [x, y] = d.from;
+    const a = S.art;
+    out.push({ kind: 'art', what: S.what, x, y, rect: [x + a[0], y + a[1], a[2], a[3]] });
+    label('이름 글씨', d.name, d.from, m.label || S.label, 18);
+    if (S.sign && m.sign !== false) {
+      const [bx, by] = at(d.from, m.sign || S.sign);
+      out.push({ kind: 'sign', what: '팻말', x: bx, y: by, foot: '', rect: signRect(bx, by, '') });
+    }
+    if (S.exitArt) {
+      (d.exits || []).forEach((e, i) => {
+        const b = S.exitArt;
+        out.push({ kind: 'art', what: `출구 ${i + 1}`, x: e[0], y: e[1], rect: [e[0] + b[0], e[1] + b[1], b[2], b[3]] });
+        label(`출구 ${i + 1} 글씨`, d.exitName || `${d.name} 출구`, e, (m.exitLabels && m.exitLabels[i]) || S.exitLabel || [0, 60], 18);
+      });
+    }
+    return out;
+  }
   if (d.type === 'teleport') {
     const [x, y] = d.from;
     out.push({ kind: 'art', what: '입구 구멍', x, y, rect: [x - 40, y - 26, 80, 52] });
@@ -496,7 +601,49 @@ export function validateMap(map, g = buildGrid(map), radius = 14) {
   // 잠 안개 후보 (06 명세 6-2절): ① 중심이 설 수 있고 갈 수 있는 곳
   // ② 임시 랜턴 자리가 갈 수 있는 곳이고 마지막 반지름 안 ③ 마지막 반지름 안에 갈 수 있는 칸이 있다
   const fog = map.fog;
-  if (fog) {
+  // 층: 이름·사각형, 서로 겹치지 않고 FLOOR_GAP 이상 떨어져 있는가. 방·복도·랜턴·장치가 모두 어느 층 안에 있는가
+  const floors = map.floors || [];
+  if (map.floors && !Array.isArray(map.floors)) problems.push('floors 는 목록이어야 한다');
+  floors.forEach((f, i) => {
+    if (f.id == null || !f.name || !Array.isArray(f.rect) || f.rect.length !== 4) problems.push(`층 ${i + 1}: id·name·rect 가 필요하다`);
+    if (floors.findIndex((o) => o.id === f.id) !== i) problems.push(`층 ${f.id}: id 가 겹친다`);
+    for (let k = i + 1; k < floors.length; k++) {
+      const o = floors[k];
+      if (!Array.isArray(f.rect) || !Array.isArray(o.rect)) continue;
+      const gx = Math.max(o.rect[0] - (f.rect[0] + f.rect[2]), f.rect[0] - (o.rect[0] + o.rect[2]));
+      const gy = Math.max(o.rect[1] - (f.rect[1] + f.rect[3]), f.rect[1] - (o.rect[1] + o.rect[3]));
+      if (Math.max(gx, gy) < FLOOR_GAP) problems.push(`층 ${f.id}·${o.id}: 서로 ${FLOOR_GAP}px 이상 떨어져야 한다 (지금 ${Math.max(gx, gy)}px)`);
+    }
+  });
+  if (floors.length) {
+    const inside = (r) => floors.some((f) => r[0] >= f.rect[0] && r[1] >= f.rect[1] && r[0] + r[2] <= f.rect[0] + f.rect[2] && r[1] + r[3] <= f.rect[1] + f.rect[3]);
+    for (const r of map.rooms || []) if (!inside(r.rect)) problems.push(`방 ${r.name}: 어느 층에도 다 들어 있지 않다`);
+    for (const k of map.corridors || []) if (!inside(k.rect)) problems.push(`복도 ${k.id}: 어느 층에도 다 들어 있지 않다`);
+    const pts = [...(map.terminals || []).map((t) => [`랜턴 ${t.id}`, t.pos]), ['시작 위치', start]];
+    for (const d of map.devices || []) {
+      pts.push([`장치 ${d.id} 입구`, d.from]);
+      for (const e of d.type === 'slide' ? [d.to] : d.exits || []) pts.push([`장치 ${d.id} 출구`, e]);
+    }
+    for (const [what, p] of pts) if (Array.isArray(p) && !floorAt(map, p[0], p[1])) problems.push(`${what}: 어느 층에도 없다`);
+  }
+  if (fog && fog.mode === 'floors') {
+    // 층 단위 안개: safe[i] = (i+1)단계가 시작된 뒤 안전한 층 id 목록. bonus = 마지막 밤 임시 랜턴 자리 (마지막 단계에 안전한 층)
+    if (!floors.length) problems.push('fog: 층 단위 안개(mode floors)인데 floors 가 없다');
+    const ids = floors.map((f) => f.id);
+    if (!Array.isArray(fog.safe) || fog.safe.length !== FOG.stages.length) problems.push(`fog.safe: 단계 수(${FOG.stages.length})만큼 안전한 층 목록이 있어야 한다`);
+    (fog.safe || []).forEach((list, i) => {
+      if (!Array.isArray(list) || !list.length) problems.push(`fog.safe ${i + 1}단계: 안전한 층이 하나는 있어야 한다`);
+      else if (list.some((id) => !ids.includes(id))) problems.push(`fog.safe ${i + 1}단계: 모르는 층 id (${list.join(',')})`);
+      if (i && Array.isArray(list) && Array.isArray(fog.safe[i - 1]) && list.some((id) => !fog.safe[i - 1].includes(id))) problems.push(`fog.safe ${i + 1}단계: 앞 단계에 어두웠던 층이 다시 안전해진다`);
+    });
+    const lastSafe = (fog.safe || []).at(-1) || [];
+    if (!Array.isArray(fog.bonus) || fog.bonus.length < FOG.bonusCount) problems.push(`fog: 임시 랜턴 자리가 ${FOG.bonusCount}개보다 적다`);
+    (fog.bonus || []).forEach((b, k) => {
+      reach(b, `층 안개 임시 랜턴 ${k + 1}`, TERM);
+      const fl = floorAt(map, b[0], b[1]);
+      if (!fl || !lastSafe.includes(fl.id)) problems.push(`층 안개 임시 랜턴 ${k + 1}: 마지막 단계에 안전한 층 밖이다`);
+    });
+  } else if (fog) {
     const radii = fog.radii || FOG.radii;
     const lastR = radii[radii.length - 1];
     if (!Array.isArray(fog.centers) || !fog.centers.length) problems.push('fog: 후보 중심(centers)이 없다');

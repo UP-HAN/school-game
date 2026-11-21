@@ -849,6 +849,10 @@ async function enterGame() {
         renderAction();
       },
       onNav: (dir) => bagNav(dir),
+      // 여러 층 맵: 내 층이 바뀌면 층 이름을 크게 (예: "2층 교실층")
+      onFloor(fl) {
+        if (!loading && fl && fl.name) bigNews(fl.name, 1600);
+      },
       onKey(dir, which = 'act') {
         if (which === 'act' && bagOpen) {
           if (dir === 'down') useBagSel();
@@ -997,16 +1001,32 @@ function onNewsEvent(m) {
       break;
     case 'fogWarn': {
       const s = Math.max(1, Math.round((m.inMs ?? FOG.warnMs ?? 20000) / 1000));
+      if (Array.isArray(m.dark)) {
+        // 층 단위 안개 (여러 층 맵): 어느 층이 어두워지는지 알린다
+        const safe = (m.safe || []).join('·');
+        if (m.dark.length) {
+          pushNews(`${s}초 뒤 ${m.dark.join('·')}에 잠 안개가 내려와요! ${safe}으로 내려가요!`, 'big', 6000);
+          bigNews(`곧 ${m.dark.join('·')}에 잠 안개가 내려와요!`);
+        } else {
+          pushNews(`${s}초 뒤 마지막 밤! ${safe}만 안전해요`, 'big', 6000);
+          bigNews('곧 마지막 밤이에요!');
+        }
+        break;
+      }
       pushNews(`${s}초 뒤 잠 안개가 몰려와요! 빛 구역 안으로!`, 'big', 6000);
       bigNews('잠 안개가 몰려와요!');
       break;
     }
     case 'fogStart':
-      if (m.stage >= 3) pushNews('마지막 밤! 안개가 가장 좁아져요. 빛 구역 안으로!', 'big', 6000);
+      if (Array.isArray(m.dark)) {
+        const safe = (m.safe || []).join('·');
+        if (m.dark.length) pushNews(`${m.dark.join('·')}에 잠 안개가 내려왔어요! 안전한 곳: ${safe}`, 'big', 6000);
+        else pushNews(`마지막 밤! ${safe}만 안전해요`, 'big', 6000);
+      } else if (m.stage >= 3) pushNews('마지막 밤! 안개가 가장 좁아져요. 빛 구역 안으로!', 'big', 6000);
       else pushNews(`잠 안개 ${m.stage}단계! 빛 구역이 좁아지고 있어요`, 'big', 5000);
       break;
     case 'bonusLanterns':
-      pushNews('마지막 밤! 빛 구역에 임시 랜턴 2개가 생겼어요', '', 6000);
+      pushNews(room && room.fog && room.fog.mode === 'floors' ? '마지막 밤! 안전한 층에 임시 랜턴 2개가 생겼어요' : '마지막 밤! 빛 구역에 임시 랜턴 2개가 생겼어요', '', 6000);
       break;
     case 'drop':
       bigNews('부엉이 택배 도착!');

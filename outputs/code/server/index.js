@@ -10,7 +10,7 @@ import {
   COLORS, CHARACTERS, MODES, MAPS, LIMITS, GAME, CHASE, MINUTES, MAFIA, MEETINGS, FOG, LOOT, ITEMS, ITEM_POOLS, ENERGY, STREAK,
   chaserCount, maxChasers, modeOf, stageValue, lootCount, CHASER_SPEED, CHASER_SPEED_DEFAULT, chaserSpeedOf,
 } from '../shared/config.js';
-import { buildGrid, canStand, touchesRect, spawnPoint, validateMap, roomAt, distToRect, lootFurniture } from '../shared/mapgrid.js';
+import { buildGrid, canStand, touchesRect, spawnPoint, validateMap, roomAt, distToRect, lootFurniture, floorAt } from '../shared/mapgrid.js';
 import { sanitizeSet, isCorrect } from '../shared/questions.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -343,7 +343,9 @@ const gameElapsed = (room, now) => Math.max(0, room.totalMs - timeLeftOf(room, n
 // 시작할 때 한 번: 중심 고르기 + 단계 시각 계산 (안개·보급이 꺼져 있거나 맵에 안개 자료가 없으면 null)
 function planFog(room, map) {
   const fog = map.data.fog;
-  if (!room.settings.fogLoot || !fog || !fog.centers || !fog.centers.length) return null;
+  if (!room.settings.fogLoot || !fog) return null;
+  if (fog.mode === 'floors') return planFloorFog(room, map.data);
+  if (!fog.centers || !fog.centers.length) return null;
   const ci = Number.isInteger(OVR.fogCenter) ? OVR.fogCenter % fog.centers.length : crypto.randomInt(fog.centers.length);
   const c = fog.centers[ci];
   const radii = fog.radii || FOG.radii;
@@ -364,12 +366,60 @@ function planFog(room, map) {
     })),
   };
 }
+// 층 단위 안개 (여러 층 맵, fog.mode 'floors'): 원 대신 "안전한 층" 목록이 단계마다 줄어든다.
+// 시각·예고·졸음·마지막 밤 임시 랜턴은 원 안개와 같고, "빛 구역 안" 판정만 층 사각형으로 한다.
+function planFloorFog(room, data) {
+  const fog = data.fog;
+  const ids = (data.floors || []).map((f) => f.id);
+  if (!ids.length) return null;
+  const safeAt = (i) => {
+    const list = Array.isArray(fog.safe) ? fog.safe[Math.min(i, fog.safe.length - 1)] : null;
+    return Array.isArray(list) && list.length ? list.filter((id) => ids.includes(id)) : ids;
+  };
+  return {
+    mode: 'floors',
+    floors: data.floors,
+    bonus: fog.bonus || [],
+    stages: FOG.stages.map((s, i) => ({
+      startMs: s.at * room.totalMs,
+      shrinkMs: Math.max(1, s.shrinkMs),
+      safe: safeAt(i),
+      warned: false,
+      started: false,
+      shrunk: true, // 층 안개는 좁혀지는 시간이 없다
+    })),
+  };
+}
+// 층 안개 단계 i(0부터)가 시작될 때 새로 어두워지는 층 / 그 뒤 안전한 층 (이름) — 알림 글씨용
+function floorFogNews(plan, i) {
+  const before = i ? plan.stages[i - 1].safe : plan.floors.map((f) => f.id);
+  const after = plan.stages[i].safe;
+  const name = (id) => {
+    const f = plan.floors.find((x) => x.id === id);
+    return f ? f.short || f.name : String(id);
+  };
+  return { dark: before.filter((id) => !after.includes(id)).map(name), safe: after.map(name) };
+}
 // 지금 안개 모습 (06 명세 12-1절 room.fog). r 이 null 이면 아직 안개가 없다.
 function fogNow(plan, el) {
   let stage = 0;
   plan.stages.forEach((s, i) => {
     if (el >= s.startMs) stage = i + 1;
   });
+  if (plan.mode === 'floors') {
+    // 층 안개: safe = 지금 안전한 층 id (안개 전이면 null = 모두 안전), nextSafe = 다음 단계에 안전한 층
+    const next = plan.stages[stage];
+    return {
+      mode: 'floors',
+      stage,
+      safe: stage ? plan.stages[stage - 1].safe : null,
+      nextSafe: next ? next.safe : null,
+      nextMsLeft: next ? Math.max(0, Math.round(next.startMs - el)) : null,
+      shrinkMsLeft: 0,
+      r: null,
+      nextR: null,
+    };
+  }
   const o = { stage, cx: plan.cx, cy: plan.cy, r: null, fromR: null, toR: null, shrinkMsLeft: 0, nextMsLeft: null, nextR: null };
   if (stage) {
     const s = plan.stages[stage - 1];
@@ -388,6 +438,11 @@ function fogNow(plan, el) {
 }
 const isInFog = (room, p) => {
   const f = room.fogCur;
+  if (f && f.mode === 'floors') {
+    if (!f.safe || p.ghost) return false;
+    const fl = floorAt(maps.get(room.settings.map).data, p.x, p.y);
+    return !!fl && !f.safe.includes(fl.id);
+  }
   return !!f && f.r !== null && !p.ghost && Math.hypot(p.x - f.cx, p.y - f.cy) > f.r;
 };
 // 위치 검사에 쓰는 속도 배율 (빨라지는 것만. 느려진 사람은 원래 받아 준다)
@@ -702,7 +757,13 @@ function dropCrates(room, now) {
   const all = map.loot.filter((f) => !busy.has(f.index));
   let pool = all.filter((f) => !room.lastDrop.has(f.index)); // 바로 전 차례와 같은 가구는 피한다
   const f0 = room.fogCur;
-  if (f0 && f0.r !== null) {
+  if (f0 && f0.mode === 'floors' && f0.safe) {
+    const inner = pool.filter((f) => {
+      const fl = floorAt(map.data, f.x, f.y);
+      return fl && f0.safe.includes(fl.id);
+    }); // 층 안개 뒤에는 안전한 층 가구 먼저
+    if (inner.length) pool = inner;
+  } else if (f0 && f0.r !== null) {
     const inner = pool.filter((f) => Math.hypot(f.x - f0.cx, f.y - f0.cy) <= f0.r); // 안개 뒤에는 빛 구역 안 가구 먼저
     if (inner.length) pool = inner;
   }
@@ -1605,14 +1666,18 @@ const handlers = {
     }
     if (Math.hypot(p.x - device.from[0], p.y - device.from[1]) > CHASE.deviceReach + 15) {
       // 출구 근처에서 누르면 "여기는 출구" 안내 (06 명세 9-3절)
+      // (계단·엘리베이터는 도착한 곳에 짝 장치가 있어서 "출구" 안내를 하지 않는다)
       const exits = device.type === 'teleport' ? device.exits || [] : device.to ? [device.to] : [];
-      if (exits.some((e) => Math.hypot(p.x - e[0], p.y - e[1]) <= TERMINAL_REACH)) {
+      const pairStyle = device.style === 'stairs-up' || device.style === 'stairs-down' || device.style === 'elevator';
+      if (!pairStyle && exits.some((e) => Math.hypot(p.x - e[0], p.y - e[1]) <= TERMINAL_REACH)) {
         const at = roomAt(map, device.from[0], device.from[1]);
         return fail(ws, 'not_entrance', `여기는 출구예요. 들어가는 곳은 ${at ? at.name : '복도'}에 있어요.`);
       }
       return fail(ws, 'too_far', '입구에 더 가까이 가 주세요.');
     }
-    const ready = p.devReadyAt[device.id] || 0;
+    // 다시 탈 때까지 기다리는 시간은 장치마다. cooldown.group 이 같은 장치들(예: 엘리베이터 문 여러 개)은 함께 센다
+    const cdKey = (device.cooldown && device.cooldown.group) || device.id;
+    const ready = p.devReadyAt[cdKey] || 0;
     if (now < ready) return fail(ws, 'device_cooldown', `${Math.ceil((ready - now) / 1000)}초 뒤에 다시 탈 수 있어요.`);
     const from = [p.x, p.y];
     const to = device.type === 'teleport' ? device.exits[crypto.randomInt(device.exits.length)] : device.to;
@@ -1625,7 +1690,7 @@ const handlers = {
     p.rideUntil = now + ms;
     p.movedAt = now + ms;
     p.protUntil = Math.max(p.protUntil, now + ms + (device.protectAfter || 0) * 1000); // 타는 동안 + 도착 뒤 잠깐은 꿈에 안 빠진다
-    p.devReadyAt[device.id] = now + ms + ((device.cooldown && device.cooldown.seconds) || 0) * 1000;
+    p.devReadyAt[cdKey] = now + ms + ((device.cooldown && device.cooldown.seconds) || 0) * 1000;
     // 꿈에 빠진 학생이 타는 모습은 볼 수 있는 사람(선생님·꿈도둑·꿈에 빠진 사람)에게만 알린다
     sendEvent(room, { kind: 'ride', id: p.id, device: device.id, from, to, ms }, seesPlayer(room, p));
     broadcast(room);
@@ -1816,14 +1881,16 @@ function worldTick(room, now, dt) {
     room.fogCur = fogNow(plan, el);
     const last = plan.stages.length - 1;
     plan.stages.forEach((s, i) => {
+      // 층 안개는 어떤 층이 어두워지는지(dark)·안전한 층(safe) 이름도 알린다
+      const news = plan.mode === 'floors' ? floorFogNews(plan, i) : null;
       if (!s.warned && el >= s.startMs - FOG.warnMs) {
         s.warned = true;
-        sendEvent(room, { kind: 'fogWarn', stage: i + 1, inMs: Math.max(0, Math.round(s.startMs - el)) });
+        sendEvent(room, { kind: 'fogWarn', stage: i + 1, inMs: Math.max(0, Math.round(s.startMs - el)), ...news });
         changed = true;
       }
       if (!s.started && el >= s.startMs) {
         s.started = true;
-        sendEvent(room, { kind: 'fogStart', stage: i + 1 });
+        sendEvent(room, { kind: 'fogStart', stage: i + 1, ...news });
         if (i === last) {
           room.bonusTerminals = plan.bonus.slice(0, FOG.bonusCount).map((pos, k) => ({ id: 'b' + (k + 1), pos }));
           sendEvent(room, { kind: 'bonusLanterns' });

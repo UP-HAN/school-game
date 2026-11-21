@@ -1,5 +1,5 @@
 // 맵 데이터를 만화풍 그림 한 장으로 미리 그려 둔다 (게임 중에는 이 그림을 그대로 붙인다).
-import { VOID, WALL, SIGN, signRect, deviceMarks } from './shared/mapgrid.js';
+import { VOID, WALL, SIGN, signRect, deviceMarks, DEVICE_STYLES, floorPanels } from './shared/mapgrid.js';
 import { FONT } from './mafiaconst.js';
 import makeLibrary from './furn-library.js';
 import makeSchool from './furn-school.js';
@@ -806,16 +806,20 @@ export function renderMap(map, grid, opts = {}) {
   const [W, H] = map.size;
 
   // 1. 운동장 잔디 (밤 분위기는 맨 끝에서 한꺼번에 입힌다)
-  c.fillStyle = '#9fcf84';
-  c.fillRect(0, 0, W, H);
-  c.fillStyle = 'rgba(63,174,106,.28)';
-  for (let i = 0; i < 520; i++) {
-    const a = Math.sin(i * 12.9898) * 43758.5453;
-    const b = Math.sin(i * 78.233) * 24634.6345;
-    const x = (a - Math.floor(a)) * W;
-    const y = (b - Math.floor(b)) * H;
-    c.fillRect(x, y, 4, 12);
-    c.fillRect(x + 7, y + 3, 4, 9);
+  //    여러 층 맵(floors)은 층 사이가 땅이 아니라 밤하늘이다: 별이 뜬 하늘 + 층마다 건물 바닥판
+  if (map.floors && map.floors.length) drawFloorSlabs(c, map, W, H);
+  else {
+    c.fillStyle = '#9fcf84';
+    c.fillRect(0, 0, W, H);
+    c.fillStyle = 'rgba(63,174,106,.28)';
+    for (let i = 0; i < 520; i++) {
+      const a = Math.sin(i * 12.9898) * 43758.5453;
+      const b = Math.sin(i * 78.233) * 24634.6345;
+      const x = (a - Math.floor(a)) * W;
+      const y = (b - Math.floor(b)) * H;
+      c.fillRect(x, y, 4, 12);
+      c.fillRect(x + 7, y + 3, 4, 9);
+    }
   }
 
   // 2. 바닥
@@ -911,7 +915,8 @@ export function renderMap(map, grid, opts = {}) {
   }
   for (const d of map.devices || []) {
     if (d.type === 'slide') drawSlide(c, d);
-    if (d.type === 'teleport') {
+    if (d.type === 'teleport' && DEVICE_STYLES[d.style]) drawStyledDevice(c, d);
+    else if (d.type === 'teleport') {
       drawHole(c, d.from[0], d.from[1]);
       for (const e of d.exits || []) drawHoleExit(c, e[0], e[1]);
     }
@@ -925,11 +930,17 @@ export function renderMap(map, grid, opts = {}) {
   c.globalCompositeOperation = 'multiply';
   c.fillStyle = '#bcb7ea';
   c.fillRect(0, 0, W, H);
-  const dusk = c.createRadialGradient(W / 2, H / 2, 200, W / 2, H / 2, Math.max(W, H) * 0.7);
-  dusk.addColorStop(0, 'rgba(255,255,255,1)');
-  dusk.addColorStop(1, 'rgba(160,152,210,1)');
-  c.fillStyle = dusk;
-  c.fillRect(0, 0, W, H);
+  // 달빛: 맵 가운데 (여러 층 맵은 층마다 가운데)
+  const pools = map.floors && map.floors.length ? map.floors.map((f) => f.rect) : [[0, 0, W, H]];
+  for (const [px, py, pw, ph] of pools) {
+    const cx = px + pw / 2;
+    const cy = py + ph / 2;
+    const dusk = c.createRadialGradient(cx, cy, 200, cx, cy, Math.max(pw, ph) * 0.7);
+    dusk.addColorStop(0, 'rgba(255,255,255,1)');
+    dusk.addColorStop(1, 'rgba(160,152,210,1)');
+    c.fillStyle = dusk;
+    c.fillRect(px, py, pw, ph);
+  }
   c.globalCompositeOperation = 'source-over';
 
   // 7. 꺼진 퀴즈 랜턴 (어둠 속에서 희미한 호박빛)
@@ -943,14 +954,165 @@ export function renderMap(map, grid, opts = {}) {
     drawLantern(c, tx, ty, false);
   }
 
-  // 8. 맵 이름 팻말
-  c.lineWidth = 10;
-  c.lineJoin = 'round';
+  // 8. 맵 이름 팻말 (여러 층 맵은 층마다 층 이름을 건물 위 하늘에)
+  const titles = map.floors && map.floors.length
+    ? map.floors.map((f) => [`${f.name}`, f.rect[0] + f.rect[2] / 2, Math.max(40, f.rect[1] - 50), 52])
+    : [[map.name, W / 2, 90, 64]];
+  for (const [text, tx, ty, size] of titles) {
+    c.lineWidth = 10;
+    c.lineJoin = 'round';
+    c.strokeStyle = INK;
+    c.font = `700 ${size}px ${FONT}`;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.strokeText(text, tx, ty);
+    label(c, text, tx, ty, size, '#c8f56a');
+  }
+  return cv;
+}
+
+// ───────────── 여러 층 맵 ─────────────
+// 층 사이 밤하늘 (별) + 층마다 건물 바닥판. 방·복도는 이 위에 그린다.
+function drawFloorSlabs(c, map, W, H) {
+  const sky = c.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#141032');
+  sky.addColorStop(1, '#2a2350');
+  c.fillStyle = sky;
+  c.fillRect(0, 0, W, H);
+  for (let i = 0; i < (W * H) / 9000; i++) {
+    const a = Math.sin(i * 12.9898) * 43758.5453;
+    const b = Math.sin(i * 78.233) * 24634.6345;
+    const s = i % 7 === 0 ? 3.2 : 1.6;
+    c.fillStyle = i % 11 === 0 ? 'rgba(255,236,160,.9)' : 'rgba(255,255,255,.75)';
+    c.beginPath();
+    c.arc((a - Math.floor(a)) * W, (b - Math.floor(b)) * H, s, 0, Math.PI * 2);
+    c.fill();
+  }
+  for (const f of map.floors) {
+    const [x, y, w, h] = f.rect;
+    c.fillStyle = 'rgba(0,0,0,.35)';
+    c.beginPath();
+    c.roundRect(x + 14, y + 18, w, h, 26);
+    c.fill();
+    rr(c, x, y, w, h, 26, '#5d5390', 6);
+    // 바닥판 무늬 (콘크리트 줄눈)
+    clipRect(c, [x + 6, y + 6, w - 12, h - 12], (cc, X, Y, ww, hh) => {
+      lines(cc, X, Y, ww, hh, 60, true, 'rgba(255,255,255,.07)', 3);
+      lines(cc, X, Y, ww, hh, 120, false, 'rgba(255,255,255,.05)', 3);
+    });
+  }
+}
+// 계단 (dir 'up': 입구 위쪽으로 올라가는 계단 / 'down': 아래쪽으로 내려가는 계단). 자리는 shared/mapgrid.js DEVICE_STYLES 의 art
+function drawStairs(c, x, y, dir) {
+  const up = dir === 'up';
+  const top = up ? y - 90 : y - 20;
+  rr(c, x - 50, top, 100, 110, 10, '#8a78d8', 4);
+  const n = 6;
+  for (let i = 0; i < n; i++) {
+    // 올라가는 계단은 위로 갈수록 밝게, 내려가는 계단은 아래로 갈수록 어둡게
+    const k = up ? 1 - i / n : i / n;
+    const light = Math.round(250 - k * 70);
+    const sy = top + 8 + i * 16;
+    c.fillStyle = up ? `rgb(${light},${light - 10},${light - 40})` : `rgb(${light - 60},${light - 70},${light - 30})`;
+    c.fillRect(x - 42, sy, 84, 14);
+    c.strokeStyle = INK;
+    c.lineWidth = 2;
+    c.strokeRect(x - 42, sy, 84, 14);
+  }
+  // 화살표
+  c.fillStyle = up ? '#c8f56a' : '#ffb547';
   c.strokeStyle = INK;
-  c.font = `700 64px ${FONT}`;
-  c.textAlign = 'center';
-  c.textBaseline = 'middle';
-  c.strokeText(map.name, W / 2, 90);
-  label(c, map.name, W / 2, 90, 64, '#c8f56a');
+  c.lineWidth = 3;
+  c.beginPath();
+  const ay = up ? top + 30 : top + 80;
+  const s = up ? -1 : 1;
+  c.moveTo(x, ay + s * 22);
+  c.lineTo(x + 18, ay);
+  c.lineTo(x + 7, ay);
+  c.lineTo(x + 7, ay - s * 18);
+  c.lineTo(x - 7, ay - s * 18);
+  c.lineTo(x - 7, ay);
+  c.lineTo(x - 18, ay);
+  c.closePath();
+  c.fill();
+  c.stroke();
+}
+// 엘리베이터 문 (벽에 붙은 은색 문 + 위쪽 층 표시등 + 버튼)
+function drawElevator(c, x, y, to) {
+  const top = y - 100;
+  rr(c, x - 46, top, 92, 112, 8, '#8d99ae', 4);
+  rr(c, x - 36, top + 22, 72, 84, 4, '#d9e1ea', 3);
+  c.strokeStyle = INK;
+  c.lineWidth = 3;
+  c.beginPath();
+  c.moveTo(x, top + 22);
+  c.lineTo(x, top + 106);
+  c.stroke();
+  rr(c, x - 22, top + 4, 44, 16, 5, '#2a2140', 2);
+  label(c, to ? `${to}층` : '▲▼', x, top + 12, 13, '#ffd84d');
+  circle(c, x + 40, top + 64, 5, '#ffd84d', 2);
+}
+// 미끄럼틀 통로: 입구는 위에서 본 소용돌이 구멍, 출구는 짧은 통로 끝 + 착지 매트
+function drawTube(c, x, y) {
+  circle(c, x, y, 38, '#ff7a59');
+  circle(c, x, y, 27, '#ffb199', 3);
+  c.strokeStyle = '#1c1530';
+  c.lineWidth = 5;
+  c.beginPath();
+  for (let a = 0; a < Math.PI * 4; a += 0.2) {
+    const r = 22 - a * 1.6;
+    if (a === 0) c.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+    else c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+  }
+  c.stroke();
+}
+function drawTubeExit(c, x, y) {
+  rr(c, x - 38, y - 10, 76, 44, 14, '#ffd94a', 4); // 착지 매트
+  c.lineWidth = 30;
+  c.lineCap = 'round';
+  c.strokeStyle = INK;
+  c.beginPath();
+  c.moveTo(x - 30, y - 34);
+  c.lineTo(x - 4, y - 8);
+  c.stroke();
+  c.lineWidth = 22;
+  c.strokeStyle = '#ff7a59';
+  c.stroke();
+  c.lineWidth = 8;
+  c.strokeStyle = '#ffb199';
+  c.stroke();
+  circle(c, x - 34, y - 36, 12, '#1c1530', 3);
+}
+function drawStyledDevice(c, d) {
+  const [x, y] = d.from;
+  if (d.style === 'stairs-up') drawStairs(c, x, y, 'up');
+  else if (d.style === 'stairs-down') drawStairs(c, x, y, 'down');
+  else if (d.style === 'elevator') {
+    const m = /(\d+)층/.exec(d.name || '');
+    drawElevator(c, x, y, m ? m[1] : '');
+  } else if (d.style === 'tube') {
+    drawTube(c, x, y);
+    for (const e of d.exits || []) drawTubeExit(c, e[0], e[1]);
+  }
+}
+
+// 여러 층 맵 미리보기 (선생님 맵 고르기 그림 등): 층마다 한 칸씩 나란히. floors 가 없으면 맵 전체를 줄여 그린다.
+// image = renderMap 결과. 돌려주는 값: w×h 캔버스
+export function renderOverview(map, image, w, h) {
+  const cv = document.createElement('canvas');
+  cv.width = w;
+  cv.height = h;
+  const c = cv.getContext('2d');
+  c.fillStyle = '#1b1638';
+  c.fillRect(0, 0, w, h);
+  const top = map.floors && map.floors.length ? Math.max(14, Math.round(h * 0.07)) : 0;
+  for (const p of floorPanels(map, w, h, { gap: Math.round(w * 0.025), pad: Math.round(w * 0.02), top })) {
+    c.drawImage(image, p.src[0], p.src[1], p.src[2], p.src[3], p.x, p.y, p.w, p.h);
+    if (!p.floor) continue;
+    c.lineWidth = 3;
+    c.strokeStyle = '#fff6e5';
+    c.strokeRect(p.x, p.y, p.w, p.h);
+    label(c, p.floor.name, p.x + p.w / 2, p.y - top / 2, Math.round(top * 0.8), '#c8f56a');
+  }
   return cv;
 }

@@ -1,1033 +1,123 @@
 {
- "_note": "rect = [x, y, 너비, 높이]. 모든 값은 20의 배수. 가구(furniture)는 rect 가 그림 칸이고, 실제로 막히는 곳은 그림의 아랫부분(발이 닿는 곳)만이다 (shared/mapgrid.js footRect, 필요하면 foot: [x,y,w,h] 로 직접 지정). 장치(devices)의 marks 는 팻말·글씨 자리 [dx,dy] (shared/mapgrid.js deviceMarks). 방(rooms)은 바깥 한 칸(20px)이 벽이고, 문(doors)은 벽이나 빈 땅을 뚫어 길을 만든다. 복도(corridors)는 벽이 없다.",
- "id": "moon-library",
- "name": "달빛 대도서관",
- "size": [
-  2800,
-  1900
- ],
- "grid": 20,
- "rooms": [
-  {
-   "id": "court",
-   "name": "큰 체육관",
-   "rect": [
-    900,
-    520,
-    1000,
-    800
-   ],
-   "floor": "wood",
-   "decor": "court"
-  },
-  {
-   "id": "stage",
-   "name": "무대",
-   "rect": [
-    1100,
-    240,
-    600,
-    280
-   ],
-   "floor": "stage"
-  },
-  {
-   "id": "storage",
-   "name": "체육 창고",
-   "rect": [
-    200,
-    240,
-    500,
-    420
-   ],
-   "floor": "concrete"
-  },
-  {
-   "id": "snack",
-   "name": "매점",
-   "rect": [
-    200,
-    740,
-    500,
-    340
-   ],
-   "floor": "tile"
-  },
-  {
-   "id": "locker",
-   "name": "탈의실",
-   "rect": [
-    200,
-    1160,
-    500,
-    460
-   ],
-   "floor": "tile"
-  },
-  {
-   "id": "climb",
-   "name": "몬스터 놀이방",
-   "rect": [
-    2100,
-    240,
-    500,
-    620
-   ],
-   "floor": "mat"
-  },
-  {
-   "id": "equip",
-   "name": "기구실",
-   "rect": [
-    2100,
-    940,
-    500,
-    220
-   ],
-   "floor": "concrete"
-  },
-  {
-   "id": "office",
-   "name": "체육 선생님 방",
-   "rect": [
-    2100,
-    1240,
-    500,
-    380
-   ],
-   "floor": "wood"
-  }
- ],
- "corridors": [
-  {
-   "id": "west-hall",
-   "rect": [
-    700,
-    240,
-    200,
-    1380
-   ]
-  },
-  {
-   "id": "east-hall",
-   "rect": [
-    1900,
-    240,
-    200,
-    1380
-   ]
-  },
-  {
-   "id": "south-hall",
-   "rect": [
-    900,
-    1420,
-    1000,
-    200
-   ]
-  }
- ],
- "doors": [
-  {
-   "id": "d-stage",
-   "rect": [
-    1360,
-    500,
-    80,
-    40
-   ],
-   "lockable": true
-  },
-  {
-   "id": "d-court-w",
-   "rect": [
-    900,
-    880,
-    20,
-    80
-   ],
-   "lockable": false
-  },
-  {
-   "id": "d-court-e",
-   "rect": [
-    1880,
-    880,
-    20,
-    80
-   ],
-   "lockable": false
-  },
-  {
-   "id": "d-court-s",
-   "rect": [
-    1360,
-    1300,
-    80,
-    120
-   ],
-   "lockable": false
-  },
-  {
-   "id": "d-storage",
-   "rect": [
-    680,
-    420,
-    20,
-    80
-   ],
-   "lockable": true
-  },
-  {
-   "id": "d-snack",
-   "rect": [
-    680,
-    880,
-    20,
-    80
-   ],
-   "lockable": true
-  },
-  {
-   "id": "d-locker",
-   "rect": [
-    680,
-    1360,
-    20,
-    80
-   ],
-   "lockable": true
-  },
-  {
-   "id": "d-climb",
-   "rect": [
-    2100,
-    500,
-    20,
-    80
-   ],
-   "lockable": true
-  },
-  {
-   "id": "d-equip",
-   "rect": [
-    2100,
-    1020,
-    20,
-    80
-   ],
-   "lockable": true
-  },
-  {
-   "id": "d-office",
-   "rect": [
-    2100,
-    1400,
-    20,
-    80
-   ],
-   "lockable": true
-  }
- ],
- "furniture": [
-  {
-   "kind": "piano",
-   "name": "피아노",
-   "rect": [
-    1140,
-    280,
-    120,
-    80
-   ]
-  },
-  {
-   "kind": "vault",
-   "name": "뜀틀",
-   "rect": [
-    320,
-    320,
-    120,
-    60
-   ]
-  },
-  {
-   "kind": "ballcart",
-   "name": "공 바구니",
-   "rect": [
-    580,
-    340,
-    80,
-    80
-   ]
-  },
-  {
-   "kind": "counter",
-   "name": "판매대",
-   "rect": [
-    240,
-    780,
-    280,
-    60
-   ]
-  },
-  {
-   "kind": "lockers",
-   "name": "사물함",
-   "rect": [
-    220,
-    1180,
-    40,
-    240
-   ]
-  },
-  {
-   "kind": "bench",
-   "name": "긴 의자",
-   "rect": [
-    400,
-    1380,
-    160,
-    40
-   ]
-  },
-  {
-   "kind": "junglegym",
-   "name": "정글짐",
-   "rect": [
-    2260,
-    380,
-    160,
-    160
-   ]
-  },
-  {
-   "kind": "matpile",
-   "name": "매트 더미",
-   "rect": [
-    2300,
-    960,
-    120,
-    80
-   ]
-  },
-  {
-   "kind": "desk",
-   "name": "책상",
-   "rect": [
-    2280,
-    1320,
-    160,
-    80
-   ]
-  },
-  {
-   "kind": "cone",
-   "name": "고깔",
-   "rect": [
-    1180,
-    620,
-    40,
-    40
-   ]
-  },
-  {
-   "kind": "cone",
-   "name": "고깔",
-   "rect": [
-    1580,
-    620,
-    40,
-    40
-   ]
-  },
-  {
-   "kind": "cone",
-   "name": "고깔",
-   "rect": [
-    1180,
-    1180,
-    40,
-    40
-   ]
-  },
-  {
-   "kind": "cone",
-   "name": "고깔",
-   "rect": [
-    1580,
-    1180,
-    40,
-    40
-   ]
-  },
-  {
-   "kind": "ballrack",
-   "name": "공 정리대",
-   "rect": [
-    940,
-    560,
-    100,
-    40
-   ]
-  },
-  {
-   "kind": "scoretable",
-   "name": "점수판",
-   "rect": [
-    1760,
-    560,
-    100,
-    40
-   ]
-  },
-  {
-   "kind": "refchair",
-   "name": "심판 의자",
-   "rect": [
-    1500,
-    560,
-    60,
-    60
-   ]
-  },
-  {
-   "kind": "drum",
-   "name": "드럼",
-   "rect": [
-    1580,
-    280,
-    100,
-    80
-   ]
-  },
-  {
-   "kind": "speaker",
-   "name": "스피커",
-   "rect": [
-    1140,
-    420,
-    60,
-    60
-   ]
-  },
-  {
-   "kind": "speaker",
-   "name": "스피커",
-   "rect": [
-    1600,
-    420,
-    60,
-    60
-   ]
-  },
-  {
-   "kind": "mic",
-   "name": "마이크",
-   "rect": [
-    1300,
-    320,
-    40,
-    40
-   ]
-  },
-  {
-   "kind": "shelf",
-   "name": "선반",
-   "rect": [
-    220,
-    260,
-    60,
-    140
-   ]
-  },
-  {
-   "kind": "hurdle",
-   "name": "허들",
-   "rect": [
-    320,
-    500,
-    160,
-    20
-   ]
-  },
-  {
-   "kind": "skeleton",
-   "name": "해골 모형",
-   "rect": [
-    220,
-    440,
-    40,
-    60
-   ]
-  },
-  {
-   "kind": "crates",
-   "name": "상자 더미",
-   "rect": [
-    540,
-    560,
-    100,
-    80
-   ]
-  },
-  {
-   "kind": "fridge",
-   "name": "냉장고",
-   "rect": [
-    520,
-    780,
-    60,
-    80
-   ]
-  },
-  {
-   "kind": "vending",
-   "name": "자판기",
-   "rect": [
-    580,
-    780,
-    40,
-    80
-   ]
-  },
-  {
-   "kind": "table",
-   "name": "식탁",
-   "rect": [
-    360,
-    920,
-    100,
-    80
-   ]
-  },
-  {
-   "kind": "table",
-   "name": "식탁",
-   "rect": [
-    520,
-    980,
-    100,
-    60
-   ]
-  },
-  {
-   "kind": "icebox",
-   "name": "아이스크림 통",
-   "rect": [
-    240,
-    880,
-    60,
-    60
-   ]
-  },
-  {
-   "kind": "lockersH",
-   "name": "사물함",
-   "rect": [
-    300,
-    1180,
-    280,
-    40
-   ]
-  },
-  {
-   "kind": "bench",
-   "name": "긴 의자",
-   "rect": [
-    400,
-    1280,
-    160,
-    40
-   ]
-  },
-  {
-   "kind": "basket",
-   "name": "빨래 바구니",
-   "rect": [
-    220,
-    1460,
-    60,
-    60
-   ]
-  },
-  {
-   "kind": "sink",
-   "name": "세면대",
-   "rect": [
-    460,
-    1560,
-    120,
-    40
-   ]
-  },
-  {
-   "kind": "shower",
-   "name": "샤워 부스",
-   "rect": [
-    580,
-    1500,
-    100,
-    100
-   ]
-  },
-  {
-   "kind": "trampoline",
-   "name": "트램펄린",
-   "rect": [
-    2140,
-    280,
-    100,
-    80
-   ]
-  },
-  {
-   "kind": "blocks",
-   "name": "블록 탑",
-   "rect": [
-    2140,
-    400,
-    60,
-    80
-   ]
-  },
-  {
-   "kind": "teddy",
-   "name": "곰 인형",
-   "rect": [
-    2420,
-    560,
-    80,
-    60
-   ]
-  },
-  {
-   "kind": "horse",
-   "name": "흔들 목마",
-   "rect": [
-    2300,
-    700,
-    80,
-    60
-   ]
-  },
-  {
-   "kind": "dumbbell",
-   "name": "아령",
-   "rect": [
-    2180,
-    960,
-    80,
-    40
-   ]
-  },
-  {
-   "kind": "gymball",
-   "name": "짐볼",
-   "rect": [
-    2200,
-    1080,
-    60,
-    60
-   ]
-  },
-  {
-   "kind": "treadmill",
-   "name": "러닝머신",
-   "rect": [
-    2420,
-    1080,
-    120,
-    60
-   ]
-  },
-  {
-   "kind": "bookcase",
-   "name": "책장",
-   "rect": [
-    2140,
-    1260,
-    100,
-    40
-   ]
-  },
-  {
-   "kind": "trophy",
-   "name": "트로피 장식장",
-   "rect": [
-    2380,
-    1260,
-    100,
-    40
-   ]
-  },
-  {
-   "kind": "chair",
-   "name": "의자",
-   "rect": [
-    2340,
-    1420,
-    40,
-    40
-   ]
-  },
-  {
-   "kind": "sofa",
-   "name": "소파",
-   "rect": [
-    2180,
-    1540,
-    160,
-    60
-   ]
-  },
-  {
-   "kind": "plant",
-   "name": "화분",
-   "rect": [
-    2420,
-    1540,
-    40,
-    40
-   ]
-  },
-  {
-   "kind": "plant",
-   "name": "화분",
-   "rect": [
-    700,
-    260,
-    40,
-    40
-   ]
-  },
-  {
-   "kind": "fountain",
-   "name": "음수대",
-   "rect": [
-    860,
-    700,
-    40,
-    60
-   ]
-  },
-  {
-   "kind": "shoerack",
-   "name": "신발장",
-   "rect": [
-    700,
-    1100,
-    40,
-    120
-   ]
-  },
-  {
-   "kind": "plant",
-   "name": "화분",
-   "rect": [
-    1900,
-    260,
-    40,
-    40
-   ]
-  },
-  {
-   "kind": "trophy",
-   "name": "트로피 진열장",
-   "rect": [
-    2060,
-    680,
-    40,
-    120
-   ]
-  },
-  {
-   "kind": "vending",
-   "name": "자판기",
-   "rect": [
-    2060,
-    1140,
-    40,
-    80
-   ]
-  },
-  {
-   "kind": "bench",
-   "name": "긴 의자",
-   "rect": [
-    1100,
-    1580,
-    160,
-    40
-   ]
-  },
-  {
-   "kind": "crates",
-   "name": "분실물 상자",
-   "rect": [
-    1640,
-    1580,
-    80,
-    40
-   ]
-  }
- ],
- "terminals": [
-  {
-   "id": "t1",
-   "pos": [
-    1400,
-    290
-   ],
-   "room": "stage"
-  },
-  {
-   "id": "t2",
-   "pos": [
-    600,
-    290
-   ],
-   "room": "storage"
-  },
-  {
-   "id": "t3",
-   "pos": [
-    280,
-    1030
-   ],
-   "room": "snack"
-  },
-  {
-   "id": "t4",
-   "pos": [
-    280,
-    1570
-   ],
-   "room": "locker"
-  },
-  {
-   "id": "t5",
-   "pos": [
-    2540,
-    600
-   ],
-   "room": "climb"
-  },
-  {
-   "id": "t6",
-   "pos": [
-    2540,
-    1000
-   ],
-   "room": "equip"
-  },
-  {
-   "id": "t7",
-   "pos": [
-    2540,
-    1300
-   ],
-   "room": "office"
-  },
-  {
-   "id": "t8",
-   "pos": [
-    1820,
-    1240
-   ],
-   "room": "court"
-  }
- ],
- "spawn": {
-  "pos": [
-   1400,
-   920
+  "_note": "rect = [x, y, 너비, 높이]. 모든 값은 20의 배수. 가구(furniture)는 rect 가 그림 칸이고, 실제로 막히는 곳은 그림의 아랫부분(발이 닿는 곳)만이다 (shared/mapgrid.js footRect, 필요하면 foot: [x,y,w,h] 로 직접 지정). 장치(devices)의 marks 는 팻말·글씨 자리 [dx,dy] (shared/mapgrid.js deviceMarks). 방(rooms)은 바깥 한 칸(20px)이 벽이고, 문(doors)은 벽이나 빈 땅을 뚫어 길을 만든다. 복도(corridors)는 벽이 없다.",
+  "id": "moon-library",
+  "name": "달빛 대도서관",
+  "size": [3000, 2000],
+  "grid": 20,
+  "rooms": [
+    { "id": "hall", "name": "중앙 열람홀", "rect": [880, 620, 1240, 760], "floor": "libcarpet" },
+    { "id": "stacks-a", "name": "서가 A", "rect": [880, 200, 1240, 420], "floor": "libstackfloor" },
+    { "id": "stacks-b", "name": "서가 B", "rect": [880, 1380, 1240, 500], "floor": "libstackfloor" },
+    { "id": "kids", "name": "어린이 책방", "rect": [100, 200, 600, 560], "floor": "libkidsfloor" },
+    { "id": "comics", "name": "만화방", "rect": [100, 840, 600, 360], "floor": "wood" },
+    { "id": "pc", "name": "컴퓨터실", "rect": [100, 1280, 600, 600], "floor": "libpcfloor" },
+    { "id": "cafe", "name": "북카페", "rect": [2300, 200, 600, 560], "floor": "libcafefloor" },
+    { "id": "office", "name": "사서실", "rect": [2300, 840, 600, 400], "floor": "wood" },
+    { "id": "archive", "name": "고서 보관실", "rect": [2300, 1320, 600, 560], "floor": "libvaultfloor" }
   ],
-  "radius": 130
- },
- "bell": {
-  "pos": [
-   1400,
-   640
-  ]
- },
- "fog": {
-  "_note": "잠 안개 빛 구역 후보. 게임 시작 때 하나를 골라 모든 단계가 같은 중심. bonus = 마지막 밤 임시 랜턴 2자리 (반지름 550 안)",
-  "centers": [
-   {
-    "pos": [
-     1400,
-     920
-    ],
-    "bonus": [
-     [
-      1200,
-      800
-     ],
-     [
-      1600,
-      1040
-     ]
+  "corridors": [
+    { "id": "west-hall", "rect": [700, 200, 180, 1680] },
+    { "id": "east-hall", "rect": [2120, 200, 180, 1680] }
+  ],
+  "doors": [
+    { "id": "d-a-hall", "rect": [1460, 600, 80, 40], "lockable": false },
+    { "id": "d-b-hall", "rect": [1460, 1360, 80, 40], "lockable": false },
+    { "id": "d-hall-w", "rect": [880, 1000, 20, 80], "lockable": false },
+    { "id": "d-hall-e", "rect": [2100, 1000, 20, 80], "lockable": false },
+    { "id": "d-a-w", "rect": [880, 380, 20, 80], "lockable": true },
+    { "id": "d-a-e", "rect": [2100, 380, 20, 80], "lockable": true },
+    { "id": "d-b-w", "rect": [880, 1560, 20, 80], "lockable": true },
+    { "id": "d-b-e", "rect": [2100, 1560, 20, 80], "lockable": true },
+    { "id": "d-kids", "rect": [680, 440, 20, 80], "lockable": true },
+    { "id": "d-comics", "rect": [680, 980, 20, 80], "lockable": true },
+    { "id": "d-pc", "rect": [680, 1540, 20, 80], "lockable": true },
+    { "id": "d-cafe", "rect": [2300, 440, 20, 80], "lockable": true },
+    { "id": "d-office", "rect": [2300, 1000, 20, 80], "lockable": true },
+    { "id": "d-archive", "rect": [2300, 1580, 20, 80], "lockable": true }
+  ],
+  "furniture": [
+    { "kind": "libstack", "name": "높은 책장", "rect": [900, 300, 260, 60] },
+    { "kind": "libstack", "name": "높은 책장", "rect": [1260, 300, 360, 60] },
+    { "kind": "libstack", "name": "높은 책장", "rect": [1720, 300, 260, 60] },
+    { "kind": "libstack", "name": "높은 책장", "rect": [1000, 460, 400, 60] },
+    { "kind": "libstack", "name": "높은 책장", "rect": [1600, 460, 400, 60] },
+    { "kind": "libinfodesk", "name": "안내 데스크", "rect": [1360, 720, 280, 80] },
+    { "kind": "libtable", "name": "긴 열람 책상", "rect": [940, 700, 300, 100] },
+    { "kind": "libtable", "name": "긴 열람 책상", "rect": [940, 860, 300, 100] },
+    { "kind": "libtable", "name": "긴 열람 책상", "rect": [1760, 700, 300, 100] },
+    { "kind": "libtable", "name": "긴 열람 책상", "rect": [1760, 860, 300, 100] },
+    { "kind": "sofa", "name": "소파", "rect": [960, 1280, 160, 60] },
+    { "kind": "libglobe", "name": "지구본", "rect": [1840, 1260, 60, 80] },
+    { "kind": "plant", "name": "화분", "rect": [900, 640, 40, 40] },
+    { "kind": "plant", "name": "화분", "rect": [2060, 640, 40, 40] },
+    { "kind": "libcart", "name": "책 카트", "rect": [1680, 1280, 100, 60] },
+    { "kind": "plant", "name": "화분", "rect": [2060, 1320, 40, 40] },
+    { "kind": "libstack", "name": "높은 책장", "rect": [1000, 1480, 360, 60] },
+    { "kind": "libstack", "name": "높은 책장", "rect": [1640, 1480, 360, 60] },
+    { "kind": "libstack", "name": "높은 책장", "rect": [900, 1640, 280, 60] },
+    { "kind": "libstack", "name": "높은 책장", "rect": [1280, 1640, 440, 60] },
+    { "kind": "libstack", "name": "높은 책장", "rect": [1820, 1640, 280, 60] },
+    { "kind": "libkidshelf", "name": "그림책 책장", "rect": [140, 220, 200, 60] },
+    { "kind": "libkidshelf", "name": "그림책 책장", "rect": [380, 220, 200, 60] },
+    { "kind": "libbeanbag", "name": "빈백", "rect": [180, 560, 60, 60] },
+    { "kind": "libbeanbag", "name": "빈백", "rect": [380, 640, 60, 60] },
+    { "kind": "teddy", "name": "곰 인형", "rect": [280, 380, 80, 60] },
+    { "kind": "blocks", "name": "블록 탑", "rect": [560, 620, 60, 80] },
+    { "kind": "libcomic", "name": "만화책 꽂이", "rect": [140, 860, 240, 60] },
+    { "kind": "libcomic", "name": "만화책 꽂이", "rect": [420, 860, 160, 60] },
+    { "kind": "sofa", "name": "소파", "rect": [160, 1100, 160, 60] },
+    { "kind": "libbeanbag", "name": "빈백", "rect": [400, 1060, 60, 60] },
+    { "kind": "libpc", "name": "컴퓨터 책상", "rect": [120, 1360, 380, 80] },
+    { "kind": "libpc", "name": "컴퓨터 책상", "rect": [120, 1520, 380, 80] },
+    { "kind": "libpc", "name": "컴퓨터 책상", "rect": [120, 1680, 380, 80] },
+    { "kind": "counter", "name": "카페 계산대", "rect": [2340, 220, 280, 60] },
+    { "kind": "fridge", "name": "냉장고", "rect": [2660, 220, 60, 80] },
+    { "kind": "vending", "name": "자판기", "rect": [2720, 220, 40, 80] },
+    { "kind": "table", "name": "카페 탁자", "rect": [2400, 340, 100, 80] },
+    { "kind": "table", "name": "카페 탁자", "rect": [2580, 340, 100, 80] },
+    { "kind": "libreturn", "name": "책 반납함", "rect": [2780, 400, 80, 80] },
+    { "kind": "libstack", "name": "책장", "rect": [2700, 860, 160, 60] },
+    { "kind": "desk", "name": "사서 책상", "rect": [2340, 1140, 160, 80] },
+    { "kind": "libcart", "name": "책 카트", "rect": [2560, 1160, 100, 60] },
+    { "kind": "crates", "name": "반납 책 상자", "rect": [2720, 1160, 80, 60] },
+    { "kind": "libglass", "name": "고서 유리장", "rect": [2400, 1420, 160, 60] },
+    { "kind": "libglass", "name": "고서 유리장", "rect": [2640, 1420, 160, 60] },
+    { "kind": "libsafe", "name": "금고", "rect": [2800, 1340, 60, 80] },
+    { "kind": "libglass", "name": "고서 유리장", "rect": [2400, 1700, 160, 60] },
+    { "kind": "libscroll", "name": "두루마리 선반", "rect": [2700, 1780, 160, 80] },
+    { "kind": "plant", "name": "화분", "rect": [720, 220, 40, 40] },
+    { "kind": "plant", "name": "화분", "rect": [2240, 220, 40, 40] }
+  ],
+  "terminals": [
+    { "id": "t1", "pos": [1680, 260], "room": "stacks-a" },
+    { "id": "t2", "pos": [1960, 1800], "room": "stacks-b" },
+    { "id": "t3", "pos": [600, 300], "room": "kids" },
+    { "id": "t4", "pos": [600, 1130], "room": "comics" },
+    { "id": "t5", "pos": [600, 1380], "room": "pc" },
+    { "id": "t6", "pos": [600, 1800], "room": "pc" },
+    { "id": "t7", "pos": [2820, 1560], "room": "archive" },
+    { "id": "t8", "pos": [1000, 1160], "room": "hall" }
+  ],
+  "spawn": { "pos": [1500, 1160], "radius": 120 },
+  "bell": { "pos": [1500, 900] },
+  "fog": {
+    "_note": "잠 안개 빛 구역 후보. 게임 시작 때 하나를 골라 모든 단계가 같은 중심. bonus = 마지막 밤 임시 랜턴 2자리 (반지름 550 안)",
+    "centers": [
+      { "pos": [1500, 1160], "bonus": [[1260, 1080], [1740, 1080]] },
+      { "pos": [2560, 580], "bonus": [[2400, 620], [2720, 520]] },
+      { "pos": [400, 400], "bonus": [[300, 620], [600, 460]] }
     ]
-   },
-   {
-    "pos": [
-     1400,
-     1500
-    ],
-    "bonus": [
-     [
-      1100,
-      1500
-     ],
-     [
-      1700,
-      1500
-     ]
-    ]
-   },
-   {
-    "pos": [
-     800,
-     920
-    ],
-    "bonus": [
-     [
-      800,
-      600
-     ],
-     [
-      1100,
-      920
-     ]
-    ]
-   }
-  ]
- },
- "devices": [
-  {
-   "id": "slide-1",
-   "type": "slide",
-   "name": "몬스터 미끄럼틀",
-   "from": [
-    2520,
-    440
-   ],
-   "to": [
-    800,
-    300
-   ],
-   "path": [
-    [
-     2520,
-     170
-    ],
-    [
-     800,
-     170
-    ]
-   ],
-   "duration": 1.5,
-   "when": "press",
-   "who": {
-    "sleep-tag": [
-     "student"
-    ],
-    "mafia": [
-     "student",
-     "chaser"
-    ]
-   },
-   "cooldown": {
-    "scope": "player",
-    "seconds": 10
-   },
-   "protectAfter": 1,
-   "marks": {
-    "sign": [
-     -130,
-     -88
-    ]
-   }
   },
-  {
-   "id": "hole-1",
-   "type": "teleport",
-   "name": "개구멍",
-   "from": [
-    260,
-    600
-   ],
-   "exits": [
-    [
-     1000,
-     1240
-    ],
-    [
-     2540,
-     1560
-    ],
-    [
-     1500,
-     1540
-    ]
-   ],
-   "exitPick": "random",
-   "exitName": "개구멍 출구",
-   "duration": 1.5,
-   "when": "press",
-   "who": {
-    "sleep-tag": [
-     "student"
-    ],
-    "mafia": [
-     "student",
-     "chaser"
-    ]
-   },
-   "cooldown": {
-    "scope": "player",
-    "seconds": 10
-   },
-   "protectAfter": 1,
-   "marks": {
-    "sign": [
-     160,
-     30
-    ],
-    "label": [
-     10,
-     -48
-    ],
-    "exitLabels": [
-     [
-      92,
-      30
-     ],
-     [
-      -14,
-      -78
-     ],
-     [
-      0,
-      40
-     ]
-    ]
-   }
-  }
- ],
- "zones": [
-  {
-   "id": "mat-zone",
-   "type": "slow",
-   "name": "푹신 매트",
-   "rect": [
-    2140,
-    640,
-    440,
-    180
-   ],
-   "amount": 0.6,
-   "who": "all"
-  }
- ]
+  "devices": [
+    { "id": "slide-1", "type": "slide", "name": "책 반납 미끄럼틀", "from": [2820, 660], "to": [2210, 1800], "path": [[2960, 660], [2960, 1940], [2210, 1940]], "duration": 1.5, "when": "press", "who": { "sleep-tag": ["student"], "mafia": ["student", "chaser"] }, "cooldown": { "scope": "player", "seconds": 10 }, "protectAfter": 1, "marks": { "sign": [-150, 30], "toLabel": [0, -56]} },
+    { "id": "hole-1", "type": "teleport", "name": "비밀 통로", "from": [2760, 960], "exits": [[1500, 1780], [790, 1740], [2020, 1200]], "exitPick": "random", "exitName": "비밀 통로 출구", "duration": 1.5, "when": "press", "who": { "sleep-tag": ["student"], "mafia": ["student", "chaser"] }, "cooldown": { "scope": "player", "seconds": 10 }, "protectAfter": 1, "marks": { "sign": [-220, 40]} }
+  ],
+  "zones": [
+    { "id": "cushion-zone", "type": "slow", "name": "푹신 쿠션 매트", "rect": [160, 540, 320, 180], "amount": 0.6, "who": "all" }
+  ],
+  "tips": [
+    "책장 사이 길은 좁아요. 막다른 길을 조심해요!",
+    "사서실 책장 뒤 비밀 통로로 들어가면 세 곳 중 한 곳으로 나와요.",
+    "북카페 책 반납 미끄럼틀을 타면 고서 보관실 앞까지 한 번에 내려가요."
+  ]
 }
