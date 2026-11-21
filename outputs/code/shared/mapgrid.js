@@ -145,12 +145,23 @@ export function touchesRect(g, rect, x, y, r) {
 // 맵 장치의 who 에 쓸 수 있는 역할 값 (두 모드 모두 'student'·'chaser')
 export const ROLES = ['student', 'chaser'];
 
-export function zoneAt(map, x, y) {
+// 좌표가 들어 있는 구역(zones). type 을 주면 그 종류('slow' 느린 바닥 · 'dark' 어두운 구역)만 찾는다.
+// type 이 없으면 예전처럼 처음 맞는 구역 (구역이 겹치면 종류를 꼭 주고 찾는다).
+export function zoneAt(map, x, y, type) {
   for (const z of map.zones || []) {
+    if (type && z.type !== type) continue;
     const [zx, zy, zw, zh] = z.rect;
     if (x >= zx && x < zx + zw && y >= zy && y < zy + zh) return z;
   }
   return null;
+}
+// 어두운 구역(type 'dark', 놀이공원 유령의 집) 안이면 시야 배율 amount (0~1), 아니면 1.
+// 서버(상자 보이는 거리)와 화면(어둠 구멍 크기)이 같은 값을 쓴다. 꿈에 빠진 사람·선생님에게는 쓰지 않는다 (부르는 쪽이 거른다).
+export function darkVisionAt(map, x, y) {
+  const z = zoneAt(map, x, y, 'dark');
+  if (!z) return 1;
+  const a = Number(z.amount);
+  return Number.isFinite(a) && a > 0 && a < 1 ? a : 0.55;
 }
 
 // ───────────── 층 (여러 층 맵) ─────────────
@@ -480,7 +491,8 @@ export function deviceMarks(d) {
     const [bx, by] = at(d.from, m.sign || [-100, 34]);
     out.push({ kind: 'sign', what: '팻말', x: bx, y: by, foot: '', rect: signRect(bx, by, '') });
     out.push({ kind: 'art', what: '도착점', x: d.to[0], y: d.to[1], rect: [d.to[0] - 34, d.to[1] - 34, 68, 68] });
-    label('도착 글씨', '도착 (타는 곳 아님)', d.to, m.toLabel || [0, 52], 18);
+    // 회전목마(style 'carousel')는 타는 곳 반대편에서 내린다
+    label('도착 글씨', d.style === 'carousel' ? '내리는 곳' : '도착 (타는 곳 아님)', d.to, m.toLabel || [0, 52], 18);
   }
   return out;
 }
@@ -531,7 +543,8 @@ export function inspectDeviceMarks(map, g) {
   const slides = [];
   for (const d of map.devices || []) {
     for (const mk of deviceMarks(d)) marks.push({ ...mk, device: d.id, name: `장치 ${d.id} ${mk.what}` });
-    if (d.type === 'slide') slides.push({ d, pts: [d.from, ...(d.path || []), d.to] });
+    // 회전목마(style 'carousel')는 미끄럼틀 띠를 그리지 않는다 (그림은 가구 pkCarousel) → 띠 겹침 검사도 하지 않는다
+    if (d.type === 'slide' && d.style !== 'carousel') slides.push({ d, pts: [d.from, ...(d.path || []), d.to] });
   }
   marks.forEach((mk, i) => {
     const text = mk.kind !== 'art';

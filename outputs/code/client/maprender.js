@@ -4,6 +4,7 @@ import { FONT } from './mafiaconst.js';
 import makeLibrary from './furn-library.js';
 import makeSchool from './furn-school.js';
 import makeAcademy from './furn-academy.js';
+import makePark from './furn-park.js';
 
 const INK = '#2a2140';
 const WALL_FILL = '#8a78d8';
@@ -478,7 +479,7 @@ const FURNITURE = {
 
 // 맵 전용 가구·바닥 (furn-*.js). 이미 있는 이름은 덮어쓰지 않는다.
 const KIT = { rr, circle, shadow, lines, checker, label, clipRect, INK };
-for (const make of [makeLibrary, makeSchool, makeAcademy]) {
+for (const make of [makeLibrary, makeSchool, makeAcademy, makePark]) {
   const extra = make(KIT);
   for (const [k, fn] of Object.entries(extra.FURN || {})) if (!FURNITURE[k]) FURNITURE[k] = fn;
   for (const [k, fn] of Object.entries(extra.FLOORS || {})) if (!FLOORS[k]) FLOORS[k] = fn;
@@ -761,6 +762,14 @@ function drawHoleExit(c, x, y) {
   c.stroke();
 }
 function drawSlide(c, d) {
+  if (d.style === 'carousel') {
+    // 회전목마: 통로(관)는 그리지 않는다 (회전목마 그림은 가구 pkCarousel). 타는 곳·내리는 곳 동그라미만
+    circle(c, d.from[0], d.from[1], 34, '#ffd94a');
+    circle(c, d.from[0], d.from[1], 22, '#1c1530');
+    circle(c, d.to[0], d.to[1], 34, '#ffd94a');
+    circle(c, d.to[0], d.to[1], 22, '#ff9ec4');
+    return;
+  }
   const pts = [d.from, ...(d.path || []), d.to];
   const stroke = (w, col) => {
     c.lineWidth = w;
@@ -834,6 +843,15 @@ export function renderMap(map, grid, opts = {}) {
     c.fillRect(...d.rect);
   }
   for (const z of map.zones || []) {
+    if (z.type === 'dark') {
+      // 어두운 구역(유령의 집): 보랏빛 어두운 바닥 덧칠 + 이름
+      c.fillStyle = 'rgba(46,24,84,.55)';
+      c.beginPath();
+      c.roundRect(z.rect[0], z.rect[1], z.rect[2], z.rect[3], 16);
+      c.fill();
+      label(c, z.name || '', z.rect[0] + z.rect[2] / 2, z.rect[1] + z.rect[3] / 2, 30, 'rgba(230,220,255,.55)');
+      continue;
+    }
     c.fillStyle = 'rgba(155,107,242,.3)';
     c.strokeStyle = 'rgba(42,33,64,.5)';
     c.lineWidth = 3;

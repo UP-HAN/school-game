@@ -8,9 +8,9 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import {
   COLORS, CHARACTERS, MODES, MAPS, LIMITS, GAME, CHASE, MINUTES, MAFIA, MEETINGS, FOG, LOOT, ITEMS, ITEM_POOLS, ENERGY, STREAK,
-  chaserCount, maxChasers, modeOf, stageValue, lootCount, CHASER_SPEED, CHASER_SPEED_DEFAULT, chaserSpeedOf,
+  chaserCount, maxChasers, modeOf, stageValue, lootCount, CHASER_SPEED, CHASER_SPEED_DEFAULT, chaserSpeedOf, lootPool,
 } from '../shared/config.js';
-import { buildGrid, canStand, touchesRect, spawnPoint, validateMap, roomAt, distToRect, lootFurniture, floorAt } from '../shared/mapgrid.js';
+import { buildGrid, canStand, touchesRect, spawnPoint, validateMap, roomAt, distToRect, lootFurniture, floorAt, darkVisionAt } from '../shared/mapgrid.js';
 import { sanitizeSet, isCorrect } from '../shared/questions.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -42,7 +42,8 @@ function stripBase(pathname) {
 //   "chase"·"mafia"·"fog"·"loot"·"streak"·"energy"·"items": 같은 이름 묶음(config.js) 일부,
 //   "minuteMs": 게임 1분의 길이, "rejoinMs": 끊긴 학생 정리 시간, "cleanupMs": 정리 주기,
 //   "fogCenter": 안개 후보 번호 고정, "itemSeq": 상자에서 나올 아이템 차례, "lootFurniture": 상자를 숨길 가구 번호 목록,
-//   "testGive": true 면 시험용 메시지 testGive(아이템 바로 주기)를 받는다 }
+//   "testGive": true 면 시험용 메시지 testGive(아이템 바로 주기)를 받는다,
+//   "mapPatch": { "<맵 id>": { devices·zones·items 등 맵 JSON 맨 윗단 칸 } } — 시험 동안 그 칸을 통째로 바꿔 쓴다 }
 const OVR = (() => {
   try {
     return JSON.parse(process.env.TEST_OVERRIDES || '{}') || {};
@@ -87,6 +88,8 @@ if (process.env.TEST_OVERRIDES) console.log('시험용 시간 설정을 쓰는 �
 const maps = new Map(); // 맵 id → { data, grid, loot(상자를 숨길 수 있는 가구) }
 for (const m of MAPS) {
   const data = JSON.parse(fs.readFileSync(path.join(ROOT, 'maps', m.id + '.json'), 'utf8'));
+  const patch = OVR.mapPatch && typeof OVR.mapPatch === 'object' ? OVR.mapPatch[m.id] : null;
+  if (patch && typeof patch === 'object') Object.assign(data, patch); // 시험용 (TEST_OVERRIDES 일 때만)
   const grid = buildGrid(data);
   const problems = validateMap(data, grid, GAME.radius);
   if (problems.length) console.log(`맵 ${m.id} 에 문제가 있어요:\n - ` + problems.join('\n - '));
@@ -450,14 +453,16 @@ function speedBoost(room, p, now) {
   let m = 1;
   if (fxOn(p, 'shoes', now)) m = Math.max(m, ITEMS.shoes.speed);
   if (fxOn(p, 'windcape', now)) m = Math.max(m, ITEMS.windcape.speed);
+  if (fxOn(p, 'kickboard', now)) m = Math.max(m, ITEMS.kickboard.speed);
   if (!isMafiaGame(room) && p.role === 'chaser' && fogStage(room) >= 3) m *= FOG.lastNightChaserSpeed;
   m *= chaserSpeedOf(room.settings, p.role); // 선생님이 고른 잠귀신 속도 (꿈도둑을 찾아라는 1)
   return m;
 }
-// 상자를 보여 줄 거리 = 시야 (안개·손전등 반영) + 100
+// 상자를 보여 줄 거리 = 시야 (안개·손전등·어두운 구역 반영) + 100
 function seeRange(room, p, now) {
   let v = GAME.vision;
   if (p.inFog) v *= FOG.vision;
+  if (!p.ghost) v *= darkVisionAt(maps.get(room.settings.map).data, p.x, p.y); // 유령의 집 (꿈에 빠진 사람은 그대로)
   if (fxOn(p, 'flashlight', now)) v *= ITEMS.flashlight.vision;
   return v + LOOT.seeExtra;
 }
@@ -1426,7 +1431,8 @@ const handlers = {
     if (p.frozen || p.ghost || p.item) return;
     if (Math.hypot(p.x - rec.x, p.y - rec.y) > LOOT.moveCancel) return fail(ws, 'loot_cancelled', '상자 열기가 취소됐어요. 다시 꾹 눌러 주세요.');
     removeCrate(room, crate);
-    const pool = ITEM_POOLS[room.settings.mode][p.role];
+    // 기본 목록 + 맵 전용 아이템(items.extra, 놀이공원 킥보드)
+    const pool = lootPool(room.settings.mode, p.role, maps.get(room.settings.map).data.items);
     let kind = pool[crypto.randomInt(pool.length)];
     if (Array.isArray(OVR.itemSeq) && OVR.itemSeq.length) kind = OVR.itemSeq[room.itemSeqI++ % OVR.itemSeq.length];
     p.item = kind;
@@ -1509,6 +1515,7 @@ const handlers = {
     room.dropIndex = 0;
     room.lastDrop = new Set();
     room.itemSeqI = 0;
+    room.devBusy = {}; // 줄 서는 장치(solo): 장치 id → 앞사람이 다 탈 때
     room.teacherCratesKey = null;
     room.tickAt = now;
     room.solvedTotal = 0;
@@ -1526,6 +1533,7 @@ const handlers = {
     s.room.phase = 'lobby';
     s.room.meeting = null;
     s.room.crates = [];
+    s.room.devBusy = {};
     broadcast(s.room);
   },
 
@@ -1598,6 +1606,7 @@ const handlers = {
     if (isMafiaGame(room)) return freezeTag(room, p);
     const now = Date.now();
     if (p.role !== 'chaser' || now < p.tagReadyAt) return;
+    if (now < p.rideUntil) return; // 장치를 타는 중에는 꿈을 걸 수 없다
     if (p.energy <= 0) return fail(ws, 'no_energy', '꿈 구슬이 없어요. 퀴즈를 풀어 채워요.');
     let target = null;
     let best = (fxOn(p, 'pillow', now) ? ITEMS.pillow.reach : CHASE.reach) + 8; // 화면과 서버의 위치 차이만큼 조금 넉넉하게
@@ -1670,6 +1679,7 @@ const handlers = {
       const exits = device.type === 'teleport' ? device.exits || [] : device.to ? [device.to] : [];
       const pairStyle = device.style === 'stairs-up' || device.style === 'stairs-down' || device.style === 'elevator';
       if (!pairStyle && exits.some((e) => Math.hypot(p.x - e[0], p.y - e[1]) <= TERMINAL_REACH)) {
+        if (device.style === 'carousel') return fail(ws, 'not_entrance', '여기는 회전목마 내리는 곳이에요. 타는 곳은 반대편에 있어요.');
         const at = roomAt(map, device.from[0], device.from[1]);
         return fail(ws, 'not_entrance', `여기는 출구예요. 들어가는 곳은 ${at ? at.name : '복도'}에 있어요.`);
       }
@@ -1679,9 +1689,20 @@ const handlers = {
     const cdKey = (device.cooldown && device.cooldown.group) || device.id;
     const ready = p.devReadyAt[cdKey] || 0;
     if (now < ready) return fail(ws, 'device_cooldown', `${Math.ceil((ready - now) / 1000)}초 뒤에 다시 탈 수 있어요.`);
+    // 줄 서는 장치 (solo: true, 놀이공원 미끄럼틀): 한 번에 한 명만. 앞사람이 다 탈 때(+ soloGap 초)까지 기다린다.
+    // 꿈도둑을 찾아라의 꿈에 빠진 사람은 다른 사람에게 보이지 않으므로 줄에 끼지도, 막히지도 않는다.
+    const solo = !!device.solo && !p.ghost;
+    if (!room.devBusy) room.devBusy = {};
+    if (solo && now < (room.devBusy[device.id] || 0)) {
+      return fail(ws, 'device_busy', `앞사람이 타고 있어요. ${Math.ceil((room.devBusy[device.id] - now) / 1000)}초 뒤에 탈 수 있어요.`);
+    }
     const from = [p.x, p.y];
     const to = device.type === 'teleport' ? device.exits[crypto.randomInt(device.exits.length)] : device.to;
     const ms = (device.duration || 1.5) * 1000;
+    if (solo) {
+      const gap = Number.isFinite(device.soloGap) && device.soloGap >= 0 ? device.soloGap : 0.5;
+      room.devBusy[device.id] = now + ms + gap * 1000;
+    }
     closeCurrent(room, p, 'unsolved');
     p.thaw = null;
     p.loot = null;
@@ -1839,6 +1860,7 @@ function popShield(room, p, target) {
 function freezeTag(room, p) {
   const now = Date.now();
   if (p.role !== 'chaser' || p.ghost || room.meeting || now < p.tagReadyAt) return;
+  if (now < p.rideUntil) return; // 장치를 타는 중에는 꿈을 걸 수 없다
   if (p.energy <= 0) return fail(p.ws, 'no_energy', '꿈 구슬이 없어요. 퀴즈를 풀어 채워요.');
   let target = null;
   let best = MAFIA.freezeReach + 8; // 화면과 서버의 위치 차이만큼 조금 넉넉하게

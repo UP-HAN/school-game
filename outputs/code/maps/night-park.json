@@ -1,0 +1,842 @@
+{
+  "_note": "rect = [x, y, 너비, 높이]. 방·가구 값은 20의 배수. 한밤의 놀이공원: 가운데 중앙 광장 + 둘레 놀이기구 구역 9곳 (모두 방 = 울타리로 둘러싼 구역, 문 = 울타리 사이 입구). 가구 그림은 client/furn-park.js (앞글자 pk). 큰 놀이기구(회전목마·미끄럼틀 탑·대관람차·무지개 미끄럼틀)는 foot 로 바닥에 닿는 곳만 막는다. 장치: 줄 서는 미끄럼틀 2(solo), 회전목마 2(style carousel, path 는 회전목마 가운데 (560,440) 반지름 200 원 둘레 한 바퀴 반), 담장 밑 개구멍 1. 구역: 유령의 집 안 = 어두운 구역(dark), 솜사탕 바닥 = 느린 구역(slow).",
+  "id": "night-park",
+  "name": "한밤의 놀이공원",
+  "size": [3200, 2200],
+  "grid": 20,
+  "tips": [
+    "미끄럼틀은 한 번에 한 명만 타요! 앞사람이 타고 있으면 줄을 서서 기다려요.",
+    "보급 상자에서 킥보드가 나오면 8초 동안 쌩쌩 빨라져요. 이 맵에서 자주 나와요!",
+    "유령의 집 안은 어두워서 앞이 잘 안 보여요. 숨기는 좋지만 조심!"
+  ],
+  "items": {
+    "extra": [
+      "kickboard"
+    ],
+    "extraWeight": 3
+  },
+  "rooms": [
+    {
+      "id": "carousel",
+      "name": "회전목마",
+      "rect": [100, 140, 940, 680],
+      "floor": "pkPlaza"
+    },
+    {
+      "id": "tower",
+      "name": "대왕 미끄럼틀",
+      "rect": [1020, 140, 640, 680],
+      "floor": "pkRubber"
+    },
+    {
+      "id": "ferris",
+      "name": "대관람차",
+      "rect": [1640, 140, 720, 680],
+      "floor": "pkPlaza"
+    },
+    {
+      "id": "arcade",
+      "name": "오락실",
+      "rect": [2340, 140, 760, 680],
+      "floor": "pkArcadeFloor"
+    },
+    {
+      "id": "ghost",
+      "name": "유령의 집",
+      "rect": [100, 800, 760, 660],
+      "floor": "pkGhostFloor"
+    },
+    {
+      "id": "plaza",
+      "name": "중앙 광장",
+      "rect": [840, 800, 1520, 660],
+      "floor": "pkStarPlaza"
+    },
+    {
+      "id": "bumper",
+      "name": "범퍼카장",
+      "rect": [2340, 800, 760, 660],
+      "floor": "pkBumperFloor"
+    },
+    {
+      "id": "kids",
+      "name": "어린이 놀이터",
+      "rect": [100, 1440, 760, 680],
+      "floor": "pkKids"
+    },
+    {
+      "id": "candy",
+      "name": "솜사탕·간식 거리",
+      "rect": [840, 1440, 1520, 680],
+      "floor": "pkCandyFloor"
+    },
+    {
+      "id": "ticket",
+      "name": "매표소·기념품 가게",
+      "rect": [2340, 1440, 760, 680],
+      "floor": "pkPlaza"
+    }
+  ],
+  "corridors": [],
+  "doors": [
+    {
+      "id": "g-car-tower-a",
+      "rect": [1020, 200, 20, 140],
+      "lockable": false
+    },
+    {
+      "id": "g-car-tower-b",
+      "rect": [1020, 620, 20, 140],
+      "lockable": false
+    },
+    {
+      "id": "g-car-plaza",
+      "rect": [880, 800, 120, 20],
+      "lockable": false
+    },
+    {
+      "id": "g-tower-plaza",
+      "rect": [1080, 800, 160, 20],
+      "lockable": false
+    },
+    {
+      "id": "g-tower-ferris",
+      "rect": [1640, 220, 20, 160],
+      "lockable": false
+    },
+    {
+      "id": "g-ferris-plaza",
+      "rect": [1880, 800, 200, 20],
+      "lockable": false
+    },
+    {
+      "id": "d-arcade-w",
+      "rect": [2340, 600, 20, 140],
+      "lockable": true
+    },
+    {
+      "id": "d-arcade-s",
+      "rect": [2620, 800, 160, 20],
+      "lockable": true
+    },
+    {
+      "id": "d-ghost-e",
+      "rect": [840, 1060, 20, 120],
+      "lockable": true
+    },
+    {
+      "id": "d-ghost-s",
+      "rect": [700, 1440, 120, 20],
+      "lockable": true
+    },
+    {
+      "id": "g-plaza-bumper",
+      "rect": [2340, 1040, 20, 180],
+      "lockable": false
+    },
+    {
+      "id": "g-plaza-candy-w",
+      "rect": [1040, 1440, 200, 20],
+      "lockable": false
+    },
+    {
+      "id": "g-plaza-candy-e",
+      "rect": [1880, 1440, 200, 20],
+      "lockable": false
+    },
+    {
+      "id": "g-kids-candy",
+      "rect": [840, 1700, 20, 180],
+      "lockable": false
+    },
+    {
+      "id": "g-candy-ticket",
+      "rect": [2340, 1700, 20, 180],
+      "lockable": false
+    },
+    {
+      "id": "g-bumper-ticket",
+      "rect": [2620, 1440, 200, 20],
+      "lockable": false
+    }
+  ],
+  "furniture": [
+    {
+      "kind": "pkCarousel",
+      "name": "회전목마",
+      "rect": [420, 300, 280, 280],
+      "foot": [436, 330, 248, 236]
+    },
+    {
+      "kind": "pkBench",
+      "name": "벤치",
+      "rect": [160, 640, 120, 40]
+    },
+    {
+      "kind": "pkBalloon",
+      "name": "풍선 수레",
+      "rect": [880, 640, 60, 100]
+    },
+    {
+      "kind": "pkLamp",
+      "name": "가로등",
+      "rect": [160, 200, 40, 100]
+    },
+    {
+      "kind": "pkLamp",
+      "name": "가로등",
+      "rect": [940, 180, 40, 100]
+    },
+    {
+      "kind": "pkPopcorn",
+      "name": "팝콘 수레",
+      "rect": [540, 700, 80, 80]
+    },
+    {
+      "kind": "pkSlideTower",
+      "name": "대왕 미끄럼틀 탑",
+      "rect": [1440, 180, 200, 320],
+      "foot": [1470, 400, 120, 96]
+    },
+    {
+      "kind": "pkPopcorn",
+      "name": "팝콘 수레",
+      "rect": [1080, 200, 80, 80]
+    },
+    {
+      "kind": "pkBalloon",
+      "name": "풍선 수레",
+      "rect": [1080, 600, 60, 100]
+    },
+    {
+      "kind": "pkBench",
+      "name": "벤치",
+      "rect": [1240, 700, 120, 40]
+    },
+    {
+      "kind": "pkFerrisWheel",
+      "name": "대관람차",
+      "rect": [1680, 180, 260, 380],
+      "foot": [1724, 520, 172, 36]
+    },
+    {
+      "kind": "pkBench",
+      "name": "벤치",
+      "rect": [2100, 680, 120, 40]
+    },
+    {
+      "kind": "pkCottonCandy",
+      "name": "솜사탕 수레",
+      "rect": [2220, 200, 100, 80]
+    },
+    {
+      "kind": "pkLamp",
+      "name": "가로등",
+      "rect": [2280, 560, 40, 100]
+    },
+    {
+      "kind": "pkBalloon",
+      "name": "풍선 수레",
+      "rect": [2060, 200, 60, 100]
+    },
+    {
+      "kind": "pkArcade",
+      "name": "게임기",
+      "rect": [2400, 160, 80, 100]
+    },
+    {
+      "kind": "pkArcade",
+      "name": "게임기",
+      "rect": [2480, 160, 80, 100]
+    },
+    {
+      "kind": "pkArcade",
+      "name": "게임기",
+      "rect": [2560, 160, 80, 100]
+    },
+    {
+      "kind": "pkClaw",
+      "name": "인형 뽑기",
+      "rect": [2760, 160, 120, 120]
+    },
+    {
+      "kind": "pkClaw",
+      "name": "인형 뽑기",
+      "rect": [2880, 160, 120, 120]
+    },
+    {
+      "kind": "pkArcade",
+      "name": "게임기",
+      "rect": [2460, 300, 80, 100]
+    },
+    {
+      "kind": "pkArcade",
+      "name": "게임기",
+      "rect": [2540, 300, 80, 100]
+    },
+    {
+      "kind": "pkArcade",
+      "name": "게임기",
+      "rect": [2620, 300, 80, 100]
+    },
+    {
+      "kind": "pkPrize",
+      "name": "경품 진열대",
+      "rect": [2860, 420, 160, 60]
+    },
+    {
+      "kind": "pkArcade",
+      "name": "게임기",
+      "rect": [2900, 640, 80, 100]
+    },
+    {
+      "kind": "pkArcade",
+      "name": "게임기",
+      "rect": [2980, 640, 80, 100]
+    },
+    {
+      "kind": "pkGhostWall",
+      "name": "유령 칸막이",
+      "rect": [260, 820, 40, 380]
+    },
+    {
+      "kind": "pkGhostWall",
+      "name": "유령 칸막이",
+      "rect": [620, 1060, 40, 380]
+    },
+    {
+      "kind": "pkGhostWall",
+      "name": "유령 칸막이",
+      "rect": [380, 960, 240, 40]
+    },
+    {
+      "kind": "pkGhostWall",
+      "name": "유령 칸막이",
+      "rect": [300, 1260, 240, 40]
+    },
+    {
+      "kind": "pkCoffin",
+      "name": "관",
+      "rect": [140, 1280, 100, 60]
+    },
+    {
+      "kind": "pkPumpkin",
+      "name": "호박",
+      "rect": [380, 840, 60, 60]
+    },
+    {
+      "kind": "pkCobweb",
+      "name": "거미줄 장식",
+      "rect": [120, 1040, 80, 80]
+    },
+    {
+      "kind": "pkTomb",
+      "name": "비석",
+      "rect": [340, 1340, 60, 60]
+    },
+    {
+      "kind": "pkPumpkin",
+      "name": "호박",
+      "rect": [560, 1340, 60, 60]
+    },
+    {
+      "kind": "pkCoffin",
+      "name": "관",
+      "rect": [740, 840, 80, 100]
+    },
+    {
+      "kind": "pkFountain",
+      "name": "분수",
+      "rect": [1480, 900, 240, 180]
+    },
+    {
+      "kind": "pkLamp",
+      "name": "가로등",
+      "rect": [880, 840, 40, 100]
+    },
+    {
+      "kind": "pkLamp",
+      "name": "가로등",
+      "rect": [2280, 840, 40, 100]
+    },
+    {
+      "kind": "pkLamp",
+      "name": "가로등",
+      "rect": [880, 1300, 40, 100]
+    },
+    {
+      "kind": "pkLamp",
+      "name": "가로등",
+      "rect": [2280, 1300, 40, 100]
+    },
+    {
+      "kind": "pkBench",
+      "name": "벤치",
+      "rect": [1080, 860, 120, 40]
+    },
+    {
+      "kind": "pkBench",
+      "name": "벤치",
+      "rect": [2000, 860, 120, 40]
+    },
+    {
+      "kind": "pkFlower",
+      "name": "꽃 화분",
+      "rect": [1180, 1320, 120, 60]
+    },
+    {
+      "kind": "pkFlower",
+      "name": "꽃 화분",
+      "rect": [2120, 1320, 120, 60]
+    },
+    {
+      "kind": "pkBalloon",
+      "name": "풍선 수레",
+      "rect": [2200, 1000, 60, 100]
+    },
+    {
+      "kind": "pkBumperCar",
+      "name": "범퍼카",
+      "rect": [2480, 940, 80, 60]
+    },
+    {
+      "kind": "pkBumperCar",
+      "name": "범퍼카",
+      "rect": [2780, 900, 80, 60]
+    },
+    {
+      "kind": "pkBumperCar",
+      "name": "범퍼카",
+      "rect": [2960, 1000, 80, 60]
+    },
+    {
+      "kind": "pkBumperCar",
+      "name": "범퍼카",
+      "rect": [2540, 1180, 80, 60]
+    },
+    {
+      "kind": "pkBumperCar",
+      "name": "범퍼카",
+      "rect": [2860, 1200, 80, 60]
+    },
+    {
+      "kind": "pkBumperCar",
+      "name": "범퍼카",
+      "rect": [2460, 1320, 80, 60]
+    },
+    {
+      "kind": "pkLamp",
+      "name": "가로등",
+      "rect": [3020, 840, 40, 100]
+    },
+    {
+      "kind": "pkRainbowSlide",
+      "name": "무지개 미끄럼틀",
+      "rect": [160, 1480, 240, 160],
+      "foot": [176, 1560, 208, 76]
+    },
+    {
+      "kind": "pkSpringHorse",
+      "name": "흔들 말",
+      "rect": [560, 1560, 60, 60]
+    },
+    {
+      "kind": "pkSpringHorse",
+      "name": "흔들 말",
+      "rect": [700, 1560, 60, 60]
+    },
+    {
+      "kind": "pkBench",
+      "name": "벤치",
+      "rect": [160, 2040, 120, 40]
+    },
+    {
+      "kind": "pkBalloon",
+      "name": "풍선 수레",
+      "rect": [740, 1980, 60, 100]
+    },
+    {
+      "kind": "pkTeacup",
+      "name": "찻잔 놀이기구",
+      "rect": [600, 1880, 120, 100]
+    },
+    {
+      "kind": "pkFoodStall",
+      "name": "간식 가게",
+      "rect": [1300, 1480, 200, 120]
+    },
+    {
+      "kind": "pkCottonCandy",
+      "name": "솜사탕 수레",
+      "rect": [1580, 1500, 100, 80]
+    },
+    {
+      "kind": "pkPopcorn",
+      "name": "팝콘 수레",
+      "rect": [1720, 1500, 80, 80]
+    },
+    {
+      "kind": "pkFoodStall",
+      "name": "핫도그 가게",
+      "rect": [2120, 1480, 200, 120]
+    },
+    {
+      "kind": "pkFoodStall",
+      "name": "츄러스 가게",
+      "rect": [1000, 1960, 200, 120]
+    },
+    {
+      "kind": "pkCottonCandy",
+      "name": "솜사탕 수레",
+      "rect": [1320, 2000, 100, 80]
+    },
+    {
+      "kind": "pkPopcorn",
+      "name": "팝콘 수레",
+      "rect": [1480, 2000, 80, 80]
+    },
+    {
+      "kind": "pkFoodStall",
+      "name": "아이스크림 가게",
+      "rect": [1640, 1960, 200, 120]
+    },
+    {
+      "kind": "pkPicnic",
+      "name": "파라솔 식탁",
+      "rect": [1980, 1880, 120, 100]
+    },
+    {
+      "kind": "pkPicnic",
+      "name": "파라솔 식탁",
+      "rect": [1180, 1740, 120, 100]
+    },
+    {
+      "kind": "pkCottonCandy",
+      "name": "솜사탕 수레",
+      "rect": [2220, 2000, 100, 80]
+    },
+    {
+      "kind": "pkTicketBooth",
+      "name": "매표소",
+      "rect": [2420, 1500, 160, 140]
+    },
+    {
+      "kind": "pkTicketBooth",
+      "name": "매표소",
+      "rect": [2900, 1500, 160, 140]
+    },
+    {
+      "kind": "pkSouvenir",
+      "name": "기념품 진열대",
+      "rect": [2400, 1820, 160, 60]
+    },
+    {
+      "kind": "pkSouvenir",
+      "name": "기념품 진열대",
+      "rect": [2400, 1940, 160, 60]
+    },
+    {
+      "kind": "pkTurnstile",
+      "name": "개찰구",
+      "rect": [2660, 1900, 60, 40]
+    },
+    {
+      "kind": "pkTurnstile",
+      "name": "개찰구",
+      "rect": [2780, 1900, 60, 40]
+    },
+    {
+      "kind": "pkBalloon",
+      "name": "풍선 수레",
+      "rect": [3000, 1880, 60, 100]
+    }
+  ],
+  "terminals": [
+    {
+      "id": "t1",
+      "pos": [960, 540],
+      "room": "carousel"
+    },
+    {
+      "id": "t2",
+      "pos": [1720, 720],
+      "room": "ferris"
+    },
+    {
+      "id": "t3",
+      "pos": [3020, 400],
+      "room": "arcade"
+    },
+    {
+      "id": "t4",
+      "pos": [180, 880],
+      "room": "ghost"
+    },
+    {
+      "id": "t5",
+      "pos": [3000, 1360],
+      "room": "bumper"
+    },
+    {
+      "id": "t6",
+      "pos": [180, 1800],
+      "room": "kids"
+    },
+    {
+      "id": "t7",
+      "pos": [2260, 1780],
+      "room": "candy"
+    },
+    {
+      "id": "t8",
+      "pos": [2700, 1580],
+      "room": "ticket"
+    }
+  ],
+  "spawn": {
+    "pos": [1600, 1300],
+    "radius": 110
+  },
+  "bell": {
+    "pos": [1900, 1120]
+  },
+  "fog": {
+    "_note": "잠 안개 빛 구역 후보 (중앙 광장·간식 거리·대관람차 앞). 큰 맵이라 radii 를 키웠다 (기본 1250/850/550 → 1450/950/600). bonus = 마지막 밤 임시 랜턴 2자리 (반지름 600 안)",
+    "radii": [
+      1450,
+      950,
+      600
+    ],
+    "centers": [
+      {
+        "pos": [1600, 1240],
+        "bonus": [
+          [1280, 1160],
+          [1980, 1300]
+        ]
+      },
+      {
+        "pos": [1600, 1700],
+        "bonus": [
+          [1200, 1640],
+          [2000, 1640]
+        ]
+      },
+      {
+        "pos": [1800, 700],
+        "bonus": [
+          [1460, 620],
+          [2200, 740]
+        ]
+      }
+    ]
+  },
+  "devices": [
+    {
+      "id": "slide-big",
+      "type": "slide",
+      "name": "대왕 미끄럼틀",
+      "solo": true,
+      "from": [1520, 580],
+      "to": [1000, 1820],
+      "path": [
+        [1520, 760],
+        [1340, 1000],
+        [1000, 1200],
+        [1000, 1640]
+      ],
+      "duration": 3,
+      "when": "press",
+      "who": {
+        "sleep-tag": [
+          "student"
+        ],
+        "mafia": [
+          "student",
+          "chaser"
+        ]
+      },
+      "cooldown": {
+        "scope": "player",
+        "seconds": 10
+      },
+      "protectAfter": 1,
+      "marks": {
+        "sign": [-150, 40],
+        "label": [80, 0],
+        "toLabel": [0, 52]
+      }
+    },
+    {
+      "id": "slide-rainbow",
+      "type": "slide",
+      "name": "무지개 미끄럼틀",
+      "solo": true,
+      "from": [280, 1700],
+      "to": [460, 2000],
+      "path": [
+        [280, 1900]
+      ],
+      "duration": 3,
+      "when": "press",
+      "who": {
+        "sleep-tag": [
+          "student"
+        ],
+        "mafia": [
+          "student",
+          "chaser"
+        ]
+      },
+      "cooldown": {
+        "scope": "player",
+        "seconds": 10
+      },
+      "protectAfter": 1,
+      "marks": {
+        "sign": [170, 40],
+        "label": [-110, 0],
+        "toLabel": [0, 52]
+      }
+    },
+    {
+      "id": "carousel-east",
+      "type": "slide",
+      "style": "carousel",
+      "name": "회전목마 (동쪽 타는 곳)",
+      "from": [760, 400],
+      "to": [360, 540],
+      "path": [
+        [748, 372],
+        [695, 587],
+        [475, 621],
+        [360, 431],
+        [492, 252],
+        [707, 305],
+        [741, 525],
+        [551, 640],
+        [372, 508]
+      ],
+      "duration": 3,
+      "when": "press",
+      "who": {
+        "sleep-tag": [
+          "student",
+          "chaser"
+        ],
+        "mafia": [
+          "student",
+          "chaser"
+        ]
+      },
+      "cooldown": {
+        "scope": "player",
+        "seconds": 6,
+        "group": "carousel"
+      },
+      "protectAfter": 1,
+      "marks": {
+        "sign": [130, 34],
+        "label": [0, 52],
+        "toLabel": [-40, 52]
+      }
+    },
+    {
+      "id": "carousel-west",
+      "type": "slide",
+      "style": "carousel",
+      "name": "회전목마 (서쪽 타는 곳)",
+      "from": [360, 400],
+      "to": [760, 540],
+      "path": [
+        [372, 372],
+        [551, 240],
+        [741, 355],
+        [707, 575],
+        [492, 628],
+        [360, 449],
+        [475, 259],
+        [695, 293],
+        [748, 508]
+      ],
+      "duration": 3,
+      "when": "press",
+      "who": {
+        "sleep-tag": [
+          "student",
+          "chaser"
+        ],
+        "mafia": [
+          "student",
+          "chaser"
+        ]
+      },
+      "cooldown": {
+        "scope": "player",
+        "seconds": 6,
+        "group": "carousel"
+      },
+      "protectAfter": 1,
+      "marks": {
+        "sign": [-130, 34],
+        "label": [0, 52],
+        "toLabel": [40, 52]
+      }
+    },
+    {
+      "id": "hole-1",
+      "type": "teleport",
+      "name": "담장 밑 개구멍",
+      "from": [2620, 2020],
+      "exits": [
+        [2260, 420],
+        [1120, 460],
+        [740, 1720]
+      ],
+      "exitPick": "random",
+      "exitName": "개구멍 출구",
+      "duration": 1.5,
+      "when": "press",
+      "who": {
+        "sleep-tag": [
+          "student"
+        ],
+        "mafia": [
+          "student",
+          "chaser"
+        ]
+      },
+      "cooldown": {
+        "scope": "player",
+        "seconds": 10
+      },
+      "protectAfter": 1,
+      "marks": {
+        "sign": [200, 30],
+        "label": [0, 44],
+        "exitLabels": [
+          [0, 40],
+          [0, 40],
+          [0, 40]
+        ]
+      }
+    }
+  ],
+  "zones": [
+    {
+      "id": "ghost-dark",
+      "type": "dark",
+      "name": "유령의 집",
+      "rect": [120, 820, 720, 620],
+      "amount": 0.55
+    },
+    {
+      "id": "candy-sticky",
+      "type": "slow",
+      "name": "솜사탕 바닥",
+      "rect": [1880, 1640, 320, 200],
+      "amount": 0.6,
+      "who": "all"
+    }
+  ]
+}

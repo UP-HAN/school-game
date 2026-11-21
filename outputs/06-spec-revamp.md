@@ -650,6 +650,14 @@
 - **room.fog (층 모드)**: `{ mode:'floors', stage, safe(null=모두 안전), nextSafe, nextMsLeft, shrinkMsLeft:0, r:null }`. 이벤트 `fogWarn`·`fogStart` 에 `dark`(새로 어두워지는 층 이름)·`safe`(안전한 층 이름)가 붙는다 → 화면 "곧 3층에 잠 안개가 내려와요!".
 - **화면**: 층 사이는 밤하늘, 층마다 건물 바닥판과 층 이름. 작은 지도(M)·선생님 게임 화면·선생님 맵 고르기 미리보기는 층마다 한 칸씩 모아 그린다 (`floorPanels`, `renderOverview`). 내 층이 바뀌면 큰 글씨로 층 이름. 어두워진 층은 보랏빛 안개, 곧 어두워질 층은 흰 점선 테두리.
 
+### 12-7. 놀이공원 규칙 (2026-11-21, 한밤의 놀이공원 `night-park`)
+새 칸은 모두 **선택**이다. 없는 맵은 예전과 똑같다.
+- **줄 서는 장치** 장치에 `solo: true` (+ 선택 `soloGap` 초, 기본 0.5) — 한 번에 한 명. 누가 타면 `duration + soloGap` 초 동안 다른 사람은 거부: 오류 `device_busy` "앞사람이 타고 있어요. N초 뒤에 탈 수 있어요." 방마다 장치별로 세고(`room.devBusy`), 게임 시작·끝에 비운다. 꿈도둑을 찾아라의 꿈에 빠진 사람은 줄에 끼지도 막히지도 않는다. 화면은 `ride` 알림을 받으면 입구 위에 "사용 중 · N초".
+- **킥보드** 아이템 `kickboard` (8초, 1.6배 — `ITEMS.kickboard`). 기본 목록 `ITEM_POOLS` 에는 없다. 맵 `items: { extra: ['kickboard'], extraWeight: 3 }` 이면 그 맵 상자 목록에 extra 를 extraWeight 번(기본 1, 최대 20) 더 넣는다 (`lootPool`, shared/config.js). 받는 사람: 잠귀신 술래잡기는 학생만, 꿈도둑을 찾아라는 모두.
+- **회전목마** `type: 'slide'` + `style: 'carousel'` + `path` = 원 둘레 점 여러 개(8개쯤), `from`·`to` = 양쪽. 여럿이 같이 탄다(solo 아님). 미끄럼틀 통로는 그리지 않고(그림은 가구 `pkCarousel`), 타는 곳·내리는 곳 동그라미와 팻말·글씨(`marks`, 도착 글씨는 "내리는 곳")만. 버튼 "회전목마 타기", 타는 글씨 "빙글빙글~". 맵 검사는 미끄럼틀 띠 겹침을 보지 않는다.
+- **어두운 구역** `zones: [{ id, type: 'dark', name, rect: [x,y,w,h], amount: 0.55 }]` — 안에 있는 사람의 시야 × amount. 서버(상자 보이는 거리 `seeRange`)와 화면(어둠 구멍 반지름)이 같은 `darkVisionAt` 을 쓴다. 꿈에 빠진 사람(꿈도둑을 찾아라)·선생님은 그대로. 바닥은 보랏빛 어두운 덧칠, 처음 들어가면 "〈이름〉: 앞이 잘 안 보여요!" 한 번. `zoneAt(map, x, y, type)` 로 종류별로 찾는다 (느린 바닥 `slow` 동작은 그대로).
+- 시험: `server/test-park-rules.js` (몬스터 체육관에 시험용 장치·구역을 덧붙이는 `TEST_OVERRIDES.mapPatch` 사용).
+
 ## 13. 가정 모음 (사용자가 바꿀 수 있음)
 | # | 가정 | 기본값 |
 |---|---|---|

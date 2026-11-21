@@ -853,6 +853,10 @@ async function enterGame() {
       onFloor(fl) {
         if (!loading && fl && fl.name) bigNews(fl.name, 1600);
       },
+      // 어두운 구역(놀이공원 유령의 집)에 처음 들어가면 짧게 안내 (한 판에 구역마다 한 번)
+      onZone(z) {
+        if (z && z.type === 'dark') toast(`${z.name || '어두운 곳'}: 앞이 잘 안 보여요!`);
+      },
       onKey(dir, which = 'act') {
         if (which === 'act' && bagOpen) {
           if (dir === 'down') useBagSel();

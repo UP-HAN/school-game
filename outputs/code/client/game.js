@@ -1,7 +1,7 @@
 // 게임 화면: 맵 위에서 돌아다니기, 잠귀신·꿈에 빠진 친구 표시, 시야, 잠 안개, 보급 상자, 미끄럼틀·개구멍 연출.
 // 꿈도둑을 찾아라 모드(mode 'mafia')에서는 꿈에 빠진 학생·꿈에 빠진 자리·동료 뿔·변신·안개 뿌리기·문 막기도 그린다.
 import { COLORS, GAME } from './shared/config.js';
-import { buildGrid, canStand, zoneAt, floorAt, floorPanels, floorShort, DEVICE_STYLES } from './shared/mapgrid.js';
+import { buildGrid, canStand, zoneAt, darkVisionAt, floorAt, floorPanels, floorShort, DEVICE_STYLES } from './shared/mapgrid.js';
 import { renderMap, drawLantern } from './maprender.js';
 import { drawCharacter } from './characters.js';
 import { KEYS } from './keys.js';
@@ -111,6 +111,9 @@ export async function startGame(opts) {
   const devKey = (d) => (d.cooldown && d.cooldown.group) || d.id;
   // 계단·엘리베이터는 도착한 곳에 짝 장치가 있어서 "출구" 안내를 하지 않는다
   const pairDevice = (d) => d.style === 'stairs-up' || d.style === 'stairs-down' || d.style === 'elevator';
+  const devBusy = {}; // 줄 서는 장치(solo): 장치 id → 앞사람이 다 탈 때 (ride 알림으로 안다. 판정은 서버가 한다)
+  let darkZone = null; // 지금 내가 있는 어두운 구역 (유령의 집)
+  const darkShown = new Set(); // 이번 판에 이미 안내한 어두운 구역 id
   let notebookOn = true;
   let visK = 1; // 안개 시야 배율 (부드럽게 바뀜)
   let waking = null; // 내가 깨우는 중인 친구 { id, at, ms }
@@ -326,10 +329,12 @@ export async function startGame(opts) {
     if (ev.kind === 'ride') {
       const device = (map.devices || []).find((d) => d.id === ev.device);
       const slide = device && device.type === 'slide';
+      const carousel = slide && device.style === 'carousel';
       q.ride = {
         at: now,
         ms: ev.ms,
         slide,
+        carousel,
         path: slide ? [ev.from, device.from, ...(device.path || []), device.to] : [ev.from, device ? device.from : ev.from, ev.to],
         to: ev.to,
       };
@@ -337,7 +342,11 @@ export async function startGame(opts) {
         const cd = device.cooldown;
         devReady[devKey(device)] = now + (ev.ms || 1500) + (cd && typeof cd.seconds === 'number' ? cd.seconds : 10) * 1000;
       }
-      const RIDE_TEXT = { 'stairs-up': '총총!', 'stairs-down': '총총!', elevator: '띵동!', tube: '슈웅~' };
+      if (device && device.solo && !q.ghost) {
+        const gap = Number.isFinite(device.soloGap) && device.soloGap >= 0 ? device.soloGap : 0.5;
+        devBusy[device.id] = now + (ev.ms || 1500) + gap * 1000;
+      }
+      const RIDE_TEXT = { 'stairs-up': '총총!', 'stairs-down': '총총!', elevator: '띵동!', tube: '슈웅~', carousel: '빙글빙글~' };
       const text = (device && RIDE_TEXT[device.style]) || (slide ? '슈웅~' : '쏙!');
       popups.push({ text, x: ev.from[0], y: ev.from[1] - 90, at: now, color: '#ff7a59' });
     }
@@ -422,14 +431,14 @@ export async function startGame(opts) {
       for (const d of map.devices || []) {
         const dd = near(d.from[0], d.from[1]);
         // 맵 데이터의 action(버튼 글씨)·sub(작은 글씨)·denyHint(못 탈 때 안내)가 있으면 그 글씨를 쓴다
-        const name = d.type === 'slide' ? '미끄럼틀' : DEVICE_STYLES[d.style] && d.style !== 'tube' ? (d.style === 'elevator' ? '엘리베이터' : '계단') : d.name || '개구멍';
+        const name = d.type === 'slide' ? (d.style === 'carousel' ? '회전목마' : '미끄럼틀') : DEVICE_STYLES[d.style] && d.style !== 'tube' ? (d.style === 'elevator' ? '엘리베이터' : '계단') : d.name || '개구멍';
         if (dd <= CH.deviceReach) {
           const who = (d.who && d.who[mode]) || (mafia ? ['student', 'chaser'] : ['student']);
           if (!who.includes(chaser ? 'chaser' : 'student')) {
             out.push({ type: 'device', id: d.id, label: `${mafia ? '꿈도둑' : '잠귀신'}은 못 타요`, disabled: true, hint: d.denyHint || '개구멍·미끄럼틀은 학생만 탈 수 있어요', dist: dd });
           } else {
             const n = (d.exits || []).length;
-            const label = d.action || (d.type === 'slide' ? '미끄럼틀 타기' : `${name} 들어가기`);
+            const label = d.action || (d.type === 'slide' ? `${name} 타기` : `${name} 들어가기`);
             const sub = d.sub != null ? d.sub : d.type === 'teleport' && n > 1 ? `출구 ${n}곳 중 하나` : '';
             out.push({ type: 'device', id: d.id, label, sub, readyAt: devReady[devKey(d)] || 0, short: name, dist: dd });
           }
@@ -440,8 +449,9 @@ export async function startGame(opts) {
         if (!pairDevice(d) && ends.some((e) => near(e[0], e[1]) <= 95)) {
           const from = roomAt(map, d.from[0], d.from[1]);
           const where = from ? from.name : '다른 곳';
-          exitHint =
-            d.type === 'slide' || d.style === 'tube'
+          exitHint = d.style === 'carousel'
+            ? '회전목마 내리는 곳이에요. 타는 곳은 반대편에 있어요'
+            : d.type === 'slide' || d.style === 'tube'
               ? `미끄럼틀 도착 지점이에요. 타는 곳은 ${where}에 있어요`
               : `여기는 ${name} 출구예요. 들어가는 곳은 ${where}에 있어요`;
         }
@@ -643,6 +653,7 @@ export async function startGame(opts) {
     if (!ghost && inFogAt(me.x, me.y, now)) k *= FOG.slow;
     if (fxOn('shoes', now)) k *= ITEMS.shoes.speed || 1.4;
     if (fxOn('windcape', now)) k *= ITEMS.windcape.speed || 1.3;
+    if (fxOn('kickboard', now)) k *= ITEMS.kickboard.speed || 1.6;
     if (!mafia && myRole === 'chaser' && fogStage() >= 3) k *= FOG.lastNightChaserSpeed || 1;
     if (!mafia && myRole === 'chaser') k *= info.speedK > 0 ? info.speedK : 1; // 선생님이 고른 잠귀신 속도 (서버가 'me' 로 보낸다)
     return k;
@@ -655,8 +666,8 @@ export async function startGame(opts) {
   let sentM = -1;
   function moveMe(dt, now) {
     const [ix, iy] = inputVector();
-    const zone = zoneAt(map, me.x, me.y);
-    const speed = GAME.speed * (zone && zone.type === 'slow' ? zone.amount : 1) * speedMult(now);
+    const zone = zoneAt(map, me.x, me.y, 'slow'); // 느린 바닥만 (어두운 구역은 시야만 줄인다)
+    const speed = GAME.speed * (zone ? zone.amount : 1) * speedMult(now);
     let left = Math.hypot(ix, iy) * speed * dt;
     const moving = left > 0.01;
     const free = (x, y) => canStand(grid, x, y, GAME.radius) && (!hitsLock(x, y, now) || hitsLock(me.x, me.y, now));
@@ -697,8 +708,8 @@ export async function startGame(opts) {
       return;
     }
     if (r.slide) {
-      [q.x, q.y] = alongPath(r.path, k);
-      q.rideScale = 0.75;
+      [q.x, q.y] = alongPath(r.path, k); // 회전목마도 path(둥근 점 여러 개)를 따라 돈다
+      q.rideScale = r.carousel ? 0.9 : 0.75;
       q.m = 1;
     } else {
       const inK = Math.min(1, k / 0.35);
@@ -940,7 +951,18 @@ export async function startGame(opts) {
 
     // 시야: 안개 속이면 0.4초에 걸쳐 좁아지고, 나오면 넓어진다 (꿈에 빠진 학생은 그대로)
     const ghostMe = !!me && mafia && (myGhost || me.ghost);
-    const wantK = me && !ghostMe && inFogAt(me.x, me.y, now) ? FOG.vision : 1;
+    // 어두운 구역(유령의 집)이면 시야 × amount (서버 seeRange 와 같은 규칙). 처음 들어갈 때 한 번 안내
+    const dz = me && !ghostMe ? zoneAt(map, me.x, me.y, 'dark') : null;
+    if (dz !== darkZone) {
+      darkZone = dz;
+      const zid = dz && (dz.id || dz.name || 'dark');
+      if (dz && !darkShown.has(zid)) {
+        darkShown.add(zid);
+        if (opts.onZone) opts.onZone(dz);
+      }
+    }
+    const darkK = dz ? darkVisionAt(map, me.x, me.y) : 1;
+    const wantK = (me && !ghostMe && inFogAt(me.x, me.y, now) ? FOG.vision : 1) * darkK;
     visK += (wantK - visK) * Math.min(1, dt / 0.4 * 2.2);
     const vis = GAME.vision * blackoutScale(now) * visK * (fxOn('flashlight', now) ? ITEMS.flashlight.vision || 1.5 : 1);
     const seen = (x, y) => !me || Math.hypot(x - me.x, y - me.y) <= vis * 1.08;
@@ -1135,6 +1157,13 @@ export async function startGame(opts) {
         ctx.strokeText('졸음', me.x, by - 12);
         ctx.fillText('졸음', me.x, by - 12);
       }
+    }
+
+    // 줄 서는 장치(solo): 누가 타는 중이면 입구 위에 "사용 중 · N초"
+    for (const d of map.devices || []) {
+      const until = d.solo ? devBusy[d.id] || 0 : 0;
+      if (until <= now || (me && !seen(d.from[0], d.from[1]))) continue;
+      badge(`사용 중 · ${Math.ceil((until - now) / 1000)}초`, d.from[0], d.from[1] - 70, '#ff7a59');
     }
 
     // 잠 안개 (빛 구역 밖) — 캐릭터 위에 덮어 흐릿하게 보이게
@@ -1346,12 +1375,13 @@ export async function startGame(opts) {
     ctx.stroke();
     ctx.setLineDash([]);
   }
-  // 아이템 효과 (운동화·바람 망토 꼬리, 우산 방울, 손전등 빛줄기)
+  // 아이템 효과 (운동화·바람 망토·킥보드 꼬리, 킥보드 발판, 우산 방울, 손전등 빛줄기)
   function drawEffects(q, s, now, t) {
     const fx = q === me ? myFx : q.fx || {};
     const on = (k) => (fx[k] || 0) > now;
-    if (on('shoes') || on('windcape')) {
-      const col = on('shoes') ? '255,181,71' : '92,200,242';
+    if (on('kickboard') && !q.ride) drawKickboard(q, s, t);
+    if (on('shoes') || on('windcape') || on('kickboard')) {
+      const col = on('kickboard') ? '255,122,89' : on('shoes') ? '255,181,71' : '92,200,242';
       for (let i = 1; i <= 4; i++) {
         ctx.fillStyle = `rgba(${col},${0.45 - i * 0.09})`;
         ctx.beginPath();
@@ -1379,6 +1409,55 @@ export async function startGame(opts) {
       ctx.closePath();
       ctx.fill();
     }
+  }
+  // 킥보드: 발밑 발판 + 앞바퀴 쪽 손잡이 (캐릭터보다 먼저 그려서 발 아래에 깔린다)
+  function drawKickboard(q, s, t) {
+    const f = q.f === -1 ? -1 : 1;
+    const k = s / GAME.charSize;
+    const x = q.x;
+    const y = q.y + 4 * k;
+    const half = 30 * k;
+    const spin = q.m ? t * 14 : 0;
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = INK;
+    // 손잡이 기둥 (앞쪽)
+    ctx.lineWidth = 7 * k;
+    ctx.beginPath();
+    ctx.moveTo(x + f * (half - 4 * k), y);
+    ctx.lineTo(x + f * (half + 6 * k), y - 52 * k);
+    ctx.stroke();
+    ctx.strokeStyle = '#ff7a59';
+    ctx.lineWidth = 4 * k;
+    ctx.stroke();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 6 * k;
+    ctx.beginPath();
+    ctx.moveTo(x + f * (half - 6 * k), y - 52 * k);
+    ctx.lineTo(x + f * (half + 18 * k), y - 52 * k);
+    ctx.stroke();
+    // 발판
+    ctx.fillStyle = '#ff7a59';
+    ctx.lineWidth = 3 * k;
+    ctx.beginPath();
+    ctx.roundRect(x - half, y - 5 * k, half * 2, 8 * k, 4 * k);
+    ctx.fill();
+    ctx.stroke();
+    // 바퀴
+    for (const wx of [x - half + 4 * k, x + half - 4 * k]) {
+      ctx.fillStyle = '#2a2140';
+      ctx.beginPath();
+      ctx.arc(wx, y + 6 * k, 6 * k, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#fff3a0';
+      ctx.lineWidth = 2 * k;
+      ctx.beginPath();
+      ctx.moveTo(wx, y + 6 * k);
+      ctx.lineTo(wx + Math.cos(spin) * 5 * k, y + 6 * k + Math.sin(spin) * 5 * k);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
   function ghostBob(q, t) {
     return Math.sin(t * 2.4 + q.seed * 2) * 7 - 10;

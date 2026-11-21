@@ -56,6 +56,7 @@ export const MAPS = [
   { id: 'moon-library', name: '달빛 대도서관', desc: '책장 미로 · 책 반납 미끄럼틀과 비밀 통로 (숨기 좋은 맵)' },
   { id: 'night-school', name: '한밤의 학교', desc: '운동장과 교실 · 아주 큰 맵 (8명 이상 추천)' },
   { id: 'star-academy', name: '한밤의 별빛 학원', desc: '3층 건물 · 계단·엘리베이터·미끄럼틀로 층 이동' },
+  { id: 'night-park', name: '한밤의 놀이공원', desc: '회전목마·줄 서는 미끄럼틀·유령의 집 · 킥보드가 자주 나와요' },
 ];
 
 export const LIMITS = {
@@ -182,12 +183,25 @@ export const ITEMS = {
   windcape: { name: '바람 망토', ms: 6000, speed: 1.3 },
   fogcape: { name: '안개 망토', ms: 8000, alpha: 0.3 },
   pillow: { name: '긴 베개', ms: 15000, reach: 115 },
+  kickboard: { name: '킥보드', ms: 8000, speed: 1.6 }, // 기본 목록(ITEM_POOLS)에는 없다. 맵 items.extra 로만 나온다 (놀이공원)
 };
 // 누가 어떤 아이템을 받을 수 있나. 꿈도둑을 찾아라는 꿈도둑도 학생과 같은 목록 (정체가 드러나지 않게).
 export const ITEM_POOLS = {
   'sleep-tag': { student: ['shoes', 'umbrella', 'flashlight', 'chance', 'bugle'], chaser: ['chance', 'windcape', 'fogcape', 'pillow'] },
   mafia: { student: ['shoes', 'umbrella', 'flashlight', 'chance'], chaser: ['shoes', 'umbrella', 'flashlight', 'chance'] },
 };
+// 맵 전용 아이템 (06 명세 12-7절): 맵 JSON 의 items = { extra: ['kickboard'], extraWeight: 3 } 이면
+// 그 맵 상자에서는 기본 목록에 extra 아이템을 extraWeight 번(기본 1) 더 넣어 뽑는다.
+// 받는 사람: 잠귀신 술래잡기는 학생만, 꿈도둑을 찾아라는 모두 (꿈도둑 정체가 드러나지 않게).
+export function lootPool(mode, role, mapItems) {
+  const base = (ITEM_POOLS[mode] || ITEM_POOLS['sleep-tag'])[role] || [];
+  const extra = mapItems && Array.isArray(mapItems.extra) ? mapItems.extra.filter((k) => Object.hasOwn(ITEMS, k)) : [];
+  if (!extra.length || (mode !== 'mafia' && role !== 'student')) return base;
+  const w = Number.isInteger(mapItems.extraWeight) && mapItems.extraWeight > 0 ? Math.min(20, mapItems.extraWeight) : 1;
+  const out = [...base];
+  for (const k of extra) for (let i = 0; i < w; i++) out.push(k);
+  return out;
+}
 
 // 꿈 구슬: 잠귀신·꿈도둑이 꿈을 걸 때마다 1개 쓴다. 퀴즈를 맞혀야 생긴다 (06 명세 8-1절).
 export const ENERGY = {
