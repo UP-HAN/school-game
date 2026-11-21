@@ -1413,6 +1413,18 @@ const handlers = {
     if (distToRect(p.x, p.y, crate.rect) > LOOT.openReach + 15) return fail(ws, 'too_far', '보급 상자에 더 가까이 가 주세요.');
     p.loot = { crate: crate.id, at: Date.now(), x: p.x, y: p.y };
   },
+  // 킥보드를 타고 벽에 정면으로 부딪혔다: 잠깐(2초) 빙글빙글 돌며 못 움직인다. 부딪힘 판정은 화면이 한다
+  crash(ws) {
+    const s = playSession(ws);
+    if (!s) return;
+    const { room, player: p } = s;
+    const now = Date.now();
+    if (p.frozen || now < p.rideUntil || !fxOn(p, 'kickboard', now)) return;
+    if (now < (p.spinUntil || 0) + ITEMS.kickboard.spinSafeMs) return; // 돌고 난 바로 뒤에는 다시 돌지 않는다
+    p.spinUntil = now + ITEMS.kickboard.spinMs;
+    p.m = 0;
+    sendEvent(room, { kind: 'spin', id: p.id, ms: ITEMS.kickboard.spinMs }, seesPlayer(room, p));
+  },
   lootCancel(ws) {
     if (ws.session && ws.session.role === 'player') ws.session.player.loot = null;
   },
@@ -1546,6 +1558,7 @@ const handlers = {
     if (!Number.isFinite(x) || !Number.isFinite(y)) return;
     const now = Date.now();
     if (now < p.rideUntil) return; // 장치를 타는 중에는 서버가 정한 도착점이 위치다
+    if (now < (p.spinUntil || 0)) return; // 킥보드로 벽에 부딪혀 도는 중에는 못 움직인다
     if (p.frozen) return send(ws, { t: 'fix', x: p.x, y: p.y }); // 꿈에 빠지면 못 움직인다
     if (s.room.meeting && isMafiaGame(s.room)) return send(ws, { t: 'fix', x: p.x, y: p.y }); // 회의 중에는 아무도 못 움직인다
     if (p.current && p.current.source === 'notebook') return send(ws, { t: 'fix', x: p.x, y: p.y }); // 수첩을 여는 동안은 못 움직인다

@@ -109,11 +109,11 @@ function runStatic() {
   check('맵 전용 반지름 fog.radii = 1450·950·600 (점점 작아짐)', MAP.fog.radii.join() === '1450,950,600');
   check('로딩 TIP 3개 (줄 서기·킥보드·유령의 집)', MAP.tips.length === 3 && /줄/.test(MAP.tips[0]) && /킥보드/.test(MAP.tips[1]) && /유령의 집/.test(MAP.tips[2]));
   check('맵 아이템: items.extra = kickboard, extraWeight 3', MAP.items && MAP.items.extra.join() === 'kickboard' && MAP.items.extraWeight === 3);
-  // 줄 서는 미끄럼틀 2개
+  // 줄 서는 미끄럼틀 5개 (긴 것 2 · 짧은 것 3)
   const solo = MAP.devices.filter((d) => d.type === 'slide' && d.solo);
   check(
-    '줄 서는 미끄럼틀 2개 (solo, 3초, 학교 미끄럼틀과 같은 who)',
-    solo.length === 2 && solo.every((d) => d.duration === 3 && d.who['sleep-tag'].join() === 'student' && d.who.mafia.join() === 'student,chaser' && !d.style),
+    '줄 서는 미끄럼틀 5개 (solo, 2~3초, 학교 미끄럼틀과 같은 who)',
+    solo.length === 5 && solo.every((d) => d.duration >= 2 && d.duration <= 3 && d.who['sleep-tag'].join() === 'student' && d.who.mafia.join() === 'student,chaser' && !d.style),
   );
   const big = dev('slide-big');
   check('대왕 미끄럼틀: 탑 구역에서 타서 광장 건너 간식 거리에 내린다', roomAt(MAP, ...big.from).id === 'tower' && roomAt(MAP, ...big.to).id === 'candy' && Math.hypot(big.to[0] - big.from[0], big.to[1] - big.from[1]) > 1000);

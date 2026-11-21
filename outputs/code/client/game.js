@@ -326,6 +326,10 @@ export async function startGame(opts) {
       if (q === me) delete myFx.umbrella;
       popups.push({ text: '펑!', x: q.x, y: q.y - 100, at: now, color: '#7fe0c4' });
     }
+    if (ev.kind === 'spin') {
+      q.spin = { at: now, ms: ev.ms || 2000 };
+      if (q !== me) popups.push({ text: '쿵! 빙글빙글~', x: q.x, y: q.y - 100, at: now, color: '#ff7a59' });
+    }
     if (ev.kind === 'ride') {
       const device = (map.devices || []).find((d) => d.id === ev.device);
       const slide = device && device.type === 'slide';
@@ -664,8 +668,13 @@ export async function startGame(opts) {
   let sentX = NaN;
   let sentY = NaN;
   let sentM = -1;
+  let spinUntil = 0; // 킥보드로 벽에 부딪혀 도는 중 (이때까지 못 움직인다)
+  let spinSafeUntil = 0;
   function moveMe(dt, now) {
-    const [ix, iy] = inputVector();
+    const spinning = now < spinUntil;
+    const [ix, iy] = spinning ? [0, 0] : inputVector();
+    const x0 = me.x;
+    const y0 = me.y;
     const zone = zoneAt(map, me.x, me.y, 'slow'); // 느린 바닥만 (어두운 구역은 시야만 줄인다)
     const speed = GAME.speed * (zone ? zone.amount : 1) * speedMult(now);
     let left = Math.hypot(ix, iy) * speed * dt;
@@ -681,6 +690,17 @@ export async function startGame(opts) {
       if (sy && free(me.x, me.y + sy)) me.y += sy;
     }
     me.m = moving ? 1 : 0;
+    // 킥보드를 타고 벽·가구에 정면으로 부딪히면 2초 동안 빙글빙글 (비스듬히 스치는 것은 괜찮다)
+    const want = Math.hypot(ix, iy) * speed * dt;
+    if (moving && want > 2 && fxOn('kickboard', now) && now >= spinSafeUntil && !me.frozen && !me.ride && Math.hypot(me.x - x0, me.y - y0) < want * 0.35) {
+      const ms = ITEMS.kickboard.spinMs || 2000;
+      spinUntil = now + ms;
+      spinSafeUntil = spinUntil + (ITEMS.kickboard.spinSafeMs || 1000);
+      me.spin = { at: now, ms };
+      me.m = 0;
+      popups.push({ text: '쿵! 빙글빙글~', x: me.x, y: me.y - 100, at: now, color: '#ff7a59' });
+      send({ t: 'crash' });
+    }
     if (Math.abs(ix) > 0.15) me.f = ix < 0 ? -1 : 1;
     if (me.frozen || me.ride || meeting) return;
 
@@ -1109,7 +1129,9 @@ export async function startGame(opts) {
       }
       ctx.globalAlpha = (q.connected ? 1 : 0.4) * (cloaked ? ITEMS.fogcape.alpha || 0.3 : q.cloak ? 0.6 : 1);
       const wake = waking && waking.id === q.id ? Math.min(1, (now - waking.at) / waking.ms) : 0;
+      const spun = spinBegin(q, q.y, s, now);
       drawCharacter(ctx, { kind: q.character, color: q.color, x: q.x, y: q.y, size: s, t, seed: q.seed, moving: !!q.m && !q.frozen, facing: q.f, frozen: q.frozen, wake });
+      if (spun) ctx.restore();
       ctx.globalAlpha = 1;
       if (q.ride) continue;
       if (now < q.protUntil && !q.frozen) protRing(q, s, t);
@@ -1411,6 +1433,21 @@ export async function startGame(opts) {
     }
   }
   // 킥보드: 발밑 발판 + 앞바퀴 쪽 손잡이 (캐릭터보다 먼저 그려서 발 아래에 깔린다)
+  // 킥보드로 부딪혀 도는 중이면 캐릭터를 몸 가운데 기준으로 돌려 그린다. 돌렸으면 true (그린 뒤 ctx.restore)
+  function spinBegin(q, y, s, now) {
+    const sp = q.spin;
+    if (!sp || q.frozen || q.ride) return false;
+    const k = (now - sp.at) / sp.ms;
+    if (k < 0 || k >= 1) {
+      q.spin = null;
+      return false;
+    }
+    ctx.save();
+    ctx.translate(q.x, y - s * 0.5);
+    ctx.rotate(k * Math.PI * 6 * (1 - k * 0.35)); // 약 세 바퀴, 끝으로 갈수록 느려진다
+    ctx.translate(-q.x, -(y - s * 0.5));
+    return true;
+  }
   function drawKickboard(q, s, t) {
     const f = q.f === -1 ? -1 : 1;
     const k = s / GAME.charSize;
@@ -1492,7 +1529,9 @@ export async function startGame(opts) {
     } else ctx.globalAlpha = q.connected ? 1 : 0.4;
     let dx = 0;
     if (morphing) dx = Math.sin(now / 25) * 3 * (1 - (now - q.morphAt) / 1200);
+    const spun = spinBegin(q, y, s, now);
     drawCharacter(ctx, { kind: q.character, color: q.color, x: q.x + dx, y, size: s, t, seed: q.seed, moving: !!q.m && !morphing, facing: q.f, frozen: morphing, halo: isGhost });
+    if (spun) ctx.restore();
     const head = y - s * (q.character === 'slime' ? 0.72 : 1);
     ctx.globalAlpha = 1;
     if (q.ride) return;

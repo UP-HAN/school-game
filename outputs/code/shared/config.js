@@ -183,7 +183,7 @@ export const ITEMS = {
   windcape: { name: '바람 망토', ms: 6000, speed: 1.3 },
   fogcape: { name: '안개 망토', ms: 8000, alpha: 0.3 },
   pillow: { name: '긴 베개', ms: 15000, reach: 115 },
-  kickboard: { name: '킥보드', ms: 8000, speed: 1.6 }, // 기본 목록(ITEM_POOLS)에는 없다. 맵 items.extra 로만 나온다 (놀이공원)
+  kickboard: { name: '킥보드', ms: 8000, speed: 1.6, spinMs: 2000, spinSafeMs: 1000 }, // 기본 목록(ITEM_POOLS)에는 없다. 맵 items.extra 로만 나온다 (놀이공원)
 };
 // 누가 어떤 아이템을 받을 수 있나. 꿈도둑을 찾아라는 꿈도둑도 학생과 같은 목록 (정체가 드러나지 않게).
 export const ITEM_POOLS = {

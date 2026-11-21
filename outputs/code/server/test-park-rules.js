@@ -141,6 +141,15 @@ async function runR1() {
     const after = await jump();
     check('킥보드: 쓰기 전 74px 거부 → 쓴 뒤 허용 (서버 속도 검사 1.6배)', !before && after, JSON.stringify({ before, after }));
     check('킥보드: 효과 8초가 me.effects 에, 쓰는 모습이 item 알림으로', me.effects.kickboard > 7000 && me.effects.kickboard <= 8000 && !!ev);
+    // 킥보드로 벽에 부딪히면(화면이 crash 를 보낸다) 2초 동안 빙글빙글: 알림이 가고, 그동안 보낸 위치는 받지 않는다
+    teacher.clear();
+    A.send({ t: 'crash' });
+    const spin = await teacher.next((m) => m.t === 'event' && m.kind === 'spin', 2000).catch(() => null);
+    check('킥보드 충돌: spin 알림 2초', !!spin && spin.ms === 2000, JSON.stringify(spin));
+    teacher.clear();
+    A.send({ t: 'crash' });
+    const again = await teacher.next((m) => m.t === 'event' && m.kind === 'spin', 600).catch(() => null);
+    check('킥보드 충돌: 도는 중에는 다시 돌지 않는다', !again);
     await endGame(teacher, P);
   } finally {
     await srv.stop();
