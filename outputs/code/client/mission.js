@@ -56,7 +56,7 @@ export function initMission(opts) {
   function setChance(v) {
     $('m-chance').hidden = !v;
   }
-  /** view: { notebook, chance } */
+  /** view: { notebook, chance, chaser } */
   function show(m, view = {}) {
     clearTimeout(nextTimer);
     open = true;
@@ -64,6 +64,9 @@ export function initMission(opts) {
     notebook = !!view.notebook;
     $('m-where').textContent = notebook ? '퀴즈 수첩' : m.bonus ? '임시 랜턴' : '꺼진 랜턴';
     document.querySelector('.mission-card').classList.toggle('notebook', notebook);
+    // 수첩이 무엇인지 열 때마다 한 줄로 알려 준다 (랜턴 퀴즈와 다른 점)
+    $('m-note').hidden = !notebook;
+    $('m-note').textContent = !notebook ? '' : view.chaser ? '📒 수첩으로 맞히면 꿈 구슬이 1개 생겨요.' : '📒 수첩은 새벽빛이 안 올라요. 대신 연속으로 맞히면 보급 상자가 있는 곳을 알려 줘요!';
     setChance(!!view.chance);
     $('m-text').textContent = m.text;
     $('m-feedback').textContent = '';

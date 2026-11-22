@@ -1130,7 +1130,7 @@ const onMessage = {
   question(m) {
     const notebook = m.terminal === 'notebook' || m.source === 'notebook' || (notebookPending && m.terminal == null && m.source == null);
     notebookPending = false;
-    mission.show(m, { notebook, chance: !!(myInfo && myInfo.item === 'chance') });
+    mission.show(m, { notebook, chaser: iAmChaser(), chance: !!(myInfo && myInfo.item === 'chance') });
   },
   result(m) {
     mission.result(m);

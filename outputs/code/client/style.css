@@ -491,6 +491,8 @@ input::placeholder { color: #a39cb8; }
 .mission-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .mission-head .chip { background: var(--amber); }
 .mission-card.notebook .mission-head .chip { background: var(--mint); }
+.mission-note { margin: 0; padding: 6px 12px; border-radius: 12px; background: #fff; border: 2px dashed var(--ink); font-size: .95rem; font-weight: 700; line-height: 1.4; word-break: keep-all; }
+.kb-open .mission-note { display: none; }
 .btn.chance { background: var(--pink); }
 .mission-text { font-size: 1.55rem; font-weight: 700; line-height: 1.4; word-break: keep-all; }
 .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
