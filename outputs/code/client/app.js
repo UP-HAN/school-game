@@ -4,7 +4,7 @@ import { drawCharacter } from './characters.js';
 import { startGame } from './game.js';
 import { initMission } from './mission.js';
 import { initQset } from './qset.js';
-import { initTeacherSetup, arrangeLobby, CHASER_SPEEDS } from './teacher-setup.js';
+import { initTeacherSetup, arrangeLobby, CHASER_SPEEDS, tagCoolName } from './teacher-setup.js';
 import { initReport, showTeacherReport, showMyReport } from './report.js';
 import { initMeeting } from './meeting.js';
 import { initManual } from './manual.js';
@@ -1353,9 +1353,14 @@ function renderTeacher() {
   const speedId = CHASER_SPEEDS.some((s) => s.id === room.settings.chaserSpeed) ? room.settings.chaserSpeed : 'same';
   $('t-speed').value = speedId;
   $('t-speed-wrap').hidden = isMafia(room);
+  // 다시 재우기까지 쉬는 시간 (잠귀신 술래잡기에서만. 0 = 기본)
+  const coolSec = Number(room.settings.tagCooldown) || 0;
+  $('t-cool').value = String(coolSec);
+  if ($('t-cool').selectedIndex < 0) $('t-cool').value = '0';
+  $('t-cool-wrap').hidden = isMafia(room);
   $('t-more-sum').textContent =
     `· ${T().mode} · ${(MAPS.find((m) => m.id === room.settings.map) || {}).name || ''} · 랜턴 ${room.settings.missions}개 · ${room.settings.minutes}분` +
-    (isMafia(room) ? '' : ` · ${CHASER_SPEEDS.find((s) => s.id === speedId).name}`);
+    (isMafia(room) ? '' : ` · ${CHASER_SPEEDS.find((s) => s.id === speedId).name}` + (tagCoolName(coolSec) ? ` · ${tagCoolName(coolSec)}` : ''));
   if (teacherSetup) teacherSetup.remember(room.settings); // 다음에 방을 만들 때도 같은 설정으로
   $('t-report').hidden = !room.recordCount;
   // 퀴즈 문제 상태
@@ -1497,12 +1502,13 @@ function init() {
       fogLoot: $('t-fogloot').value !== 'off',
       notebook: $('t-notebook').value !== 'off',
       chaserSpeed: $('t-speed').value,
+      tagCooldown: Number($('t-cool').value),
     });
   };
   fillSelect($('t-minutes'), MINUTES.map((n) => ({ id: String(n), name: `${n}분` })));
   fillSelect($('t-meetings'), MEETING_CHOICES.map((n) => ({ id: String(n), name: n ? `${n}번` : '없음' })));
   $('t-meetings').value = String(MAF.meetingsDefault);
-  for (const id of ['t-mode', 't-map', 't-chasers', 't-missions', 't-minutes', 't-meetings', 't-reveal-role', 't-fogloot', 't-notebook', 't-speed']) $(id).addEventListener('change', sendSettings);
+  for (const id of ['t-mode', 't-map', 't-chasers', 't-missions', 't-minutes', 't-meetings', 't-reveal-role', 't-fogloot', 't-notebook', 't-speed', 't-cool']) $(id).addEventListener('change', sendSettings);
   $('t-pick-toggle').addEventListener('click', () => {
     const open = $('t-pick').hidden;
     $('t-pick').hidden = !open;

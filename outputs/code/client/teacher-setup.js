@@ -4,7 +4,7 @@
 // 방 만들기를 누르면 create 를 보내고, 서버가 'created' 로 답하면 고른 설정(settings)과 문제(questions)를
 // 기존 메시지 그대로 곧바로 보낸다. 고른 설정은 localStorage(sg-tsetup), 문제는 qset.js 의 초안(sg-qdraft)에 남는다.
 import { EXAMPLES, EXAMPLE_TITLE } from './examples.js';
-import { CHARACTERS, MODES, MAPS, MINUTES } from './shared/config.js';
+import { CHARACTERS, MODES, MAPS, MINUTES, TAG_COOLDOWNS } from './shared/config.js';
 import { MAF, MEETING_CHOICES } from './mafiaconst.js';
 import { buildGrid } from './shared/mapgrid.js';
 import { renderMap, renderOverview } from './maprender.js';
@@ -31,8 +31,12 @@ const DEFAULTS = {
   fogLoot: true,
   notebook: true,
   chaserSpeed: 'same',
+  tagCooldown: 0,
 };
 // 잠귀신 속도 (잠귀신 술래잡기에서만). 값 이름은 서버와 약속한 것 그대로.
+// 잠귀신이 한 명을 재운 뒤 다음 사람을 재울 수 있을 때까지 쉬는 시간 (잠귀신 술래잡기에서만). 0 = 기본
+export const TAG_COOLS = TAG_COOLDOWNS.map((n) => ({ id: String(n), name: n ? `${n}초` : '기본 (6초, 안개가 좁아지면 늘어남)' }));
+export const tagCoolName = (n) => (TAG_COOLDOWNS.includes(n) && n ? `다시 재우기 ${n}초` : '');
 export const CHASER_SPEEDS = [
   { id: 'same', name: '학생과 같은 속도' },
   { id: 'fast', name: '조금 빠르게' },
@@ -367,6 +371,7 @@ export function initTeacherSetup(opts) {
   // ───────────────── ④ 자세히 설정 ─────────────────
   fill($('ts-chasers'), [{ id: 'auto', name: '자동 (인원에 맞춰 추천)' }, ...[1, 2, 3].map((n) => ({ id: String(n), name: `${n}명` }))]);
   fill($('ts-speed'), CHASER_SPEEDS);
+  fill($('ts-cool'), TAG_COOLS);
   fill($('ts-missions'), [3, 4, 5, 6, 7, 8].map((n) => ({ id: String(n), name: `${n}개` })));
   fill($('ts-minutes'), MINUTES.map((n) => ({ id: String(n), name: `${n}분` })));
   fill($('ts-meetings'), MEETING_CHOICES.map((n) => ({ id: String(n), name: n ? `${n}번` : '없음' })));
@@ -374,6 +379,7 @@ export function initTeacherSetup(opts) {
     const c = $('ts-chasers').value;
     setup.chasers = c === 'auto' ? 'auto' : Number(c);
     setup.chaserSpeed = $('ts-speed').value;
+    setup.tagCooldown = Number($('ts-cool').value);
     setup.missions = Number($('ts-missions').value);
     setup.minutes = Number($('ts-minutes').value);
     setup.meetings = Number($('ts-meetings').value);
@@ -382,7 +388,7 @@ export function initTeacherSetup(opts) {
     setup.reveal = $('ts-reveal').value !== 'off';
     apply();
   };
-  for (const id of ['ts-chasers', 'ts-speed', 'ts-missions', 'ts-minutes', 'ts-meetings', 'ts-fogloot', 'ts-notebook', 'ts-reveal']) $(id).addEventListener('change', readForm);
+  for (const id of ['ts-chasers', 'ts-speed', 'ts-cool', 'ts-missions', 'ts-minutes', 'ts-meetings', 'ts-fogloot', 'ts-notebook', 'ts-reveal']) $(id).addEventListener('change', readForm);
 
   const setSelect = (id, v, fallback) => {
     const sel = $(id);
@@ -394,6 +400,7 @@ export function initTeacherSetup(opts) {
     if (!MODES.some((m) => m.id === setup.mode)) setup.mode = DEFAULTS.mode;
     if (!MAPS.some((m) => m.id === setup.map)) setup.map = DEFAULTS.map;
     if (!CHASER_SPEEDS.some((s) => s.id === setup.chaserSpeed)) setup.chaserSpeed = DEFAULTS.chaserSpeed;
+    if (!TAG_COOLDOWNS.includes(setup.tagCooldown)) setup.tagCooldown = DEFAULTS.tagCooldown;
     for (const [box, key] of [['ts-modes', 'mode'], ['ts-maps', 'map']]) {
       for (const b of $(box).children) b.setAttribute('aria-checked', String(b.dataset.id === setup[key]));
     }
@@ -401,9 +408,11 @@ export function initTeacherSetup(opts) {
     const chaser = mafia ? '꿈도둑' : '잠귀신';
     $('ts-chaser-label').textContent = `${chaser} 수`;
     $('ts-speed-wrap').hidden = mafia;
+    $('ts-cool-wrap').hidden = mafia;
     for (const el of document.querySelectorAll('.ts-imp')) el.hidden = !mafia;
     setSelect('ts-chasers', setup.chasers ?? 'auto', 'auto');
     setSelect('ts-speed', setup.chaserSpeed, 'same');
+    setSelect('ts-cool', setup.tagCooldown, 0);
     setSelect('ts-missions', setup.missions, DEFAULTS.missions);
     setSelect('ts-minutes', setup.minutes, DEFAULTS.minutes);
     setSelect('ts-meetings', setup.meetings, DEFAULTS.meetings);
@@ -413,7 +422,7 @@ export function initTeacherSetup(opts) {
     const speed = CHASER_SPEEDS.find((s) => s.id === setup.chaserSpeed);
     $('ts-more-sum').textContent =
       `· ${chaser} ${setup.chasers === 'auto' ? '자동' : setup.chasers + '명'}` +
-      (mafia ? ` · 회의 종 ${setup.meetings ? setup.meetings + '번' : '없음'}` : ` · ${speed ? speed.name : ''}`) +
+      (mafia ? ` · 회의 종 ${setup.meetings ? setup.meetings + '번' : '없음'}` : ` · ${speed ? speed.name : ''}` + (tagCoolName(setup.tagCooldown) ? ` · ${tagCoolName(setup.tagCooldown)}` : '')) +
       ` · 랜턴 ${setup.missions}개 · ${setup.minutes}분`;
     storeSetup(setup);
   }
@@ -448,8 +457,8 @@ export function initTeacherSetup(opts) {
       pw.focus();
       return;
     }
-    const { mode, map, chasers, missions, minutes, meetings, reveal, fogLoot, notebook, chaserSpeed } = setup;
-    pending = { settings: { mode, map, chasers, missions, minutes, meetings, reveal, fogLoot, notebook, chaserSpeed }, set };
+    const { mode, map, chasers, missions, minutes, meetings, reveal, fogLoot, notebook, chaserSpeed, tagCooldown } = setup;
+    pending = { settings: { mode, map, chasers, missions, minutes, meetings, reveal, fogLoot, notebook, chaserSpeed, tagCooldown }, set };
     createBtn.disabled = true; // 연타 막기
     setTimeout(() => (createBtn.disabled = false), 1500);
     opts.send(pw ? { t: 'create', password: pw.value } : { t: 'create' });
@@ -498,6 +507,15 @@ export function arrangeLobby() {
   fill(sel, CHASER_SPEEDS);
   wrap.append(sel);
   chaserLabel.after(wrap);
+  // 다시 재우기까지 쉬는 시간 (id: t-cool, 감싼 칸 id: t-cool-wrap)
+  const coolWrap = document.createElement('label');
+  coolWrap.id = 't-cool-wrap';
+  coolWrap.append('잠귀신이 다시 재우기까지 ');
+  const coolSel = document.createElement('select');
+  coolSel.id = 't-cool';
+  fill(coolSel, TAG_COOLS);
+  coolWrap.append(coolSel);
+  wrap.after(coolWrap);
 
   const startRow = $('t-start').closest('.row');
   const hint = $('t-hint');

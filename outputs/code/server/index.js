@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import {
   COLORS, CHARACTERS, MODES, MAPS, LIMITS, GAME, CHASE, MINUTES, MAFIA, MEETINGS, FOG, LOOT, ITEMS, ITEM_POOLS, ENERGY, STREAK,
-  chaserCount, maxChasers, modeOf, stageValue, lootCount, CHASER_SPEED, CHASER_SPEED_DEFAULT, chaserSpeedOf, lootPool,
+  chaserCount, maxChasers, modeOf, stageValue, lootCount, CHASER_SPEED, CHASER_SPEED_DEFAULT, chaserSpeedOf, TAG_COOLDOWNS, tagCooldownMs, lootPool,
 } from '../shared/config.js';
 import { buildGrid, canStand, touchesRect, spawnPoint, validateMap, roomAt, distToRect, lootFurniture, floorAt, darkVisionAt } from '../shared/mapgrid.js';
 import { sanitizeSet, isCorrect } from '../shared/questions.js';
@@ -1101,6 +1101,7 @@ const handlers = {
         fogLoot: true, // 잠 안개·보급 상자
         notebook: true, // 퀴즈 수첩
         chaserSpeed: CHASER_SPEED_DEFAULT, // 잠귀신 술래잡기: 잠귀신 속도 ('same'|'fast'|'very')
+        tagCooldown: 0, // 잠귀신 술래잡기: 다시 재우기까지 쉬는 시간(초). 0 = 기본(안개 단계에 따라 6~12초)
       },
       pickedChasers: [], // 선생님이 몰래 정한 꿈도둑 (선생님에게만 보낸다. settings 에 넣지 않는다)
       meetingsLeft: 0,
@@ -1261,6 +1262,7 @@ const handlers = {
     if (typeof m.fogLoot === 'boolean') s.room.settings.fogLoot = m.fogLoot;
     if (typeof m.notebook === 'boolean') s.room.settings.notebook = m.notebook;
     if (typeof m.chaserSpeed === 'string' && Object.hasOwn(CHASER_SPEED, m.chaserSpeed)) s.room.settings.chaserSpeed = m.chaserSpeed;
+    if (TAG_COOLDOWNS.includes(m.tagCooldown)) s.room.settings.tagCooldown = m.tagCooldown;
     broadcast(s.room);
   },
 
@@ -1687,7 +1689,7 @@ const handlers = {
       p.tagReadyAt = now + 800; // 헛손질: 마구 누르지 못하게 잠깐 쉰다 (구슬은 안 쓴다)
       return sendMe(room, p);
     }
-    p.tagReadyAt = now + stageValue('chaseCooldownMs', fogStage(room), CHASE.cooldownMs);
+    p.tagReadyAt = now + tagCooldownMs(room.settings, stageValue('chaseCooldownMs', fogStage(room), CHASE.cooldownMs));
     if (fxOn(target, 'umbrella', now)) return popShield(room, p, target);
     p.energy -= 1;
     if (p.fx.pillow) p.fx.pillow = 0;

@@ -87,6 +87,15 @@ export function chaserSpeedOf(settings, role) {
   return CHASER_SPEED[settings.chaserSpeed] || 1;
 }
 
+// 잠귀신이 한 명을 재운 뒤 다음 사람을 재울 수 있을 때까지 쉬는 시간(초) — 선생님이 고른다 (settings.tagCooldown).
+// 0 = 기본 (6초에서 시작해 잠 안개가 좁아질수록 8·10·12초로 늘어남, FOG.chaseCooldownMs). 1·3·5·7·9 = 판 내내 그 초로 고정.
+// 잠귀신 술래잡기에서만 쓴다 (꿈도둑을 찾아라의 꿈 걸기 쉬는 시간은 바꾸지 않는다).
+export const TAG_COOLDOWNS = [0, 1, 3, 5, 7, 9];
+export function tagCooldownMs(settings, stagedMs) {
+  const sec = settings && settings.mode !== 'mafia' ? Number(settings.tagCooldown) : 0;
+  return TAG_COOLDOWNS.includes(sec) && sec > 0 ? sec * 1000 : stagedMs;
+}
+
 // 잠귀신 술래잡기 규칙 숫자 (06 명세 10-1절). 안개 단계에 따라 바뀌는 값은 FOG 표의 0단계가 이 값이다.
 export const CHASE = {
   reach: 75, // 꿈 걸기·깨우기가 닿는 거리
