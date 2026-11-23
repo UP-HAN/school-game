@@ -109,9 +109,11 @@ input, select {
 input::placeholder { color: #a39cb8; }
 
 /* 첫 화면 */
-#view-home { display: grid; place-items: center; min-height: 100vh; min-height: 100dvh; padding-top: 0; position: relative; }
+#view-home { display: grid; place-items: center; align-content: center; min-height: 100vh; min-height: 100dvh; padding-top: 0; position: relative; }
 #parade { position: fixed; left: 0; bottom: 0; width: 100%; height: clamp(110px, 22vh, 170px); pointer-events: none; }
-.home-card { width: min(450px, 100%); position: relative; z-index: 1; display: grid; gap: 14px; margin: max(24px, var(--sat)) 0 clamp(90px, 18vh, 150px); }
+.home-card { width: min(450px, 100%); position: relative; z-index: 1; display: grid; gap: 14px; margin: max(24px, var(--sat)) 0 12px; }
+/* 첫 화면 카드 아래 저작권 표시 (아래 여백은 지나가는 캐릭터 자리) */
+.copyright { position: relative; z-index: 1; word-break: keep-all; padding: 0 8px; margin: 0 0 clamp(90px, 18vh, 150px); text-align: center; font-size: 13px; font-weight: 400; color: #fff; opacity: .85; text-shadow: 0 1px 4px rgba(0, 0, 0, .55); }
 /* 첫 화면 왼쪽 위: 지금 열린 방 수·참여 학생 수 */
 .live-stats {
   position: absolute; z-index: 2; margin: 0;
@@ -780,6 +782,7 @@ html.touch-only .kh { display: none !important; }
 /* ───────────── 선생님 페이지: 방 만들기 전 준비 화면 (teacher-home.part.html · teacher-setup.js) ───────────── */
 body[data-role="teacher"] #view-home { display: block; min-height: 0; padding-bottom: max(48px, calc(var(--sab) + 24px)); }
 body[data-role="teacher"] #parade, body[data-role="teacher"] .home-row, body[data-role="teacher"] #view-home .home-card > .sub { display: none; }
+body[data-role="teacher"] .copyright { margin: 18px 0 0; }
 body[data-role="teacher"] .home-card { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0; gap: 18px; background: transparent; border: 0; box-shadow: none; grid-template-columns: 1fr; }
 body[data-role="teacher"] .home-card > .logo { grid-column: auto; grid-row: auto; display: flex; align-items: center; justify-content: flex-start; gap: 10px; flex-wrap: wrap; padding-right: 230px; min-height: 64px; }
 body[data-role="teacher"] .home-card > .logo .logo-small { color: var(--paper); text-shadow: 2px 2px 0 var(--ink); font-size: 1.4rem; }
