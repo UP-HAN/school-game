@@ -142,6 +142,7 @@ function serveStatic(req, res) {
     return;
   }
   pathname = stripped;
+  if (pathname === '/stats') return serveStats(req, res);
   if (pathname === '/teacher/' || pathname === '/teacher/index.html') return serveTeacherPage(req, res);
   if (pathname.endsWith('.part.html')) {
     res.writeHead(404).end('Not found'); // 페이지 조각은 따로 내려 주지 않는다
@@ -234,6 +235,15 @@ function serveTeacherPage(req, res) {
   }
   res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-cache' });
   res.end(req.method === 'HEAD' ? undefined : html);
+}
+
+// 첫 화면 왼쪽 위에 보여 줄 숫자: 지금 열린 방 수와 접속해 있는 학생 수. (방 번호·이름은 알려 주지 않는다)
+function serveStats(req, res) {
+  let players = 0;
+  for (const room of rooms.values()) for (const p of room.players.values()) if (p.ws) players++;
+  const body = JSON.stringify({ rooms: rooms.size, players });
+  res.writeHead(200, { 'Content-Type': MIME['.json'], 'Cache-Control': 'no-store' });
+  res.end(req.method === 'HEAD' ? undefined : body);
 }
 
 // ───────────── 방 ─────────────

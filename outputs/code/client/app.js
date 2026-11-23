@@ -1210,6 +1210,23 @@ function animate(ms) {
   requestAnimationFrame(animate);
 }
 
+// 첫 화면 왼쪽 위: 지금 열린 방 수·참여 학생 수 (첫 화면이 보일 때만 15초마다 새로 받는다)
+async function refreshLiveStats() {
+  const el = $('live-stats');
+  if (!el || $('view-home').hidden || document.hidden) return;
+  try {
+    const r = await fetch(pageUrl('./stats'), { cache: 'no-store' });
+    if (!r.ok) throw new Error(String(r.status));
+    const s = await r.json();
+    el.textContent = `🏮 지금 방 ${Number(s.rooms) || 0}개 · 학생 ${Number(s.players) || 0}명 참여 중`;
+    el.hidden = false;
+  } catch {
+    el.hidden = true; // 숫자를 못 받으면 조용히 숨긴다
+  }
+}
+refreshLiveStats();
+setInterval(refreshLiveStats, 15_000);
+
 // 첫 화면 아래를 지나가는 캐릭터들 (손에 랜턴)
 const parade = CHARACTERS.map((ch, i) => ({
   kind: ch.id,

@@ -112,6 +112,15 @@ input::placeholder { color: #a39cb8; }
 #view-home { display: grid; place-items: center; min-height: 100vh; min-height: 100dvh; padding-top: 0; position: relative; }
 #parade { position: fixed; left: 0; bottom: 0; width: 100%; height: clamp(110px, 22vh, 170px); pointer-events: none; }
 .home-card { width: min(450px, 100%); position: relative; z-index: 1; display: grid; gap: 14px; margin: max(24px, var(--sat)) 0 clamp(90px, 18vh, 150px); }
+/* 첫 화면 왼쪽 위: 지금 열린 방 수·참여 학생 수 */
+.live-stats {
+  position: absolute; z-index: 2; margin: 0;
+  top: max(12px, var(--sat)); left: max(12px, var(--sal));
+  padding: 6px 14px; border-radius: 999px;
+  background: rgba(20, 26, 60, .72); color: var(--paper);
+  border: 2px solid rgba(255, 255, 255, .28);
+  font-size: .9rem; font-weight: 700; white-space: nowrap;
+}
 .home-row { justify-content: center; }
 .teacher-badge { text-align: center; font-weight: 700; color: var(--night2); margin-bottom: 10px; }
 .create-msg { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: #ffe9e6; border: 2px solid var(--warn); color: #a32020; font-weight: 700; text-align: center; line-height: 1.4; word-break: keep-all; }
