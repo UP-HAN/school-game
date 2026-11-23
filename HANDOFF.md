@@ -7,6 +7,7 @@
 - **게임 이름**: 한밤의 랜턴 대작전. 모드 2개 = 잠귀신 술래잡기(`sleep-tag`, 옛 얼음땡) · 꿈도둑을 찾아라(`mafia`, 옛 방해꾼 찾기). 둘 다 구현 완료.
 - **맵 5개**: 몬스터 체육관 · 달빛 대도서관 · 한밤의 학교 · 한밤의 별빛 학원(3층) · 한밤의 놀이공원.
 - **선생님 페이지**: 비밀번호는 선택 기능(서버 `.env` 의 `TEACHER_PASSWORD` 가 비어 있으면 없음, 방 수 제한으로 대신), 문제 엑셀 올리기 + 문제 은행, 초대 QR코드, 학습 기록·CSV. **운영 서버에는 비밀번호가 설정되어 있다**(2026-11-23 선생님 페이지에 비밀번호 칸이 나오는 것을 확인). 바꾸거나 없애려면 서버에서 `sudo nano /opt/lantern/outputs/code/.env` → `sudo systemctl restart lantern` (선생님이 직접, 다시 켜면 열려 있던 방은 사라짐).
+- **운영 서버 방 수 제한**: 2026-11-23 사용자 요청으로 사실상 해제. 서버 `.env` 끝에 `MAX_ROOMS=1000` · `MAX_ROOMS_PER_IP=1000` · `ROOM_CREATE_PER_HOUR=1000` 3줄 추가 후 재시작(그 전에는 줄이 없어 기본값 40/8/20). 바꾸기 전 파일은 서버의 `/opt/lantern/outputs/code/.env.bak-20261123`. 되돌리려면 그 3줄을 지우고 `sudo systemctl restart lantern`. 비밀번호까지 없애면 누구나 방을 끝없이 만들 수 있으니 둘 중 하나는 남길 것.
 - **운영 중**: 학생 https://lab.ches.es.kr/lantern/ · 선생님 https://lab.ches.es.kr/lantern/teacher/ · 안내 https://lab.ches.es.kr/lantern/guide.html. 2026-11-23 에 공개 주소의 파일 4개(`app.js`·`mission.js`·`manual.js`·`tips.js`)가 최신 커밋 `bf9a4ec` 와 같은 것을 확인함.
 - **자동 시험**: `outputs/code` 에서 `npm test` → 16묶음 596개 전부 통과 (2026-11-23, 학교 컴퓨터에서 다시 돌림).
 - **컴퓨터 두 대**: 학교 컴퓨터와 집 컴퓨터가 GitHub(`UP-HAN/school-game`)로 맞춘다. 일러스트 원본 PNG·영상 원본·캡처 그림은 git 에 없고 **집 컴퓨터에만** 있다(영상 다시 만들기는 집에서).
