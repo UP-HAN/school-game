@@ -3,6 +3,7 @@
 //   ② 놀이 방법 ③ 맵 ④ 자세히 설정 → [방 만들기]
 // 방 만들기를 누르면 create 를 보내고, 서버가 'created' 로 답하면 고른 설정(settings)과 문제(questions)를
 // 기존 메시지 그대로 곧바로 보낸다. 고른 설정은 localStorage(sg-tsetup), 문제는 qset.js 의 초안(sg-qdraft)에 남는다.
+import { EXAMPLES, EXAMPLE_TITLE } from './examples.js';
 import { CHARACTERS, MODES, MAPS, MINUTES } from './shared/config.js';
 import { MAF, MEETING_CHOICES } from './mafiaconst.js';
 import { buildGrid } from './shared/mapgrid.js';
@@ -43,15 +44,6 @@ const MODE_INFO = {
   mafia: { line: '친구들 사이에 숨은 꿈도둑을 모닥불 회의와 지목으로 찾아내요.', kind: 7, color: 4 },
 };
 
-// 예시 문제 (여러 과목이 섞인 연습용)
-const EXAMPLES = [
-  { q: '우리나라의 수도는 어디일까요?', a: '서울', wrong: [], alts: ['서울특별시'] },
-  { q: '7 × 8 은 얼마일까요?', a: '56', wrong: ['54', '48', '64'] },
-  { q: '물이 얼면 무엇이 될까요?', a: '얼음', wrong: ['수증기', '구름', '이슬'] },
-  { q: '다음 중 포유류는 무엇일까요?', a: '고래', wrong: ['상어', '개구리', '독수리'] },
-  { q: '1년은 몇 개월일까요?', a: '12', wrong: [] },
-  { q: '"apple"을 우리말로 하면?', a: '사과', wrong: ['포도', '배', '귤'] },
-];
 
 function loadSetup() {
   try {
@@ -192,7 +184,7 @@ export function initTeacherSetup(opts) {
     });
     $('ts-qcount').textContent = `넣은 문제 ${good}개` + (bad ? ` · 고칠 줄 ${bad}개` : '');
     $('ts-qcount').classList.toggle('warn', !good || bad > 0);
-    $('ts-create-sub').textContent = good ? `문제 ${good}개` : '문제를 넣어 주세요';
+    $('ts-create-sub').textContent = good ? `문제 ${good}개` : '문제 없음 → 예시 문제로 시작';
   }
 
   // 엑셀에서 여러 칸·여러 줄을 복사해 붙여넣기 → 지금 칸부터 오른쪽·아래로 채운다
@@ -249,7 +241,7 @@ export function initTeacherSetup(opts) {
   });
   $('ts-template').addEventListener('click', () => downloadTemplate(opts.toast));
   $('ts-prompt').addEventListener('click', () => opts.qset.openPrompt());
-  $('ts-example').addEventListener('click', () => putItems(EXAMPLES, '예시 문제', '예시'));
+  $('ts-example').addEventListener('click', () => putItems(EXAMPLES, EXAMPLE_TITLE, '예시'));
   $('ts-add1').addEventListener('click', () => {
     draft.rows.push(blankRow());
     renderRows();
@@ -431,11 +423,23 @@ export function initTeacherSetup(opts) {
   $('create-form').addEventListener('submit', (e) => {
     e.preventDefault();
     opts.showMsg('');
-    const { set, good, bad } = checkRows(draft.rows, draft.title);
+    let { set, good, bad } = checkRows(draft.rows, draft.title);
     if (!good) {
-      opts.showMsg('문제를 한 개 이상 넣어 주세요. (문제와 정답 칸을 채워 주세요)');
-      rowsBox.querySelector('input')?.focus();
-      return;
+      // 문제를 하나도 넣지 않았으면 예시 문제(일반상식 30문제)로 바로 시작할 수 있게 묻는다
+      if (!confirm(`넣은 문제가 없어요.
+
+[확인] ${EXAMPLE_TITLE}로 방을 만들어요
+[취소] 돌아가서 문제를 직접 넣어요`)) {
+        opts.showMsg('문제를 한 개 이상 넣어 주세요. [예시 문제] 버튼을 누르면 일반상식 30문제가 바로 들어가요.');
+        rowsBox.querySelector('input')?.focus();
+        return;
+      }
+      draft.rows = EXAMPLES.map(toRow);
+      draft.title = EXAMPLE_TITLE;
+      $('ts-title').value = draft.title;
+      renderRows();
+      saveDraft(draft, 'setup');
+      ({ set, good, bad } = checkRows(draft.rows, draft.title));
     }
     if (bad && !confirm(`고쳐야 할 줄 ${bad}개는 빼고 ${good}문제로 방을 만들까요?`)) return;
     const pw = $('create-password');
