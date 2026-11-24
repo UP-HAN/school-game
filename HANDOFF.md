@@ -192,5 +192,5 @@
 
 ## 5-10. 인스타그램 홍보 (2026-11-24)
 - 설계서: `outputs/promo/인스타그램_홍보_설계.md` (댓글 키워드 "랜턴" → 리틀리 자동 DM, 본문·고정 댓글·DM·답글·카톡 문구, 올리는 순서).
-- 릴스 영상 27초 세로·가로 + 커버 2장: `outputs/promo/instagram/` (mp4 는 git 에 없음, 만든 컴퓨터에만). 구성 `outputs/video/guide/work/reel.html` · `ext_reel.js`, 렌더 크기 옵션 `--w --h` 는 `_common.mjs` 에 추가.
+- 릴스 영상 27초 세로·가로 + 커버 2장: `outputs/promo/instagram/` (정사각형판·앞 1.9초를 자른 25초판·쓰레드용 GIF 3종 포함. 2026-11-24 사용자 요청으로 mp4·gif 도 git 에 올림). 구성 `outputs/video/guide/work/reel.html` · `ext_reel.js`, 렌더 크기 옵션 `--w --h` 는 `_common.mjs` 에 추가.
 - **아직 안 한 것(사람이 할 일)**: 인스타에 올리기, 리틀리 자동화 설정과 다른 계정 테스트, DM 문구에 선생님 비밀번호 넣기. 영상 소리는 사람이 아직 들어 보지 않음.
