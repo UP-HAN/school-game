@@ -26,9 +26,15 @@ export function args() {
   return o;
 }
 
-export async function open(name, q = '') {
+// (덧붙임) 화면 크기: 명령줄 --w 1080 --h 1920 을 주면 그 크기로 찍는다(세로 릴스용). 안 주면 예전처럼 1920x1080.
+export function viewport() {
+  const a = process.argv.slice(2), g = k => { const i = a.indexOf('--' + k); return i >= 0 ? +a[i + 1] : 0; };
+  return { width: g('w') || 1920, height: g('h') || 1080 };
+}
+
+export async function open(name, q = '', vp = viewport()) {
   const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--allow-file-access-from-files', '--force-color-profile=srgb', '--hide-scrollbars'] });
-  const page = await (await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 })).newPage();
+  const page = await (await browser.newContext({ viewport: vp, deviceScaleFactor: 1 })).newPage();
   page.on('pageerror', e => console.log('[pageerror]', e.message));
   page.on('console', m => { if (m.type() === 'error') console.log('[console]', m.text()); });
   const url = pathToFileURL(path.join(WORK, name + '.html')).href + '?render=1' + (q ? '&' + q : '');

@@ -1,0 +1,291 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>한밤의 랜턴 대작전 — 인스타 릴스 (세로 ?o=v / 가로)</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=block" rel="stylesheet">
+<link rel="stylesheet" href="video.css">
+<style>
+/* 릴스 전용 (video.css 의 1920x1080 고정을 덮어쓴다. 크기는 ext_reel.js 가 ?o=v 에 맞춰 정함) */
+html, body { width: auto; height: auto; }
+#stage { display: none; }
+.layer { pointer-events: none; }
+.rfull { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 50%; }
+img.missing { background: repeating-linear-gradient(45deg, #3b3654 0 26px, #34304b 26px 52px); }
+.rrow { position: absolute; display: flex; align-items: baseline; white-space: nowrap; line-height: 1.12; }
+.rrow > * { display: inline-block; transform-origin: 50% 60%; }
+.rrow .emo { align-self: center; font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif; line-height: 1; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, .45)); }
+.pt { line-height: 1.12; }
+/* 금색 그라데이션 글자: 뒤판(잉크 테두리·그림자) + 앞판(금색 + 지나가는 광택 띠). 이모지는 넣지 않는다 */
+.gt { position: relative; line-height: 1.12; padding: 0 .04em; }
+.gt .bk { position: absolute; left: .04em; top: 0; color: #2a2140; -webkit-text-stroke: .13em #2a2140; text-shadow: 0 .08em 0 #2a2140, 0 0 .45em rgba(255, 170, 60, .7); }
+.gt .fr { position: relative; color: transparent; -webkit-background-clip: text; background-clip: text;
+  background-image: linear-gradient(105deg, rgba(255, 255, 255, 0) 42%, rgba(255, 255, 255, .95) 50%, rgba(255, 255, 255, 0) 58%), linear-gradient(180deg, #fffbe3 0%, #ffe680 28%, #ffc247 52%, #ff9a3c 80%, #ff7d2e 100%);
+  background-size: 260% 100%, 100% 100%; background-repeat: no-repeat; background-position: 0% 0, 0 0; }
+.rays { position: absolute; border-radius: 50%; --ray: rgba(255, 214, 120, .5);
+  background: repeating-conic-gradient(from 0deg, var(--ray) 0deg 6deg, rgba(255, 214, 120, 0) 6deg 22.5deg);
+  -webkit-mask-image: radial-gradient(closest-side, #000 12%, rgba(0, 0, 0, .55) 45%, transparent 100%); mask-image: radial-gradient(closest-side, #000 12%, rgba(0, 0, 0, .55) 45%, transparent 100%); }
+.cf { position: absolute; left: 0; top: 0; }
+.rscr { position: absolute; overflow: hidden; background: #0b0a24; border: 6px solid var(--paper);
+  box-shadow: 0 0 0 6px var(--ink), 0 34px 70px rgba(0, 0, 0, .6), 0 0 70px var(--glow, rgba(255, 194, 71, .35)); }
+.rclay { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.rclay img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.rctint, .rcflash { position: absolute; inset: 0; opacity: 0; }
+.rcflash { background: #fff6dc; }
+.rctint { background: rgba(11, 10, 36, .6); }
+.rface { position: absolute; border-radius: 50%; overflow: hidden; background: #fff6e5; border: 8px solid var(--lantern); }
+.rface .in { position: absolute; inset: 0; background-repeat: no-repeat; }
+.rchip { position: absolute; display: inline-flex; align-items: center; gap: .3em; padding: .28em .5em .22em .75em; border-radius: 999px; background: var(--paper); color: var(--ink);
+  font-weight: 900; white-space: nowrap; border: 5px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); }
+.rchip .bdg { display: inline-flex; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; border-radius: 50%; font-size: .9em; color: #fff; border: 4px solid var(--ink); font-family: 'PretendardL', sans-serif; font-weight: 900; line-height: 1; }
+.rchip .bdg.ok { background: #3fae6a; } .rchip .bdg.no { background: var(--warn); }
+.rchips { position: absolute; display: flex; flex-wrap: wrap; gap: 20px 18px; }
+.rgauge { position: absolute; display: flex; align-items: center; gap: 16px; padding: 12px 22px; border-radius: 999px; background: rgba(11, 10, 36, .8); border: 4px solid rgba(255, 194, 71, .55); }
+.rgauge .ic { font-size: 50px; line-height: 1; font-family: 'Segoe UI Emoji', sans-serif; }
+.rgauge .lb { font-size: 46px; color: var(--lantern); white-space: nowrap; }
+.rgauge .bar { position: relative; flex: 1; height: 40px; border-radius: 999px; background: #1c1640; border: 4px solid var(--ink); overflow: visible; }
+.rgauge .fill { position: absolute; inset: 0; border-radius: 999px; transform-origin: 0 50%; background: linear-gradient(90deg, #6a4fd6, #ff9ec4 45%, var(--lantern) 75%, #fff2c4); }
+.rgauge .head { position: absolute; top: 50%; width: 64px; height: 64px; border-radius: 50%; background: radial-gradient(circle, #fffbe6, rgba(255, 194, 71, .85) 35%, rgba(255, 154, 60, 0) 70%); }
+.rmark { position: absolute; line-height: 1; text-shadow: 0 6px 0 rgba(11, 10, 36, .5), 0 0 24px rgba(255, 194, 71, .5); }
+.rhl { position: absolute; border: 8px solid var(--mint); border-radius: 22px; box-shadow: 0 0 40px rgba(127, 224, 196, .9), inset 0 0 30px rgba(127, 224, 196, .5); }
+.rspot { position: absolute; width: 600px; height: 600px; margin: -300px 0 0 -300px; border-radius: 50%; mix-blend-mode: screen;
+  background: radial-gradient(closest-side, rgba(255, 236, 170, .95), rgba(255, 190, 90, .5) 35%, rgba(255, 150, 60, 0)); }
+.rpill { position: absolute; left: 0; right: 0; margin: 0 auto; width: fit-content; display: flex; align-items: center; gap: 18px; padding: 18px 40px 16px; border-radius: 999px;
+  background: var(--paper); color: var(--ink); border: 6px solid var(--ink); box-shadow: 8px 8px 0 var(--ink), 0 0 50px rgba(255, 194, 71, .45); white-space: nowrap; font-weight: 900; }
+.rpill .emo { font-family: 'Segoe UI Emoji', sans-serif; line-height: 1; }
+.rband { position: absolute; overflow: hidden; -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22%); mask-image: linear-gradient(180deg, transparent 0, #000 22%); }
+.rband img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vig { position: absolute; inset: 0; background: radial-gradient(ellipse 75% 70% at 50% 45%, rgba(4, 3, 16, 0) 45%, rgba(4, 3, 16, .9) 100%); }
+.leak { position: absolute; left: 0; top: 0; width: 1300px; height: 1300px; margin: -650px 0 0 -650px; border-radius: 50%; mix-blend-mode: screen;
+  background: radial-gradient(closest-side, rgba(255, 170, 80, .55), rgba(255, 110, 120, .2) 50%, rgba(255, 110, 120, 0)); }
+.leak.b { background: radial-gradient(closest-side, rgba(127, 224, 196, .4), rgba(120, 90, 230, .18) 50%, rgba(120, 90, 230, 0)); }
+.leak.c { background: radial-gradient(closest-side, rgba(255, 140, 200, .35), rgba(255, 194, 71, .15) 50%, rgba(255, 194, 71, 0)); }
+.trglow { position: absolute; left: 0; top: 0; width: 900px; height: 900px; margin: -450px 0 0 -450px; border-radius: 50%; display: none;
+  background: radial-gradient(closest-side, #fffbe6, rgba(255, 214, 120, .9) 18%, rgba(255, 154, 60, .35) 45%, rgba(255, 154, 60, 0)); }
+.trring2 { position: absolute; left: 0; top: 0; width: 1000px; height: 1000px; margin: -500px 0 0 -500px; border-radius: 50%; display: none;
+  background: radial-gradient(closest-side, rgba(255, 194, 71, 0) 82%, rgba(255, 226, 150, .95) 93%, rgba(255, 154, 60, 0)); }
+.vfog { position: absolute; left: 0; right: 0; bottom: 0; height: 560px; background: linear-gradient(180deg, rgba(60, 40, 130, 0), rgba(60, 40, 130, .55) 45%, rgba(30, 20, 80, .9)); }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script src="lib.js"></script>
+<script src="ext_reel.js"></script>
+<script>
+// 인스타 릴스 27초 (세로: reel.html?o=v / 가로: reel.html). 128 BPM, 한 박 = 0.469초.
+// 설계서: outputs/promo/인스타그램_홍보_설계.md 1절. 나레이션 없음, 영상 안에 주소 없음.
+// 장면 길이(박): 6 · 8 · 10 · 8 · 7 · 9 · 10 = 58박 = 27.19초 (훅은 짧게, CTA 는 길게)
+const { V, W, H, O } = R;
+const { P, lerp, clamp, mk, F1, F2, OUT, INQ, IO, LIN, tent, swing } = MG;
+const ILL = '@art/illust/', LAN = 'var(--lantern)', MINT = 'var(--mint)';
+const seekAll = (xs, lt) => xs.forEach(x => x && x.seek(lt));
+// 게임 화면 카드 기본 자리 (세로: 글자 아래 / 가로: 오른쪽)
+const CARD = (o = {}) => ({ x: O(60, 900), y: O(o.vy ?? 600, o.hy ?? 170), w: O(960, 940), h: O(o.vh ?? 760, o.hh ?? 720), ...o });
+
+const SCENES = [
+  // ───── 1. 훅: 깜깜한 화면에 랜턴이 "탁" 켜지며 밤의 학교가 드러남 ─────
+  { name: '훅 · 수업 시간에 술래잡기?!', beats: 6, bg: 'deep', stars: true, vig: 0.85, leak: 0.15, garland: 0, thumbs: [0.6, 2.4],
+    build: (el, c) => {
+      const b = c.beat;
+      const bgi = R.img(el, ILL + 'landing.png', 'rfull');
+      const dark = mk('div', 'shade', el, null, { background: '#050414' });
+      const LS = O(1.1, 0.9), LX = W / 2, LY = O(210, 30), GY = LY + 95 * LS;
+      const L = MG.lantern(el, LX, LY, LS, { rope: true, glow: 1.5 });
+      const T1 = MG.text(el, '수업 시간에', { style: 'mask', at: 2 * b, y: O(560, 250), size: O(120, 104), color: '#fff' });
+      const GYC = O(700, 380), GS = O(196, 230);
+      const ray = R.rays(el, { x: W / 2, y: GYC + GS * 0.6, size: O(1500, 1600), at: 3 * b });
+      const G = R.row(el, [{ gold: '술래잡기?!', anim: 'slam', at: 3 * b, gloss: [3 * b + 0.42, 3 * b + 0.95] }], { y: GYC, size: GS });
+      const cf = R.confetti(el, { x: W / 2, y: GYC + GS * 0.55, at: 3 * b, n: 46, dir: -90, spread: 300, power: 1700, g: 1300, life: 1.25, seed: 3, colors: ['#ffc247', '#ffe680', '#fff6e5', '#ff9a3c'] });
+      c.flash(b, '#ffd98a', 0.6); c.flash(3 * b, '#ffffff', 0.75); c.shake(3 * b, 0.35, 20); c.punch(3 * b, 0.09);
+      return {
+        seek(lt) {
+          const lit = P(lt, b, 0.1, LIN);
+          L.set(lit, swing(lt, 0.35, 10, 6, 2.0), `translateY(${lerp(-520, 0, P(lt, 0, 0.42, F2))}px)`);
+          const r = lerp(lerp(0, O(400, 330), P(lt, b, 0.3, OUT)), 2700, P(lt, 2 * b - 0.05, 0.85, IO));
+          dark.style.webkitMaskImage = dark.style.maskImage = `radial-gradient(circle at ${LX}px ${GY}px, transparent ${r * 0.45}px, #000 ${r}px)`;
+          dark.style.opacity = lerp(0.985, 0.42, P(lt, 2 * b, 0.8, LIN));
+          bgi.style.transform = `scale(${lerp(1.16, 1.03, P(lt, b, 2.4, OUT))})`;
+          seekAll([T1, ray, G, cf], lt);
+        },
+        events: [[0.05, 'swish'], [b, 'lantern'], [2 * b, 'pop'], [3 * b, 'thud'], [3 * b + 0.05, 'sparkle']],
+      };
+    } },
+
+  // ───── 2. 보상: 퀴즈 → 정답 → 랜턴 점등 ─────
+  { name: '보상 · 맞히면 랜턴 ON', beats: 8, bg: 'night', trans: 'lantern', tx: W / 2, ty: O(950, 530), tsfx: 'whoosh', vig: 0.55, leak: 0.4, thumbs: [0.6, 2.9],
+    build: (el, c) => {
+      const b = c.beat, PK = 2 * b, ON = 3 * b;
+      const C = R.card(el, CARD({ vh: 700, at: 0.1, enter: 'zoom', shots: [
+        { src: 's_quiz.png', path: [[0, O(1.62, 1.66), 0.5, 0.5], [PK, O(1.7, 1.74), 0.48, 0.5]] },
+        { src: '@shots/extra/s_correct_after.png', at: PK + 0.05, kick: 1.15, path: [[PK, O(1.75, 1.75), 0.48, 0.5], [ON, O(2.05, 2.0), 0.47, 0.49], [3.8, O(2.3, 2.25), 0.465, 0.48]] },
+      ] }));
+      // 정답 칸(0도) 표시 + 손가락
+      const hl = mk('div', 'rhl', el), hand = mk('div', 'emo', el, '👆', { position: 'absolute', left: 0, top: 0, fontSize: '110px', fontFamily: "'Segoe UI Emoji'", filter: 'drop-shadow(0 8px 10px rgba(0,0,0,.45))' });
+      const spot = mk('div', 'rspot', el);
+      const T1 = MG.text(el, '문제를 맞히면 →', { style: 'type', at: 0.2, cps: 20, y: O(185, 300), x: O(null, 90), size: O(78, 66), font: 'body', weight: 900, color: '#e8e0ff' });
+      const GY = O(300, 410), GS = O(176, 146);
+      const ray = R.rays(el, { x: O(W / 2, 400), y: GY + GS * 0.6, size: O(1300, 1100), at: ON });
+      const G = R.row(el, [{ gold: '랜턴 ON!', anim: 'slam', at: ON, gloss: [ON + 0.4, ON + 1.3] }, { emoji: '🏮', size: GS * 0.8, anim: 'swing', at: ON + 0.12 }], { y: GY, size: GS, x: O(null, 80) });
+      const cf = R.confetti(el, { x: O(540, 1370), y: O(980, 520), at: ON, n: 60, dir: -90, spread: 150, power: 2200, life: 1.5, seed: 9 });
+      const GA = R.gauge(el, { x: O(90, 90), y: O(1335, 700), w: O(900, 760), at: ON + 0.35, fillAt: ON + 0.6, dur: 1.0, from: 0.1, to: 0.78 });
+      c.punch(PK, 0.05); c.punch(ON, 0.08); c.flash(ON, '#ffe9a8', 0.55);
+      return {
+        seek(lt) {
+          seekAll([C, T1, ray, G, cf, GA], lt);
+          // 정답 칸 고리 (그림 안 0도 칸: 0.316~0.497, 0.431~0.506)
+          const [x0, y0] = C.pt(0.316, 0.431), [x1, y1] = C.pt(0.497, 0.506);
+          const show = lt < PK + 0.05;
+          Object.assign(hl.style, { left: x0 - 8 + 'px', top: y0 - 8 + 'px', width: x1 - x0 + 16 + 'px', height: y1 - y0 + 16 + 'px' });
+          hl.style.opacity = show ? P(lt, PK - 0.12, 0.08, LIN) : 0;
+          hl.style.transform = `scale(${lerp(1.3, 1, P(lt, PK - 0.12, 0.25, F1))})`;
+          const tx = (x0 + x1) / 2, ty = (y0 + y1) / 2, hp = P(lt, PK - 0.62, 0.45, IO);
+          hand.style.opacity = P(lt, PK - 0.62, 0.12, LIN) * (show ? 1 : 0);
+          hand.style.transform = `translate(${lerp(tx + 260, tx - 30, hp)}px, ${lerp(ty + 330, ty - 10, hp)}px) scale(${lt > PK - 0.08 && lt < PK + 0.04 ? 0.85 : 1})`;
+          // 랜턴 자리 빛 번짐 (s_correct_after 의 랜턴 0.454, 0.478)
+          const [sx, sy] = C.pt(0.454, 0.478);
+          spot.style.opacity = lt > PK ? P(lt, ON - 0.05, 0.2, LIN) * (0.75 + 0.25 * Math.sin(lt * 9)) : 0;
+          spot.style.transform = `translate(${sx}px, ${sy}px) scale(${lerp(0.2, 1, P(lt, ON - 0.05, 0.5, F1))})`;
+        },
+        events: [[0.2, 'type'], [PK - 0.02, 'click'], [PK + 0.05, 'correct'], [ON, 'lantern'], [ON + 0.05, 'sparkle'], [ON + 0.6, 'rise']],
+      };
+    } },
+
+  // ───── 3. 긴장: 잠귀신이 쫓아오고 잠듦 → 친구가 깨움 ─────
+  { name: '긴장 · 잠귀신이 쫓아온다', beats: 10, bg: 'violet', trans: 'violet', vig: 0.95, leak: 0.12, thumbs: [1.5, 3.9],
+    build: (el, c) => {
+      const b = c.beat, SW = 5 * b, CAT = 2.0;
+      const C = R.card(el, CARD({ vy: 640, vh: 720, at: 0, enter: 'none', glow: 'rgba(180,140,255,.7)', tintColor: 'rgba(90,40,170,.45)',
+        tint: lt => lt < SW ? 0.35 + 0.25 * Math.sin(lt * 10) * (lt > 0.4 ? 1 : 0) : 0,
+        shots: [
+          { seq: { name: 'tag', start: 6, count: 36, fps: 15 }, path: [[0, O(1.7, 1.75), 0.5, 0.45], [SW, O(2.05, 2.1), 0.5, 0.42]] },
+          { seq: { name: 'wake', start: 1, count: 46, fps: 20 }, at: SW, kick: 1.1, path: [[SW, O(1.8, 1.85), 0.49, 0.46], [4.7, O(2.0, 2.05), 0.49, 0.46]] },
+        ] }));
+      const T0 = MG.text(el, '그런데…', { style: 'type', at: 0.15, cps: 10, y: O(165, 250), x: O(null, 90), size: O(68, 62), font: 'body', weight: 900, color: '#d9c8ff' });
+      const A1 = R.row(el, [{ t: '잠귀신이', anim: 'drop', at: 0.35, out: SW - 0.25 }, { emoji: '👻', size: O(130, 120), anim: 'swing', at: 0.5, bob: 10, out: SW - 0.25 }], { y: O(255, 330), size: O(140, 130), x: O(null, 90) });
+      const A2 = R.row(el, [{ t: '쫓아온다!', c: '#f1e6ff', anim: 'slam', at: 2 * b, out: SW - 0.25 }], { y: O(420, 500), size: O(168, 150), x: O(null, 90) });
+      T0.el.style.opacity = 1;
+      const B1 = R.row(el, [{ t: '잡히면', anim: 'left', at: SW + 0.05 }, { t: 'Zzz…', c: '#c7b2ff', size: O(140, 124), anim: 'right', at: SW + 0.2, bob: 8 }], { y: O(215, 320), size: O(116, 104), x: O(null, 90) });
+      const B2 = R.row(el, [{ t: '친구가 깨워 줘요', c: '#7fe0c4', anim: 'pop', at: SW + 0.6 }], { y: O(410, 500), size: O(112, 92), x: O(null, 90) });
+      const Z = R.marks(el, [0, 1, 2].map(i => ({ t: 'z', x: O(800 + i * 70, 1660 + i * 60), y: O(700 - i * 70, 200 - i * 50), size: 70 + i * 22, at: SW + 0.3 + i * 0.18, float: 30, c: '#d9c8ff', r0: -30, r: -12, wob: 6 })));
+      c.flash(CAT, '#c9a2ff', 0.75); c.shake(CAT, 0.45, 24); c.punch(CAT, 0.06); c.flash(SW, '#ffffff', 0.45);
+      return {
+        seek(lt) {
+          seekAll([C, A1, A2, B1, B2, Z], lt);
+          T0.seek(lt); T0.el.style.opacity = 1 - P(lt, SW - 0.25, 0.25, LIN);
+        },
+        events: [[0.15, 'type'], [0.4, 'pop2'], [2 * b, 'swish'], [CAT, 'thud'], [SW, 'swish'], [SW + 0.6, 'pop'], [SW + 1.5, 'sparkle']],
+      };
+    } },
+
+  // ───── 4. 반전: 모닥불 회의·투표 — 범인은 이 안에 있다 ─────
+  { name: '반전 · 범인은 이 안에 있다', beats: 8, bg: 'ember', trans: 'whip', vig: 0.75, leak: 0.45, thumbs: [1.2, 3.2],
+    build: (el, c) => {
+      const b = c.beat, STOP = 4 * b, SW = 5 * b;
+      const C = R.card(el, CARD({ vy: 580, vh: 700, at: 0, enter: 'none', glow: 'rgba(255,150,80,.55)', tint: lt => lt < SW ? 0.55 : 0,
+        shots: [
+          { src: 'm_meeting.png', path: [[0, O(1.25, 1.2), 0.5, 0.5], [SW, O(1.3, 1.25), 0.5, 0.5]] },
+          { src: 'm_vote.png', at: SW, path: [[SW, O(1.3, 1.22), 0.5, 0.52], [3.8, O(1.45, 1.3), 0.5, 0.52]] },
+        ] }));
+      const FX = O(540, 1370), FY = O(930, 530);
+      const ray = R.rays(el, { x: FX, y: FY, size: O(900, 900), at: STOP, out: SW, color: 'rgba(255,200,110,.55)' });
+      const F = R.face(el, { x: FX, y: FY, size: O(380, 340), at: 0.1, step: 0.105, stopAt: STOP, final: 6, out: SW - 0.1, order: [0, 3, 6, 1, 4, 7, 2, 5], dy: -6 });
+      const QM = R.marks(el, [[-250, -200, 150, 0.25, LAN], [240, -230, 110, 0.4, MINT], [-280, 150, 100, 0.55, '#ff9ec4'], [255, 150, 160, 0.7, LAN]]
+        .map(([dx, dy, s, at, col]) => ({ t: '?', x: FX + dx, y: FY + dy - s / 2, size: s, at, c: col, out: SW - 0.15, wob: 8 })));
+      const A1 = R.row(el, [{ t: '범인은', anim: 'drop', at: 0.12 }], { y: O(165, 260), size: O(124, 116), x: O(null, 90) });
+      const A2 = R.row(el, [{ gold: '이 안에 있다', anim: 'slam', at: b, gloss: [b + 0.5, STOP + 0.2] }, { emoji: '🕵️', size: O(120, 110), anim: 'spin', at: b + 0.2, bob: 6 }], { y: O(320, 410), size: O(138, 118), x: O(null, 90) });
+      const S = MG.text(el, ['꿈도둑을', '찾아라'], { style: 'marker', mark: [0, 1], at: STOP + 0.05, y: O(1300, 680), x: O(null, 90), size: O(88, 80), markColor: 'var(--mint)' });
+      c.punch(b, 0.07); c.flash(b, '#ffd59a', 0.45); c.flash(STOP, '#ffffff', 0.35);
+      return {
+        seek(lt) { seekAll([C, ray, F, QM, A1, A2, S], lt); },
+        events: [[0.12, 'pop'], [0.2, 'deal'], [b, 'thud'], [STOP, 'stamp'], [SW, 'flip'], [STOP + 0.05, 'marker']],
+      };
+    } },
+
+  // ───── 5. 몽타주: 맵 5곳을 박자마다 + 미끄럼틀·킥보드 (음악 drop) ─────
+  { name: '몽타주 · 맵 5곳 · 캐릭터 8종 · 아이템', beats: 7, bg: 'night', trans: 'flash', section: 'drop', punch: true, vig: 0.5, leak: 0.35, thumbs: [0.7, 2.6],
+    build: (el, c) => {
+      const b = c.beat;
+      const MAPS = [['map_night-school.png', 1.5], ['map_night-park.png', 1.4545], ['map_moon-library.png', 1.5], ['map_monster-gym.png', 1.4735], ['map_star-academy.png', 1.6]];
+      const COLS = ['#ffc247', '#7fe0c4', '#ff9ec4', '#9b6bf2', '#5cc8f2'];
+      const shots = MAPS.map(([src, ar], k) => ({ src, ar, at: k * b, kick: 1.18, path: [[k * b, 1.0, 0.5, 0.5], [(k + 1) * b, 1.07, 0.5, 0.52]] }));
+      shots.push({ seq: { name: 'slide', start: 4, count: 15, step: 3, fps: 32 }, at: 5 * b, kick: 1.15, path: [[5 * b, O(1.75, 1.6), 0.5, 0.45]] });
+      shots.push({ seq: { name: 'kick_spin', start: 14, count: 15, step: 2, fps: 24 }, at: 6 * b, kick: 1.15, path: [[6 * b, O(1.75, 1.6), 0.5, 0.45]] });
+      const C = R.card(el, { x: O(40, 820), y: O(580, 130), w: O(1000, 1020), h: O(740, 740), at: 0, enter: 'none', shots });
+      MAPS.forEach((_, k) => { if (k) c.flash(k * b, COLS[k], 0.32, 9); });
+      c.flash(5 * b, '#ffffff', 0.4, 9); c.flash(6 * b, '#ffc247', 0.4, 9);
+      const A = R.row(el, [{ gold: '맵 5곳', anim: 'slam', at: 0.05, gloss: [0.6] }], { y: O(120, 250), size: O(160, 150), x: O(null, 90) });
+      const B = R.row(el, [{ t: '캐릭터', anim: 'drop', at: 2 * b }, { t: '8종', c: LAN, size: O(138, 130), anim: 'pop', at: 2 * b + 0.12 }], { y: O(310, 450), size: O(108, 104), x: O(null, 90) });
+      const D = R.row(el, [{ t: '아이템 가득', c: MINT, anim: 'slam', at: 5 * b }], { y: O(455, 610), size: O(100, 100), x: O(null, 90) });
+      // 캐릭터 8종: 얼굴 8개가 줄지어 톡톡
+      const FS = O(108, 84), FG = O(116, 94), FCX = O(540, 1330), FCY = O(1365, 955);
+      const faces = R.FACES.map((_, i) => R.face(el, { x: FCX + (i - 3.5) * FG, y: FCY, size: FS, at: 2 * b + 0.05 + i * 0.045, step: 99, order: [i], rot: i % 2 ? 20 : -20, bob: 4, ph: i }));
+      faces.forEach(f => { f.el.style.borderWidth = '5px'; });
+      return {
+        seek(lt) { seekAll([C, A, B, D, ...faces], lt); faces.forEach(f => { f.el.style.boxShadow = '0 0 0 4px #2a2140'; }); },
+        events: [[0.05, 'pop2'], [b, 'tick'], [2 * b, 'pop'], [2 * b + 0.1, 'deal'], [3 * b, 'tick'], [4 * b, 'tick'], [5 * b, 'swish'], [6 * b, 'boing']],
+      };
+    } },
+
+  // ───── 6. 교사용: 문제 넣기 → 실시간 중계 → 문제별 정답률 ─────
+  { name: '교사용 · 문제만 넣으면 끝', beats: 9, bg: 'mint', trans: 'push', punch: true, vig: 0.5, leak: 0.3, thumbs: [1.0, 3.6],
+    build: (el, c) => {
+      const b = c.beat;
+      const C = R.card(el, CARD({ vy: 580, vh: 680, at: 0, enter: 'none', glow: 'rgba(127,224,196,.5)', shots: [
+        { src: 't_questions.png', path: [[0, O(1.28, 1.3), 0.46, 0.42], [3 * b, O(1.38, 1.4), 0.46, 0.56]] },
+        { src: 't_live.png', at: 3 * b, path: [[3 * b, O(1.15, 1.15), 0.42, 0.55], [6 * b, O(1.3, 1.3), 0.38, 0.62]] },
+        { src: 't_report.png', at: 6 * b, path: [[6 * b, O(1.55, 1.55), 0.56, 0.24], [4.3, O(1.7, 1.7), 0.56, 0.3]] },
+      ] }));
+      const T0 = MG.text(el, '선생님은', { style: 'mask', at: 0.1, y: O(140, 200), x: O(null, 90), size: O(80, 70), font: 'body', weight: 900, color: '#e8f7ff' });
+      const A = R.row(el, [{ t: '문제만 넣으면', anim: 'rise', at: 0.3 }, { gold: '끝!', size: O(168, 142), anim: 'slam', at: 2 * b, gloss: [2 * b + 0.45] }], { y: O(235, 290), size: O(104, 90), x: O(null, 90) });
+      const box = mk('div', 'rchips', el, null, V ? { left: '0', right: '0', top: '462px', justifyContent: 'center' } : { left: '90px', top: '530px', width: '720px' });
+      const CH = [['설치', '✕', 1.41], ['가입', '✕', 1.76], ['크롬북', '✓', 2.11], ['태블릿', '✓', 2.46]].map(([t, bd, at], i) => R.chip(box, t, { badge: bd, at, size: O(44, 48), r0: i % 2 ? 8 : -8 }));
+      const S = MG.text(el, ['끝나면', '정답률까지'], { style: 'marker', mark: [1], at: 6 * b + 0.1, y: O(1290, 760), x: O(null, 90), size: O(82, 74), markColor: 'var(--lantern)' });
+      c.punch(2 * b, 0.07); c.flash(2 * b, '#fff3c4', 0.4);
+      return {
+        seek(lt) { seekAll([C, T0, A, ...CH, S], lt); },
+        events: [[0.1, 'swish'], [2 * b, 'stamp'], ...CH.map((_, i) => [[1.41, 1.76, 2.11, 2.46][i] + 0.18, 'click']), [3 * b, 'flip'], [6 * b, 'flip'], [6 * b + 0.1, 'marker']],
+      };
+    } },
+
+  // ───── 7. CTA: 랜턴 든 캐릭터들 — 댓글에 '랜턴' ─────
+  { name: 'CTA · 댓글에 랜턴', beats: 10, bg: 'deep', trans: 'lantern', tx: W / 2, ty: O(560, 380), section: 'outro', still: 2.35, moon: false, vig: 0.5, leak: 0.35, garland: 0, thumbs: [1.0, 4.2],
+    build: (el, c) => {
+      const b = c.beat, ST = 2.35;
+      let band;
+      if (V) { band = mk('div', 'rband', el, null, { left: '-120px', top: '1150px', width: '1320px', height: '770px' }); R.img(band, ILL + 'loading.png'); }
+      else { band = mk('div', 'layer', el); R.img(band, ILL + 'loading.png', 'rfull'); mk('div', 'shade', el, null, { background: 'radial-gradient(ellipse 760px 520px at 50% 42%, rgba(11,10,36,.72), rgba(11,10,36,0))' }); }
+      const lans = V ? [140, 340, 540, 740, 940].map((x, i) => MG.lantern(el, x, i % 2 ? 70 : 30, 0.55, { rope: true, glow: 0.8 })) : [];
+      const T0 = MG.text(el, '플레이 주소가 궁금하다면?', { style: 'mask', at: 0.15, y: O(225, 110), size: O(64, 58), font: 'body', weight: 900, color: '#efe8ff' });
+      const RY = O(500, 225), RS = O(230, 205);
+      const ray = R.rays(el, { x: O(W / 2, 1070), y: RY + RS * 0.6, size: O(1400, 1400), at: 2 * b, stillAt: ST });
+      const items = [{ gold: "'랜턴'", anim: 'slam', at: 2 * b, gloss: [2 * b + 0.22, 2 * b + 0.82] }, { emoji: '💬', size: O(150, 125), anim: 'swing', at: 2 * b + 0.15 }];
+      const A0 = V ? R.row(el, [{ t: '댓글에', anim: 'drop', at: 0.45 }], { y: 350, size: 122 }) : null;
+      if (!V) items.unshift({ t: '댓글에', size: 118, anim: 'drop', at: 0.45, dy: 0 });
+      const A = R.row(el, items, { y: RY, size: RS, stillAt: ST });
+      const pill = mk('div', 'rpill', el, `<span>DM으로 바로 보내드려요</span><span class="emo">📩</span>`, { top: O(850, 560) + 'px', fontSize: O(54, 52) + 'px' });
+      pill.querySelector('.emo').style.fontSize = O(66, 62) + 'px';
+      const AT = R.row(el, [{ t: '@hanuipyo', c: MINT, anim: 'rise', at: 1.75 }], { y: O(1000, 690), size: O(80, 74) });
+      const cf1 = R.confetti(el, { x: O(60, 260), y: O(760, 520), at: 2 * b, n: 48, dir: -62, spread: 50, power: 2400, life: 1.3, seed: 21 });
+      const cf2 = R.confetti(el, { x: O(1020, 1660), y: O(760, 520), at: 2 * b, n: 48, dir: -118, spread: 50, power: 2400, life: 1.3, seed: 44 });
+      c.flash(2 * b, '#ffe9a8', 0.55); c.punch(2 * b, 0.08);
+      return {
+        seek(lt) {
+          const ls = Math.min(lt, ST);
+          if (V) band.style.transform = `translateY(${lerp(120, 0, P(lt, 0, 0.9, OUT))}px)`; else band.firstChild.style.transform = `scale(${lerp(1.12, 1.03, P(lt, 0, 1.6, OUT))})`;
+          lans.forEach((L, i) => L.set(P(lt, 0.2 + i * 0.07, 0.15, LIN), swing(ls, 0.1 + i * 0.05, 6, 6, 2.5), `translateY(${lerp(-260, 0, P(lt, i * 0.05, 0.5, F2))}px)`));
+          seekAll([T0, ray, A0, A, AT, cf1, cf2], lt);
+          const p = P(lt, 1.3, 0.45, F1); pill.style.opacity = P(lt, 1.3, 0.12, LIN); pill.style.transform = `translateY(${lerp(60, 0, p)}px) scale(${lerp(0.6, 1, p)})`;
+        },
+        events: [[0.15, 'swish'], [0.45, 'pop'], [2 * b, 'thud'], [2 * b + 0.05, 'chime'], [1.3, 'pop2'], [1.75, 'tick']],
+      };
+    } },
+];
+
+// 음악 구간: build=드럼 시작(2마디=3.75초, 정답 순간) · drop=몽타주 · outro=CTA
+SCENES[1].section = undefined;
+const SEC_BUILD = 2;
+makeReel({ bpm: 128, mood: 'promo', scenes: SCENES });
+window.SECTIONS.build = SEC_BUILD;
+</script>
+</body>
+</html>

@@ -20,3 +20,6 @@ outputs/video/guide/work/*.jpg
 
 # 홍보 자료 만들 때 쓴 중간 파일
 outputs/promo/_work/
+
+# 인스타 홍보 영상 (용량이 커서 올리지 않는다. 커버·설계서는 올린다)
+outputs/promo/instagram/*.mp4

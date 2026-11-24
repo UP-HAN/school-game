@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>한밤의 랜턴 대작전 — 릴스 커버 (세로 ?o=v / 가로)</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=block" rel="stylesheet">
+<link rel="stylesheet" href="video.css">
+<style>
+/* 정지 그림(커버). 세로 1080x1920 은 글자를 가운데 정사각형(위 420~아래 1500) 안에 둔다 */
+html, body { width: auto; height: auto; }
+#cv { position: absolute; left: 0; top: 0; overflow: hidden; background: linear-gradient(180deg, #0b0a24, #2b2163); }
+.ill { position: absolute; display: block; object-fit: cover; }
+.c { position: absolute; left: 0; right: 0; text-align: center; white-space: nowrap; }
+.gt { position: relative; display: inline-block; line-height: 1.12; padding: 0 .04em; }
+.gt .bk { position: absolute; left: .04em; top: 0; color: #2a2140; -webkit-text-stroke: .13em #2a2140; text-shadow: 0 .08em 0 #2a2140, 0 0 .5em rgba(255, 170, 60, .8); }
+.gt .fr { position: relative; color: transparent; -webkit-background-clip: text; background-clip: text;
+  background-image: linear-gradient(105deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.75) 38%, rgba(255,255,255,0) 46%), linear-gradient(180deg, #fffbe3 0%, #ffe680 28%, #ffc247 52%, #ff9a3c 80%, #ff7d2e 100%); }
+.wt { color: #fff; text-shadow: 0 8px 0 rgba(11, 10, 36, .55), 0 0 34px rgba(11, 10, 36, .7); }
+.rays { position: absolute; border-radius: 50%; background: repeating-conic-gradient(from 4deg, rgba(255, 214, 120, .45) 0deg 6deg, rgba(255, 214, 120, 0) 6deg 22.5deg);
+  -webkit-mask-image: radial-gradient(closest-side, #000 12%, rgba(0,0,0,.5) 45%, transparent 100%); mask-image: radial-gradient(closest-side, #000 12%, rgba(0,0,0,.5) 45%, transparent 100%); }
+.pill { display: inline-flex; align-items: center; gap: 16px; padding: 16px 40px 14px; border-radius: 999px; background: var(--paper); color: var(--ink); border: 6px solid var(--ink); box-shadow: 8px 8px 0 var(--ink), 0 0 50px rgba(255, 194, 71, .5); font-weight: 900; }
+.emo { font-family: 'Segoe UI Emoji', sans-serif; line-height: 1; display: inline-block; }
+.band { position: absolute; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: .4em; background: rgba(11, 10, 36, .9); border-top: 5px solid var(--lantern); border-bottom: 5px solid var(--lantern); white-space: nowrap; font-weight: 900; }
+.band .a { font-family: 'Jua'; font-weight: 400; color: var(--lantern); font-size: 1.15em; }
+.band .b { color: #efe8ff; }
+.vig { position: absolute; inset: 0; background: radial-gradient(ellipse 75% 70% at 50% 45%, rgba(4,3,16,0) 50%, rgba(4,3,16,.8) 100%); }
+.peek { position: absolute; font-family: 'Segoe UI Emoji', sans-serif; line-height: 1; filter: drop-shadow(0 0 24px rgba(180, 140, 255, .9)); }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script src="lib.js"></script>
+<script>
+const V = /[?&]o=v/.test(location.search), W = V ? 1080 : 1920, H = V ? 1920 : 1080, O = (v, h) => V ? v : h;
+for (const e of [document.documentElement, document.body]) { e.style.width = W + 'px'; e.style.height = H + 'px'; }
+const { mk } = MG;
+const cv = mk('div', null, document.body, null, { width: W + 'px', height: H + 'px' }); cv.id = 'cv';
+const PEND = [];
+const img = (src, st) => { const e = mk('img', 'ill', cv, null, st); PEND.push(new Promise(r => { e.onload = r; e.onerror = () => { console.error('그림 없음 ' + src); r(); }; })); e.src = src; return e; };
+// 별
+let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+for (let i = 0; i < 90; i++) { const z = 2 + rnd() * 4; mk('div', 'star', cv, null, { left: rnd() * W + 'px', top: rnd() * H * 0.6 + 'px', width: z + 'px', height: z + 'px', opacity: 0.4 + rnd() * 0.6 }); }
+// 그림: 랜턴 든 캐릭터들 (기존 일러스트 landing.png)
+if (V) img('../../../art/illust/landing.png', { left: '-330px', top: '930px', width: '1740px', height: '990px', WebkitMaskImage: 'linear-gradient(180deg, transparent 0, #000 18%)', maskImage: 'linear-gradient(180deg, transparent 0, #000 18%)' });
+else img('../../../art/illust/landing.png', { left: 0, top: 0, width: '1920px', height: '1080px' });
+mk('div', 'vig', cv);
+// 엿보는 잠귀신 (이모지, 글자 밖)
+mk('div', 'peek', cv, '👻', { left: O(820, 1400) + 'px', top: O(470, 150) + 'px', fontSize: O(150, 140) + 'px', transform: 'rotate(14deg)', opacity: 0.92 });
+// 빛줄기 + 랜턴
+const GY = O(700, 300), GS = O(236, 250);
+mk('div', 'rays', cv, null, { left: W / 2 - 800 + 'px', top: GY + GS * 0.6 - 800 + 'px', width: '1600px', height: '1600px' });
+if (V) { const L = MG.lantern(cv, 540, 150, 1.0, { rope: true, glow: 1.5 }); L.set(1, -4); }
+// 글자
+mk('div', 'c jua wt', cv, '수업 시간에', { top: O(540, 165) + 'px', fontSize: O(150, 130) + 'px' });
+const g = mk('div', 'c jua', cv, `<span class="gt"><span class="bk">술래잡기?!</span><span class="fr">술래잡기?!</span></span>`, { top: GY + 'px', fontSize: GS + 'px' });
+mk('div', 'c', cv, `<span class="pill" style="font-size:${O(56, 54)}px"><span>퀴즈를 맞혀야 랜턴이 켜진다</span><span class="emo" style="font-size:${O(66, 62)}px">🏮</span></span>`, { top: O(1040, 625) + 'px' });
+mk('div', 'band', cv, `<span class="a">한밤의 랜턴 대작전</span><span class="b">· 초등교사가 만든 교실 게임</span>`, { top: O(1345, 960) + 'px', height: O(110, 100) + 'px', fontSize: O(40, 46) + 'px' });
+window.seek = () => { }; window.TOTAL = 1; window.EVENTS = []; window.BPM = 128; window.MOOD = 'promo'; window.SECTIONS = {}; window.SB = [];
+window.ready = Promise.race([document.fonts.ready.then(() => Promise.all(PEND)), new Promise(r => setTimeout(r, 20000))]);
+</script>
+</body>
+</html>
