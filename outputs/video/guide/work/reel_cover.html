@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -31,7 +31,9 @@ html, body { width: auto; height: auto; }
 <div id="stage"></div>
 <script src="lib.js"></script>
 <script>
-const V = /[?&]o=v/.test(location.search), W = V ? 1080 : 1920, H = V ? 1920 : 1080, O = (v, h) => V ? v : h;
+const V = /[?&]o=v/.test(location.search), SQ = !V && /[?&]o=s/.test(location.search), W = V || SQ ? 1080 : 1920, H = V ? 1920 : 1080;
+// 배치값: O(세로, 가로, 정사각)
+const O = (v, h, s) => SQ ? s : V ? v : h;
 for (const e of [document.documentElement, document.body]) { e.style.width = W + 'px'; e.style.height = H + 'px'; }
 const { mk } = MG;
 const cv = mk('div', null, document.body, null, { width: W + 'px', height: H + 'px' }); cv.id = 'cv';
@@ -41,20 +43,21 @@ const img = (src, st) => { const e = mk('img', 'ill', cv, null, st); PEND.push(n
 let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
 for (let i = 0; i < 90; i++) { const z = 2 + rnd() * 4; mk('div', 'star', cv, null, { left: rnd() * W + 'px', top: rnd() * H * 0.6 + 'px', width: z + 'px', height: z + 'px', opacity: 0.4 + rnd() * 0.6 }); }
 // 그림: 랜턴 든 캐릭터들 (기존 일러스트 landing.png)
-if (V) img('../../../art/illust/landing.png', { left: '-330px', top: '930px', width: '1740px', height: '990px', WebkitMaskImage: 'linear-gradient(180deg, transparent 0, #000 18%)', maskImage: 'linear-gradient(180deg, transparent 0, #000 18%)' });
+if (SQ) img('../../../art/illust/landing.png', { left: '-220px', top: '170px', width: '1520px', height: '855px', WebkitMaskImage: 'linear-gradient(180deg, transparent 0, #000 22%)', maskImage: 'linear-gradient(180deg, transparent 0, #000 22%)' });
+else if (V) img('../../../art/illust/landing.png', { left: '-330px', top: '930px', width: '1740px', height: '990px', WebkitMaskImage: 'linear-gradient(180deg, transparent 0, #000 18%)', maskImage: 'linear-gradient(180deg, transparent 0, #000 18%)' });
 else img('../../../art/illust/landing.png', { left: 0, top: 0, width: '1920px', height: '1080px' });
 mk('div', 'vig', cv);
 // 엿보는 잠귀신 (이모지, 글자 밖)
-mk('div', 'peek', cv, '👻', { left: O(820, 1400) + 'px', top: O(470, 150) + 'px', fontSize: O(150, 140) + 'px', transform: 'rotate(14deg)', opacity: 0.92 });
+mk('div', 'peek', cv, '👻', { left: O(820, 1400, 840) + 'px', top: O(470, 150, 70) + 'px', fontSize: O(150, 140, 120) + 'px', transform: 'rotate(14deg)', opacity: 0.92 });
 // 빛줄기 + 랜턴
-const GY = O(700, 300), GS = O(236, 250);
+const GY = O(700, 300, 250), GS = O(236, 250, 206);
 mk('div', 'rays', cv, null, { left: W / 2 - 800 + 'px', top: GY + GS * 0.6 - 800 + 'px', width: '1600px', height: '1600px' });
 if (V) { const L = MG.lantern(cv, 540, 150, 1.0, { rope: true, glow: 1.5 }); L.set(1, -4); }
 // 글자
-mk('div', 'c jua wt', cv, '수업 시간에', { top: O(540, 165) + 'px', fontSize: O(150, 130) + 'px' });
+mk('div', 'c jua wt', cv, '수업 시간에', { top: O(540, 165, 100) + 'px', fontSize: O(150, 130, 128) + 'px' });
 const g = mk('div', 'c jua', cv, `<span class="gt"><span class="bk">술래잡기?!</span><span class="fr">술래잡기?!</span></span>`, { top: GY + 'px', fontSize: GS + 'px' });
-mk('div', 'c', cv, `<span class="pill" style="font-size:${O(56, 54)}px"><span>퀴즈를 맞혀야 랜턴이 켜진다</span><span class="emo" style="font-size:${O(66, 62)}px">🏮</span></span>`, { top: O(1040, 625) + 'px' });
-mk('div', 'band', cv, `<span class="a">한밤의 랜턴 대작전</span><span class="b">· 초등교사가 만든 교실 게임</span>`, { top: O(1345, 960) + 'px', height: O(110, 100) + 'px', fontSize: O(40, 46) + 'px' });
+mk('div', 'c', cv, `<span class="pill" style="font-size:${O(56, 54, 46)}px"><span>퀴즈를 맞혀야 랜턴이 켜진다</span><span class="emo" style="font-size:${O(66, 62, 54)}px">🏮</span></span>`, { top: O(1040, 625, 525) + 'px' });
+mk('div', 'band', cv, `<span class="a">한밤의 랜턴 대작전</span><span class="b">· 초등교사가 만든 교실 게임</span>`, { top: O(1345, 960, 915) + 'px', height: O(110, 100, 96) + 'px', fontSize: O(40, 46, 38) + 'px' });
 window.seek = () => { }; window.TOTAL = 1; window.EVENTS = []; window.BPM = 128; window.MOOD = 'promo'; window.SECTIONS = {}; window.SB = [];
 window.ready = Promise.race([document.fonts.ready.then(() => Promise.all(PEND)), new Promise(r => setTimeout(r, 20000))]);
 </script>

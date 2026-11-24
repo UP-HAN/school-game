@@ -4,9 +4,11 @@
 (function () {
   const { P, lerp, clamp, mk, F1, F2, OUT, INQ, IO, LIN, tent, swing } = MG;
   const V = /[?&]o=v/.test(location.search);
-  const W = V ? 1080 : 1920, H = V ? 1920 : 1080;
+  const SQ = !V && /[?&]o=s/.test(location.search);   // (덧붙임) 정사각 1080x1080 판
+  const W = V || SQ ? 1080 : 1920, H = V ? 1920 : 1080;
   const CALM = MG.CALM;
-  const O = (v, h) => (V ? v : h);
+  // 배치값 고르기: O(세로, 가로, 정사각). 정사각 값을 안 주면 세로 값을 쓴다.
+  const O = (v, h, s) => (SQ ? (s !== undefined ? s : v) : V ? v : h);
 
   // ================= 조절 토큰 (릴스 전용, 여기만 바꾸면 리듬이 바뀐다) =================
   const RT = window.RT = {
@@ -38,7 +40,7 @@
   const sky = mk('div', 'layer', root);
   const R0 = rng(5);
   const STARS = Array.from({ length: V ? 110 : 90 }, () => { const s = 2 + R0() * 4; const e = mk('div', 'star', sky, null, { left: R0() * W + 'px', top: R0() * H * 0.8 + 'px', width: s + 'px', height: s + 'px' }); return { e, w: 0.8 + R0() * 2.4, ph: R0() * 6.28 }; });
-  const moonEl = mk('div', 'moon', sky, null, { left: O(830, 1640) + 'px', top: O(120, 70) + 'px' });
+  const moonEl = mk('div', 'moon', sky, null, { left: O(830, 1640, 880) + 'px', top: O(120, 70, 60) + 'px' });
   const scenesEl = mk('div', 'layer', root); scenesEl.id = 'rscenes';
   // 세로 전용: 아래 25%(인스타 버튼·설명글 자리)는 장식만 — 안개 + 이야기 진행에 따라 하나씩 켜지는 랜턴 줄
   const deco = mk('div', 'layer', root, null, { pointerEvents: 'none' });
@@ -59,7 +61,7 @@
   const flash = mk('div', 'layer', fx, null, { opacity: 0 });
 
   // ================= 효과 부품 (R.*) =================
-  const R = window.R = { V, W, H, O, img, srcOf, RT };
+  const R = window.R = { V, SQ, W, H, O, img, srcOf, RT };
 
   // 글자 등장 공통 (row 안 낱말·이모지)
   function anim(e, lt, t0, kind, o = {}) {
