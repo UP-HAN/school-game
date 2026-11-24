@@ -5,13 +5,32 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const { chromium } = require('C:/Users/hanui/OneDrive/Desktop/Workspace_backup/Car_Racing/promo_video/node_modules/playwright-core');
-export const CHROME = 'C:/Users/hanui/AppData/Local/ms-playwright/chromium-1248/chrome-win64/chrome.exe';
-export const CODE = 'C:/Users/hanui/OneDrive/Desktop/Workspace/school-game/outputs/code/';
-export const SHOTS = 'C:/Users/hanui/OneDrive/Desktop/Workspace/school-game/outputs/video/guide/shots/';
+// 컴퓨터마다 설치 위치가 달라서, 있는 것을 골라 쓴다 (새로 설치하지 않는다). 환경변수 PW_CORE · CHROME 으로 직접 정할 수도 있다.
+const firstExisting = (list, what) => {
+  const hit = list.filter(Boolean).find((p) => fs.existsSync(p));
+  if (!hit) throw new Error(what + ' 을(를) 찾지 못했습니다: ' + list.filter(Boolean).join(', '));
+  return hit;
+};
+const slash = (p) => p.split(path.sep).join('/');
+const HOME = slash(process.env.USERPROFILE || '');
+const { chromium } = require(firstExisting([
+  process.env.PW_CORE,
+  'C:/Users/hanui/OneDrive/Desktop/Workspace_backup/Car_Racing/promo_video/node_modules/playwright-core',
+  HOME + '/Desktop/Workspace/phone_free/outputs/video/node_modules/playwright-core',
+  HOME + '/Desktop/Workspace/voyage-trade-king/node_modules/playwright-core',
+], 'playwright-core'));
+export const CHROME = firstExisting([
+  process.env.CHROME,
+  HOME + '/AppData/Local/ms-playwright/chromium-1248/chrome-win64/chrome.exe',
+  HOME + '/AppData/Local/ms-playwright/chromium-1243/chrome-win64/chrome.exe',
+], '크로미움');
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+export const CODE = slash(path.resolve(HERE, '../../../code')) + '/';
+// 캡처 저장 폴더. 환경변수 SHOTS 로 다른 폴더에 찍을 수 있다 (끝에 / 를 붙인다).
+export const SHOTS = process.env.SHOTS || slash(path.resolve(HERE, '../shots')) + '/';
 const ROOT = pathToFileURL(CODE).href;
 export const kit = await import(ROOT + 'server/testkit.js');
 export const { GAME, CHASE } = await import(ROOT + 'shared/config.js');

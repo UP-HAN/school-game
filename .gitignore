@@ -17,3 +17,6 @@ outputs/video/guide/capture/*.log
 outputs/video/guide/work/*_thumbs/
 outputs/video/guide/work/*.log
 outputs/video/guide/work/*.jpg
+
+# 홍보 자료 만들 때 쓴 중간 파일
+outputs/promo/_work/
